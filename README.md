@@ -329,6 +329,156 @@ The result is a market that is simpler for users, more capital-efficient for liq
 
 ---
 
+## Partner Track Integrations (HackMoney 2026)
+
+This project integrates three hackathon partner tracks to create a complete prediction market experience.
+
+### Architecture Overview
+
+![Multi-Dimensional Prediction Market Architecture](public/Architecture.png)
+
+---
+
+### 1) Uniswap V4 — VAMM for Outcome Token Trading
+
+**What It Does:**
+Uniswap v4 Hooks power the core VAMM (Virtual AMM) that prices and trades outcome tokens for the prediction market.
+
+**How We Use It:**
+
+| Component | How It Works |
+|-----------|--------------|
+| **LS-LMSR AMM Engine** | Custom Hook implements our pricing logic inside v4's swap lifecycle |
+| **World Table Updates** | Hook's `beforeSwap`/`afterSwap` callbacks recalculate all 8 corner prices on every trade |
+| **Basket Trades** | When user trades a marginal (e.g., "A=Yes"), the Hook updates all affected corners in one tx |
+| **JIT Minting** | Hook mints outcome tokens on-demand when users buy positions |
+
+**Why Uniswap v4:**
+- **Hooks** allow custom pricing logic (LS-LMSR) within v4's swap lifecycle
+- **Singleton architecture** reduces gas for multi-outcome updates
+- **Flash accounting** enables basket trades (marginals/slices) in one tx
+
+---
+
+### 2) Yellow Network — Gasless State Channel Payments
+
+**What It Does:**
+Yellow Network handles high-frequency betting through state channels, enabling instant, gasless transactions during a betting session.
+
+**How We Use It:**
+
+| Phase | How It Works |
+|-------|--------------|
+| **Session Start** | User connects wallet, Yellow SDK opens a state channel with USDC deposit |
+| **Placing Bets** | Each bet is an off-chain signed message — no gas, instant confirmation |
+| **Live Updates** | Yellow nodes sync balances in real-time across all parties |
+| **Session End** | One on-chain tx settles final state with Uniswap v4 VAMM |
+
+**Why Yellow Network:**
+- **Gas efficiency**: 100 bets = 1 on-chain tx (only at session end)
+- **Instant UX**: Bets feel like Web2 (no waiting for block confirmation)
+- **Session logic**: Natural fit for "betting sessions" (sit down, bet, cash out)
+
+---
+
+### 3) ENS — Usernames & Market Names
+
+**What It Does:**
+ENS provides human-readable identity for both **users** (like Polymarket usernames) and **markets** (enabling direct token purchases via Metamask).
+
+**How We Use It:**
+
+#### A) User Profiles (Polymarket-Style Usernames)
+
+| Feature | How It Works |
+|---------|--------------|
+| **Username Display** | Show `vitalik.eth` instead of `0xd8dA...` throughout the UI |
+| **Leaderboards** | Rankings display ENS names — builds reputation and trust |
+| **Avatars** | Pull user's ENS avatar record for profile pictures |
+| **Betting History** | Associate trade history with ENS name, not raw address |
+
+#### B) Market Names (ENS Subdomains)
+
+We register a parent domain (e.g., `pm.eth`) and create **subdomains for each market**:
+
+| Market | ENS Subdomain | Resolves To |
+|--------|---------------|-------------|
+| "Trump wins 2024" | `trump2024.pm.eth` | Market contract address |
+| "ETH > $10k by Dec" | `eth10k-dec.pm.eth` | Market contract address |
+| "Fed rate cut Q1" | `fedcut-q1.pm.eth` | Market contract address |
+
+**User Benefit — Buy Tokens Directly from Metamask:**
+
+Instead of navigating through our UI, users can:
+1. Open Metamask
+2. Send USDC to `trump2024-yes.pm.eth`
+3. Automatically receive YES outcome tokens
+
+This works because:
+- ENS subdomain resolves to the market's swap router
+- The router detects incoming USDC and mints the default outcome token (YES)
+- User receives tokens at their ENS-resolved address
+
+#### C) ENS Text Records for Market Metadata
+
+Each market subdomain stores metadata in ENS text records:
+
+| Record Key | Example Value |
+|------------|---------------|
+| `description` | "Will Donald Trump win the 2024 US Presidential Election?" |
+| `resolution-date` | "2024-11-06" |
+| `oracle` | "uma.eth" |
+| `yes-token` | "0x123..." |
+| `no-token` | "0x456..." |
+
+**Why ENS:**
+- **Trust**: Users see `vitalik.eth` not hex — recognizable identity
+- **Discoverability**: Markets have memorable names, not contract addresses
+- **Wallet-Native UX**: Buy tokens by sending to ENS name (no dApp required)
+- **Composability**: Any wallet/dApp can resolve market info from ENS records
+
+---
+
+### Integration Flow: Placing a Bet
+
+**Step 1: User "vitalik.eth" opens betting session**
+- ENS resolves `vitalik.eth` → wallet address
+- Yellow SDK creates state channel
+- User deposits 100 USDC into channel
+
+**Step 2: User places bets (gasless via Yellow)**
+- Bets on "A=Yes", "B=No", corner (1,1,0)
+- All off-chain signed messages — no gas fees
+- UI shows "vitalik.eth betting..."
+
+**Step 3: User ends session**
+- Yellow aggregates all bets into one settlement tx
+- Uniswap v4 Hook processes basket trades via LS-LMSR
+- Outcome tokens minted to `vitalik.eth`
+
+**Step 4: Market Resolution**
+- Oracle resolves events A, B, C
+- Winning corner identified
+- `vitalik.eth` redeems winning tokens for USDC
+
+---
+
+### Summary: Why These Three Tracks?
+
+| Track | Role | Benefit |
+|-------|------|---------|
+| **Uniswap v4** | Core trading engine (VAMM + Hooks) | Coherent multi-outcome pricing, shared liquidity |
+| **Yellow Network** | Payment layer (State Channels) | Gasless betting, instant UX, session-based logic |
+| **ENS** | Identity + Market Names | Usernames, market discovery, wallet-native buying |
+
+Together, they create a prediction market that:
+- ✅ Trades like Web2 (instant, gasless via Yellow)
+- ✅ Settles on DeFi rails (Uniswap v4 liquidity)
+- ✅ Feels human (ENS names for users and markets)
+- ✅ Works from any wallet (send to `market-yes.pm.eth` to buy)
+
+---
+
 ## Implementation Details
 
 ### 1) Market Clustering Criteria
