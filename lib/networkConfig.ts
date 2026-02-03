@@ -4,3 +4,5 @@ import {
 } from 'wagmi/chains';
 
 export const chains = [sepolia] as const;
+
+export const ENS_CHAIN_ID = sepolia.id;
