@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useReadContract, useAccount } from 'wagmi';
-import { toHex, zeroAddress } from 'viem';
+import { toHex, encodeFunctionData, namehash } from 'viem';
 import { useEnsCommit } from './useEnsCommit';
 import { useEnsRegister } from './useEnsRegister';
 import { useEnsRentPrice, ONE_YEAR_SECONDS } from './useEnsRentPrice';
@@ -11,6 +11,20 @@ import type { RegistrationParams, RegistrationStep } from './types';
 const STORAGE_KEY_PREFIX = 'ens_registration_';
 const MIN_COMMITMENT_AGE = 60; // 60 seconds
 const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`;
+
+// Public Resolver ABI for setAddr function
+const PUBLIC_RESOLVER_ABI = [
+    {
+        inputs: [
+            { name: 'node', type: 'bytes32' },
+            { name: 'a', type: 'address' }
+        ],
+        name: 'setAddr',
+        outputs: [],
+        stateMutability: 'nonpayable',
+        type: 'function'
+    }
+] as const;
 
 // Generate a random 32-byte secret
 const generateSecret = (): `0x${string}` => {
@@ -119,19 +133,30 @@ export const useEnsRegistration = ({
         reset: resetRegister,
     } = useEnsRegister();
 
-    // Build registration params - Sepolia format with label field
+    // Build registration params with setAddr data
     const buildRegistrationParams = useCallback((secretValue: `0x${string}`): RegistrationParams | null => {
         if (!address || !name) return null;
 
+        // Calculate the namehash for the full name (name.eth)
+        const fullName = `${name}.eth`;
+        const node = namehash(fullName);
+
+        // Encode the setAddr call to set the address record
+        const setAddrData = encodeFunctionData({
+            abi: PUBLIC_RESOLVER_ABI,
+            functionName: 'setAddr',
+            args: [node, address]
+        });
+
         return {
-            label: name, // Sepolia uses "label" not "name"
+            label: name,
             owner: address,
             duration,
             secret: secretValue,
-            resolver: zeroAddress, // No resolver for simplest registration
-            data: [], // Empty data
-            reverseRecord: 0, // uint8
-            referrer: ZERO_BYTES32, // bytes32
+            resolver: ENS_PUBLIC_RESOLVER_ADDRESS,
+            data: [setAddrData], // Set address record
+            reverseRecord: 1, // Set as primary name
+            referrer: ZERO_BYTES32,
         };
     }, [address, name, duration]);
 
