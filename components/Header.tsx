@@ -1,4 +1,5 @@
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { EnsProfile } from './EnsProfile';
 
 export const Header = () => {
     return (
@@ -6,7 +7,10 @@ export const Header = () => {
             <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 HackMoney
             </h1>
-            <ConnectButton />
+            <div className="flex items-center gap-4">
+                <EnsProfile />
+                <ConnectButton />
+            </div>
         </header>
     );
 };
