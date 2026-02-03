@@ -11,7 +11,7 @@ export const useEnsRegister = () => {
     });
 
     const register = (params: RegistrationParams, value: bigint) => {
-        // Pass as tuple for Sepolia contract
+        // Pass as tuple for Sepolia contract with manual gas limit
         writeContract({
             address: ETH_REGISTRAR_CONTROLLER_ADDRESS,
             abi: ETH_REGISTRAR_CONTROLLER_ABI,
@@ -19,6 +19,7 @@ export const useEnsRegister = () => {
             args: [params],
             value,
             chainId: ENS_CHAIN_ID,
+            gas: BigInt(500000), // Manual gas limit to avoid estimation issues
         });
     };
 

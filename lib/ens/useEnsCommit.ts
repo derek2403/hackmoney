@@ -16,6 +16,7 @@ export const useEnsCommit = () => {
             functionName: 'commit',
             args: [commitment],
             chainId: ENS_CHAIN_ID,
+            gas: BigInt(100000), // Manual gas limit to avoid estimation issues
         });
     };
 
