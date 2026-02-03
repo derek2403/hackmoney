@@ -1,5 +1,6 @@
 // ENS ETHRegistrarController ABI (Sepolia)
 // Address: 0xfb3cE5D01e0f33f41DbB39035dB9745962F1f968
+// NOTE: Sepolia uses a DIFFERENT struct format than mainnet!
 
 export const ETH_REGISTRAR_CONTROLLER_ABI = [
     // Read functions
@@ -58,17 +59,7 @@ export const ETH_REGISTRAR_CONTROLLER_ABI = [
         stateMutability: 'view',
         type: 'function',
     },
-    // Registration struct type for makeCommitment and register
-    // struct Registration {
-    //   string label;
-    //   address owner;
-    //   uint256 duration;
-    //   bytes32 secret;
-    //   address resolver;
-    //   bytes[] data;
-    //   uint8 reverseRecord;
-    //   bytes32 referrer;
-    // }
+    // Sepolia-specific: makeCommitment takes a Registration struct as tuple
     {
         inputs: [
             {
@@ -99,6 +90,7 @@ export const ETH_REGISTRAR_CONTROLLER_ABI = [
         stateMutability: 'nonpayable',
         type: 'function',
     },
+    // Sepolia-specific: register takes a Registration struct as tuple
     {
         inputs: [
             {

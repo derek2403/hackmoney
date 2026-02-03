@@ -1,15 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useReadContract, useAccount } from 'wagmi';
-import { toHex } from 'viem';
+import { toHex, zeroAddress } from 'viem';
 import { useEnsCommit } from './useEnsCommit';
 import { useEnsRegister } from './useEnsRegister';
 import { useEnsRentPrice, ONE_YEAR_SECONDS } from './useEnsRentPrice';
 import { ETH_REGISTRAR_CONTROLLER_ADDRESS, ENS_CHAIN_ID, ENS_PUBLIC_RESOLVER_ADDRESS } from '../networkConfig';
 import { ETH_REGISTRAR_CONTROLLER_ABI } from '../abis/EthRegistrarController';
-import type { Registration, RegistrationStep } from './types';
+import type { RegistrationParams, RegistrationStep } from './types';
 
 const STORAGE_KEY_PREFIX = 'ens_registration_';
 const MIN_COMMITMENT_AGE = 60; // 60 seconds
+const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000' as `0x${string}`;
 
 // Generate a random 32-byte secret
 const generateSecret = (): `0x${string}` => {
@@ -60,24 +61,41 @@ export const useEnsRegistration = ({
     const [step, setStep] = useState<RegistrationStep>('idle');
     const [countdown, setCountdown] = useState(0);
     const [secret, setSecret] = useState<`0x${string}` | null>(null);
-    const [registration, setRegistration] = useState<Registration | null>(null);
+    const [registrationParams, setRegistrationParams] = useState<RegistrationParams | null>(null);
     const [error, setError] = useState<Error | null>(null);
 
     // Fetch rent price
     const { data: priceData, isLoading: isPriceLoading } = useEnsRentPrice(name, duration);
     const price = priceData ? priceData.base + priceData.premium : undefined;
 
-    // Get commitment hash from contract's makeCommitment function
-    const { data: commitmentHash, isLoading: isCommitmentLoading } = useReadContract({
+    // Get commitment hash from contract's makeCommitment function (tuple format for Sepolia)
+    const {
+        data: commitmentHash,
+        isLoading: isCommitmentLoading,
+        error: commitmentError
+    } = useReadContract({
         address: ETH_REGISTRAR_CONTROLLER_ADDRESS,
         abi: ETH_REGISTRAR_CONTROLLER_ABI,
         functionName: 'makeCommitment',
-        args: registration ? [registration] : undefined,
+        args: registrationParams ? [registrationParams] : undefined,
         chainId: ENS_CHAIN_ID,
         query: {
-            enabled: Boolean(registration),
+            enabled: Boolean(registrationParams),
         },
     });
+
+    // Log for debugging
+    useEffect(() => {
+        if (registrationParams) {
+            console.log('Registration params:', registrationParams);
+        }
+        if (commitmentHash) {
+            console.log('Commitment hash:', commitmentHash);
+        }
+        if (commitmentError) {
+            console.error('Commitment error:', commitmentError);
+        }
+    }, [registrationParams, commitmentHash, commitmentError]);
 
     // Commit hook
     const {
@@ -101,18 +119,19 @@ export const useEnsRegistration = ({
         reset: resetRegister,
     } = useEnsRegister();
 
-    // Build registration struct
-    const buildRegistration = useCallback((secretValue: `0x${string}`): Registration | null => {
-        if (!address) return null;
+    // Build registration params - Sepolia format with label field
+    const buildRegistrationParams = useCallback((secretValue: `0x${string}`): RegistrationParams | null => {
+        if (!address || !name) return null;
+
         return {
-            label: name,
+            label: name, // Sepolia uses "label" not "name"
             owner: address,
             duration,
             secret: secretValue,
-            resolver: ENS_PUBLIC_RESOLVER_ADDRESS,
-            data: [],
-            reverseRecord: 0, // No reverse record by default
-            referrer: '0x0000000000000000000000000000000000000000000000000000000000000000',
+            resolver: zeroAddress, // No resolver for simplest registration
+            data: [], // Empty data
+            reverseRecord: 0, // uint8
+            referrer: ZERO_BYTES32, // bytes32
         };
     }, [address, name, duration]);
 
@@ -124,37 +143,56 @@ export const useEnsRegistration = ({
         const newSecret = getOrCreateSecret(name);
         setSecret(newSecret);
 
-        const reg = buildRegistration(newSecret);
-        if (reg) {
-            setRegistration(reg);
+        const params = buildRegistrationParams(newSecret);
+        console.log('Built params:', params);
+        if (params) {
+            setRegistrationParams(params);
             setStep('committing');
         }
-    }, [address, name, buildRegistration]);
+    }, [address, name, buildRegistrationParams]);
 
     // Effect to submit commit once we have the hash
     useEffect(() => {
+        console.log('Commit effect check:', {
+            step,
+            commitmentHash,
+            commitTxHash,
+            isCommitPending,
+            isCommitConfirming,
+            isCommitmentLoading
+        });
         if (step === 'committing' && commitmentHash && !commitTxHash && !isCommitPending && !isCommitConfirming) {
+            console.log('Calling commit with hash:', commitmentHash);
             commit(commitmentHash);
         }
-    }, [step, commitmentHash, commitTxHash, isCommitPending, isCommitConfirming, commit]);
+    }, [step, commitmentHash, commitTxHash, isCommitPending, isCommitConfirming, commit, isCommitmentLoading]);
+
+    // Handle commitment error
+    useEffect(() => {
+        if (commitmentError && step === 'committing') {
+            console.error('makeCommitment failed:', commitmentError);
+            setError(new Error(`Failed to generate commitment: ${commitmentError.message}`));
+            setStep('error');
+        }
+    }, [commitmentError, step]);
 
     // Complete registration (Step 2: Register)
     const completeRegistration = useCallback(() => {
-        if (!price || !registration) return;
+        if (!price || !registrationParams) return;
 
         // Add 5% buffer for price fluctuations
         const valueWithBuffer = (price * BigInt(105)) / BigInt(100);
 
         setStep('registering');
-        register(registration, valueWithBuffer);
-    }, [price, registration, register]);
+        register(registrationParams, valueWithBuffer);
+    }, [price, registrationParams, register]);
 
     // Reset state
     const reset = useCallback(() => {
         setStep('idle');
         setCountdown(0);
         setSecret(null);
-        setRegistration(null);
+        setRegistrationParams(null);
         setError(null);
         resetCommit();
         resetRegister();

@@ -1,7 +1,7 @@
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { ETH_REGISTRAR_CONTROLLER_ADDRESS, ENS_CHAIN_ID } from '../networkConfig';
 import { ETH_REGISTRAR_CONTROLLER_ABI } from '../abis/EthRegistrarController';
-import type { Registration } from './types';
+import type { RegistrationParams } from './types';
 
 export const useEnsRegister = () => {
     const { writeContract, data: hash, isPending, error, reset } = useWriteContract();
@@ -10,12 +10,13 @@ export const useEnsRegister = () => {
         hash,
     });
 
-    const register = (registration: Registration, value: bigint) => {
+    const register = (params: RegistrationParams, value: bigint) => {
+        // Pass as tuple for Sepolia contract
         writeContract({
             address: ETH_REGISTRAR_CONTROLLER_ADDRESS,
             abi: ETH_REGISTRAR_CONTROLLER_ABI,
             functionName: 'register',
-            args: [registration],
+            args: [params],
             value,
             chainId: ENS_CHAIN_ID,
         });
