@@ -4,42 +4,59 @@ import { Navbar } from "../components/Navbar";
 import { MarketHeader } from "../components/MarketHeader";
 import { Visualizations } from "../components/Visualizations";
 import { TradeSidebar } from "../components/TradeSidebar";
+import { LiquidChrome } from "../components/LiquidChrome";
 
 export default function Home() {
   const [view, setView] = useState<"1D" | "2D" | "Table">("1D");
 
   return (
-    <div className="min-h-screen bg-white text-black dark:bg-black dark:text-white selection:bg-blue-100 selection:text-blue-900">
+    <div className="relative min-h-screen bg-black text-white selection:bg-blue-500/30 selection:text-white overflow-x-hidden">
       <Head>
         <title>Iran War | Phỏcast</title>
         <meta name="description" content="Prediction market for the Iran War" />
       </Head>
 
-      <Navbar />
+      {/* Hero Background */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <LiquidChrome
+          baseColor={[0.1, 0.1, 0.1]}
+          speed={0.3}
+          amplitude={0.3}
+          frequencyX={3}
+          frequencyY={3}
+          interactive={false}
+        />
+      </div>
 
-      <main className="mx-auto max-w-[1440px] px-6 py-12">
-        <div className="flex items-start gap-12">
-          {/* Main Content Area */}
-          <div className="flex-1 space-y-12">
-            <MarketHeader activeView={view} onViewChange={setView} />
-            <Visualizations activeView={view} />
+      <div className="relative z-10 flex min-h-screen flex-col">
+        <Navbar />
+
+        <main className="mx-auto flex-1 w-full max-w-[1440px] px-6 py-12">
+          <div className="flex items-start gap-12">
+            {/* Main Content Area */}
+            <div className="flex-1 space-y-12">
+              <MarketHeader activeView={view} onViewChange={setView} />
+              <Visualizations activeView={view} />
+            </div>
+
+            {/* Sidebar */}
+            <div className="sticky top-32">
+              <TradeSidebar />
+            </div>
           </div>
+        </main>
 
-          {/* Sidebar */}
-          <TradeSidebar />
-        </div>
-      </main>
-
-      <footer className="mt-24 border-t border-zinc-100 py-12 dark:border-zinc-900">
-        <div className="mx-auto max-w-[1440px] px-6 flex justify-between items-center text-[10px] font-bold text-zinc-300 dark:text-zinc-700 uppercase tracking-widest">
-          <span>© 2026 Phỏcast</span>
-          <div className="flex gap-6">
-            <a href="#" className="hover:text-black dark:hover:text-white transition-colors">Twitter</a>
-            <a href="#" className="hover:text-black dark:hover:text-white transition-colors">Discord</a>
-            <a href="#" className="hover:text-black dark:hover:text-white transition-colors">Privacy</a>
+        <footer className="mt-24 border-t border-white/5 bg-white/5 backdrop-blur-xl py-12">
+          <div className="mx-auto max-w-[1440px] px-6 flex justify-between items-center text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+            <span>© 2026 Phỏcast</span>
+            <div className="flex gap-6">
+              <a href="#" className="hover:text-white transition-colors">Twitter</a>
+              <a href="#" className="hover:text-white transition-colors">Discord</a>
+              <a href="#" className="hover:text-white transition-colors">Privacy</a>
+            </div>
           </div>
-        </div>
-      </footer>
+        </footer>
+      </div>
     </div>
   );
 }

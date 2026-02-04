@@ -32,7 +32,7 @@ export const TradeSidebar = () => {
   };
 
   return (
-    <div className="w-[380px] shrink-0 space-y-4 rounded-3xl border border-zinc-100 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-950/50">
+    <div className="w-[380px] shrink-0 space-y-4 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-2xl">
       <div className="flex items-center justify-between">
         <div className="flex gap-4">
           {["Buy", "Sell"].map((tab) => (
@@ -40,17 +40,17 @@ export const TradeSidebar = () => {
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={cn(
-                "text-lg font-bold transition-colors",
+                "text-lg font-bold transition-all hover:scale-105 active:scale-95",
                 activeTab === tab
-                  ? "text-black dark:text-white"
-                  : "text-zinc-300 hover:text-zinc-400 dark:text-zinc-600"
+                  ? "text-white"
+                  : "text-white/20 hover:text-white/40"
               )}
             >
               {tab}
             </button>
           ))}
         </div>
-        <button className="flex items-center gap-1 text-xs font-semibold text-zinc-500 hover:text-black dark:hover:text-white">
+        <button className="flex items-center gap-1 text-xs font-bold text-white/40 hover:text-white transition-colors">
           Market ⌄
         </button>
       </div>
@@ -59,10 +59,10 @@ export const TradeSidebar = () => {
         {QUESTIONS.map((q) => (
           <div key={q.id} className="space-y-3">
             <div className="flex items-start gap-3">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-lg dark:bg-zinc-800">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-lg border border-white/5">
                 {q.image}
               </div>
-              <p className="text-[13px] font-medium leading-tight text-zinc-600 dark:text-zinc-300">
+              <p className="text-[13px] font-bold leading-tight text-white/70">
                 {q.text}
               </p>
             </div>
@@ -72,14 +72,14 @@ export const TradeSidebar = () => {
                   key={option}
                   onClick={() => handleSelect(q.id, option)}
                   className={cn(
-                    "rounded-xl py-2.5 text-xs font-bold transition-all",
+                    "rounded-xl py-2.5 text-xs font-bold transition-all border border-transparent",
                     selections[q.id] === option
                       ? option === "Yes"
-                        ? "bg-emerald-500 text-white"
+                        ? "bg-emerald-500 shadow-lg shadow-emerald-500/20 text-white"
                         : option === "No"
-                        ? "bg-rose-500 text-white"
-                        : "bg-blue-500 text-white"
-                      : "bg-zinc-50 text-zinc-400 hover:bg-zinc-100 dark:bg-zinc-900/50 dark:text-zinc-500 dark:hover:bg-zinc-900"
+                        ? "bg-rose-500 shadow-lg shadow-rose-500/20 text-white"
+                        : "bg-blue-500 shadow-lg shadow-blue-500/20 text-white"
+                      : "bg-white/5 text-white/30 hover:bg-white/10 border-white/5"
                   )}
                 >
                   {option}
@@ -90,32 +90,32 @@ export const TradeSidebar = () => {
         ))}
       </div>
 
-      <div className="space-y-4 pt-4">
+      <div className="space-y-4 pt-4 border-t border-white/5">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-bold tracking-tight text-black dark:text-white uppercase">Amount</span>
+          <span className="text-sm font-black tracking-widest text-white/40 uppercase">Amount</span>
           <div className="flex items-baseline gap-1">
-            <span className="text-3xl font-bold text-zinc-300 dark:text-zinc-800">$</span>
-            <span className="text-5xl font-bold text-zinc-200 dark:text-zinc-800">0</span>
+            <span className="text-3xl font-bold text-white/10">$</span>
+            <span className="text-5xl font-black text-white/20">0</span>
           </div>
         </div>
 
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-2 text-white/30">
           {["+$1", "+$20", "+$100", "Max"].map((btn) => (
             <button
               key={btn}
-              className="px-2 py-1 text-[11px] font-bold text-zinc-400 hover:text-black dark:text-zinc-600 dark:hover:text-white"
+              className="px-2 py-1 text-[11px] font-bold hover:text-white transition-colors"
             >
               {btn}
             </button>
           ))}
         </div>
 
-        <button className="w-full rounded-2xl bg-[#9db4ff] py-4 text-center text-lg font-bold text-white transition-opacity hover:opacity-90 dark:bg-blue-600/50">
-          Trade
+        <button className="w-full rounded-2xl bg-blue-600/80 py-4 text-center text-lg font-black text-white transition-all hover:bg-blue-600 hover:scale-[1.02] shadow-xl shadow-blue-600/20 active:scale-95 group">
+          <span className="group-hover:tracking-widest transition-all">TRADE</span>
         </button>
 
-        <p className="text-center text-[10px] text-zinc-400">
-          By trading, you agree to the <span className="underline cursor-pointer">Terms of Use</span>.
+        <p className="text-center text-[10px] font-bold text-white/20">
+          By trading, you agree to the <span className="underline cursor-pointer hover:text-white transition-colors">Terms of Use</span>.
         </p>
       </div>
     </div>
