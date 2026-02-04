@@ -14,3 +14,6 @@ export const ENS_PUBLIC_RESOLVER_ADDRESS = '0xE99638b40E4Fff0129D56f03b55b6bbC4B
 
 // ENS NameWrapper on Sepolia
 export const NAME_WRAPPER_ADDRESS = '0x0635513f179D50A207757E05759CbD106d7dFcE8' as `0x${string}`;
+
+// Parent domain for market subdomains
+export const PARENT_DOMAIN = 'jybigbig.eth';
