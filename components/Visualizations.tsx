@@ -1,10 +1,21 @@
-import React, { useState } from "react";
+import React from "react";
 import { cn } from "./utils";
 
 const OUTCOMES = [
-  { label: "Khamenei out as Supreme Leader of Iran by January 31?", prob: "77%", color: "bg-blue-400" },
-  { label: "US strikes Iran by January 31?", prob: "2.3%", color: "bg-blue-600" },
-  { label: "Israel next strikes Iran by January 31?", prob: "1.7%", color: "bg-amber-400" },
+  { label: "Khamenei out as Supreme Leader of Iran by January 31?", prob: "77%", color: "bg-rose-500" },
+  { label: "US strikes Iran by January 31?", prob: "2.3%", color: "bg-orange-500" },
+  { label: "Israel next strikes Iran by January 31?", prob: "1.7%", color: "bg-emerald-500" },
+];
+
+const JOINT_OUTCOMES = [
+  { id: 1, outcomes: [false, false, false], description: "Khamenei No, US No, Israel No", probability: "15.76%" },
+  { id: 2, outcomes: [false, false, true], description: "Khamenei No, US No, Israel Yes", probability: "7.73%" },
+  { id: 3, outcomes: [false, true, false], description: "Khamenei No, US Yes, Israel No", probability: "8.54%" },
+  { id: 4, outcomes: [false, true, true], description: "Khamenei No, US Yes, Israel Yes", probability: "7.73%" },
+  { id: 5, outcomes: [true, false, false], description: "Khamenei Yes, US No, Israel No", probability: "33.14%" },
+  { id: 6, outcomes: [true, false, true], description: "Khamenei Yes, US No, Israel Yes", probability: "7.73%" },
+  { id: 7, outcomes: [true, true, false], description: "Khamenei Yes, US Yes, Israel No", probability: "11.62%" },
+  { id: 8, outcomes: [true, true, true], description: "Khamenei Yes, US Yes, Israel Yes", probability: "7.73%" },
 ];
 
 interface VisualizationsProps {
@@ -12,34 +23,66 @@ interface VisualizationsProps {
 }
 
 export const Visualizations = ({ activeView }: VisualizationsProps) => {
-  if (activeView === "Table") {
-    return (
-      <div className="flex flex-col gap-3 py-10 text-center text-white/20 italic font-bold">
-        Table view coming soon...
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col gap-12 rounded-3xl border border-white/5 bg-white/5 p-8 backdrop-blur-xl">
-      {/* Legend */}
-      <div className="flex flex-col gap-4">
-        {OUTCOMES.map((oc, i) => (
-          <div key={i} className="flex items-center gap-3 group cursor-pointer">
-            <div className={cn("h-3 w-3 rounded-full shadow-lg transition-transform group-hover:scale-125", oc.color)} />
-            <p className="text-sm font-bold text-white/50 group-hover:text-white transition-colors">
-              {oc.label} <span className="text-white ml-2">{oc.prob}</span>
-            </p>
+      {activeView === "Table" ? (
+        <div className="flex flex-col gap-8">
+          <div className="overflow-hidden rounded-2xl border border-white/5 bg-white/[0.02]">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-white/5 text-[10px] font-black uppercase tracking-[0.2em] text-white/20">
+                  <th className="px-6 py-4">Outcome</th>
+                  <th className="px-6 py-4">Description</th>
+                  <th className="px-6 py-4 text-right">Probability</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {JOINT_OUTCOMES.map((row) => (
+                  <tr key={row.id} className="group hover:bg-white/[0.02] transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex gap-2">
+                        {row.outcomes.map((isOn, idx) => (
+                          <div
+                            key={idx}
+                            className={cn(
+                              "h-3 w-3 rounded-full border-2",
+                              isOn 
+                                ? cn(OUTCOMES[idx].color, "border-transparent") 
+                                : "border-white/10 bg-transparent"
+                            )}
+                          />
+                        ))}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm font-bold text-white/40 group-hover:text-white/70 transition-colors">
+                      {row.description}
+                    </td>
+                    <td className="px-6 py-4 text-right text-sm font-black text-white">
+                      {row.probability}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        ))}
-      </div>
 
-      {activeView === "1D" ? (
+          <div className="flex justify-center gap-8 text-[10px] font-black uppercase tracking-widest text-white/20">
+            <div className="flex items-center gap-3">
+              <div className="h-2 w-2 rounded-full border border-white/20 bg-rose-500" />
+              <span>Filled means Yes</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="h-2 w-2 rounded-full border border-white/20" />
+              <span>Empty means No</span>
+            </div>
+          </div>
+        </div>
+      ) : activeView === "1D" ? (
         <div className="relative py-20 px-4">
           <div className="relative h-[2px] w-full bg-white/5">
-            <div className="absolute top-1/2 left-[77%] h-4 w-4 -translate-y-1/2 rounded-full border-4 border-black bg-blue-400 shadow-[0_0_15px_rgba(96,165,250,0.5)] transition-transform hover:scale-125 cursor-pointer" />
-            <div className="absolute top-1/2 left-[2.3%] h-4 w-4 -translate-y-1/2 rounded-full border-4 border-black bg-blue-600 shadow-[0_0_15px_rgba(37,99,235,0.5)] transition-transform hover:scale-125 cursor-pointer" />
-            <div className="absolute top-1/2 left-[1.7%] h-4 w-4 -translate-y-1/2 rounded-full border-4 border-black bg-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.5)] transition-transform hover:scale-125 cursor-pointer" />
+            <div className="absolute top-1/2 left-[77%] h-4 w-4 -translate-y-1/2 rounded-full border-4 border-black bg-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.5)] transition-transform hover:scale-125 cursor-pointer" />
+            <div className="absolute top-1/2 left-[2.3%] h-4 w-4 -translate-y-1/2 rounded-full border-4 border-black bg-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.5)] transition-transform hover:scale-125 cursor-pointer" />
+            <div className="absolute top-1/2 left-[1.7%] h-4 w-4 -translate-y-1/2 rounded-full border-4 border-black bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)] transition-transform hover:scale-125 cursor-pointer" />
           </div>
           <div className="mt-8 flex justify-between text-[11px] font-black tracking-[0.2em] text-white/20 uppercase">
             <span>Outcome No</span>
@@ -91,6 +134,20 @@ export const Visualizations = ({ activeView }: VisualizationsProps) => {
           </div>
         </div>
       )}
+
+      {/* Legend / Status Bar */}
+      <div className="flex flex-col gap-4 border-t border-white/5 pt-8">
+        <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+          {OUTCOMES.map((oc, i) => (
+            <div key={i} className="flex items-center gap-3 group cursor-pointer">
+              <div className={cn("h-3 w-3 rounded-full shadow-lg transition-transform group-hover:scale-125", oc.color)} />
+              <p className="text-sm font-bold text-white/50 group-hover:text-white transition-colors">
+                {oc.label} <span className="text-white ml-2">{oc.prob}</span>
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
 
       <p className="text-center text-[11px] font-bold italic text-white/20">
         Probabilities derived from the joint-outcome AMM world table.

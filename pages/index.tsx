@@ -5,6 +5,7 @@ import { MarketHeader } from "../components/MarketHeader";
 import { Visualizations } from "../components/Visualizations";
 import { TradeSidebar } from "../components/TradeSidebar";
 import { LiquidChrome } from "../components/LiquidChrome";
+import { MarketRules } from "../components/MarketRules";
 
 export default function Home() {
   const [view, setView] = useState<"1D" | "2D" | "Table">("1D");
@@ -37,6 +38,7 @@ export default function Home() {
             <div className="flex-1 space-y-12">
               <MarketHeader activeView={view} onViewChange={setView} />
               <Visualizations activeView={view} />
+              <MarketRules />
             </div>
 
             {/* Sidebar */}

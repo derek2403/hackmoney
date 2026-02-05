@@ -18,7 +18,6 @@ export const MarketHeader = ({ activeView, onViewChange }: MarketHeaderProps) =>
           <div className="space-y-1">
             <div className="flex items-center gap-2 group cursor-pointer">
               <h1 className="text-4xl font-black text-white tracking-tight">Iran War</h1>
-              <span className="text-white/20 group-hover:text-white transition-colors transform group-hover:translate-y-1 transition-transform">⌄</span>
             </div>
             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
               <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -28,18 +27,9 @@ export const MarketHeader = ({ activeView, onViewChange }: MarketHeaderProps) =>
         </div>
         <div className="flex items-center gap-2">
           <button className="p-3 rounded-xl bg-white/5 border border-white/5 text-white/40 hover:text-white hover:bg-white/10 transition-all active:scale-95 shadow-lg">
-            <Link2 className="h-5 w-5" />
-          </button>
-          <button className="p-3 rounded-xl bg-white/5 border border-white/5 text-white/40 hover:text-white hover:bg-white/10 transition-all active:scale-95 shadow-lg">
             <Bookmark className="h-5 w-5" />
           </button>
         </div>
-      </div>
-
-      <div className="max-w-4xl p-1 rounded-2xl bg-white/[0.02] border border-white/5">
-        <p className="px-4 py-3 text-sm font-medium leading-relaxed text-white/50">
-          As of January 2026, Iran is in a state of severe internal upheaval and, to a lesser extent, external conflict following a rapid deterioration of its security and economic situation in the latter half of 2025. The context is defined by a brutal, large-scale crackdown on internal protests, economic collapse, and the aftermath of a direct, 12-day war with Israel in June 2025.
-        </p>
       </div>
 
       <div className="flex items-center gap-4">
