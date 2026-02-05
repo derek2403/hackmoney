@@ -3,9 +3,10 @@ import { useAccount, useEnsName } from "wagmi";
 import { Header } from "../components/Header";
 import { EnsRegistration } from "../components/EnsRegistration";
 import { MarketSubdomainForm } from "../components/MarketSubdomainForm";
+import { CreateMarketForm } from "../components/CreateMarketForm";
 import { ENS_CHAIN_ID, PARENT_DOMAIN } from "../lib/networkConfig";
 
-type Tab = 'profile' | 'register' | 'subdomains';
+type Tab = 'profile' | 'register' | 'subdomains' | 'createmarket';
 
 export default function EnsPage() {
     const { address, isConnected } = useAccount();
@@ -18,7 +19,8 @@ export default function EnsPage() {
     const tabs: { id: Tab; label: string }[] = [
         { id: 'profile', label: 'Profile' },
         { id: 'register', label: 'Register Name' },
-        { id: 'subdomains', label: 'Market Subdomains' },
+        { id: 'createmarket', label: 'Create Market' },
+        { id: 'subdomains', label: 'Single Subdomain' },
     ];
 
     return (
@@ -82,6 +84,32 @@ export default function EnsPage() {
 
                             {activeTab === 'register' && (
                                 <EnsRegistration />
+                            )}
+
+                            {activeTab === 'createmarket' && (
+                                <div className="space-y-6">
+                                    <div className="p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+                                        <h2 className="text-xl font-semibold mb-2">
+                                            Create Prediction Market
+                                        </h2>
+                                        <p className="text-gray-600 mb-6">
+                                            Creates 8 corner subdomains for a 3-event market.
+                                            Users can send ETH to any corner to receive tokens.
+                                        </p>
+                                        <CreateMarketForm />
+                                    </div>
+
+                                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                        <h3 className="font-medium text-blue-800 mb-2">
+                                            Corner Naming
+                                        </h3>
+                                        <ul className="text-sm text-blue-700 space-y-1">
+                                            <li>• <code>market-000</code> = A=No, B=No, C=No</li>
+                                            <li>• <code>market-111</code> = A=Yes, B=Yes, C=Yes</li>
+                                            <li>• Each subdomain auto-receives ETH and mints tokens</li>
+                                        </ul>
+                                    </div>
+                                </div>
                             )}
 
                             {activeTab === 'subdomains' && (
