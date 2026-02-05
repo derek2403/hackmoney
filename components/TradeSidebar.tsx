@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { cn } from "./utils";
+import GooeyButton from "./GooeyButton";
 
 const QUESTIONS = [
   {
@@ -21,6 +22,10 @@ const QUESTIONS = [
 
 export const TradeSidebar = () => {
   const [activeTab, setActiveTab] = useState("Buy");
+  const [orderType, setOrderType] = useState("Market");
+  const [amount, setAmount] = useState("0");
+  const [limitPrice, setLimitPrice] = useState("0.50");
+  const [shares, setShares] = useState("0");
   const [selections, setSelections] = useState<Record<number, string | null>>({
     1: null,
     2: null,
@@ -50,9 +55,31 @@ export const TradeSidebar = () => {
             </button>
           ))}
         </div>
-        <button className="flex items-center gap-1 text-xs font-bold text-white/40 hover:text-white transition-colors">
-          Market ⌄
-        </button>
+
+        <div className="relative group">
+          <button className="flex items-center gap-1.5 text-lg font-bold text-white/40 group-hover:text-white transition-all cursor-pointer">
+            {orderType} <span className="text-[10px] opacity-40 transition-transform group-hover:rotate-180">⌄</span>
+          </button>
+          
+          <div className="absolute right-0 top-full pt-2 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-200 z-50">
+            <div className="w-32 overflow-hidden rounded-2xl border border-white/10 bg-[#1a1a1a]/90 backdrop-blur-3xl shadow-2xl">
+              {["Market", "Limit"].map((type) => (
+                <button
+                  key={type}
+                  onClick={() => setOrderType(type)}
+                  className={cn(
+                    "w-full px-4 py-3 text-left text-xs font-bold transition-colors",
+                    orderType === type
+                      ? "bg-white/10 text-white"
+                      : "text-white/40 hover:bg-white/5 hover:text-white"
+                  )}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="space-y-6 py-4">
@@ -91,28 +118,72 @@ export const TradeSidebar = () => {
       </div>
 
       <div className="space-y-4 pt-4 border-t border-white/5">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-black tracking-widest text-white/40 uppercase">Amount</span>
-          <div className="flex items-baseline gap-1">
-            <span className="text-3xl font-bold text-white/10">$</span>
-            <span className="text-5xl font-black text-white/20">0</span>
+        {orderType === "Market" ? (
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-black tracking-widest text-white/40 uppercase">Amount</span>
+            <div className="flex items-baseline gap-1">
+              <span className="text-3xl font-bold text-white/10">$</span>
+              <input
+                type="text"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="w-24 bg-transparent text-5xl font-black text-white/20 outline-none focus:text-white transition-colors text-right"
+              />
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="space-y-5">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-black tracking-widest text-white/40 uppercase">Limit Price</span>
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-bold text-white/10">$</span>
+                <input
+                  type="text"
+                  value={limitPrice}
+                  onChange={(e) => setLimitPrice(e.target.value)}
+                  className="w-24 bg-transparent text-4xl font-black text-white/20 outline-none focus:text-white transition-colors text-right"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-black tracking-widest text-white/40 uppercase">Shares</span>
+              <div className="flex items-baseline gap-1">
+                <input
+                  type="text"
+                  value={shares}
+                  onChange={(e) => setShares(e.target.value)}
+                  className="w-24 bg-transparent text-4xl font-black text-white/20 outline-none focus:text-white transition-colors text-right"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-between pt-2 border-t border-white/5">
+              <span className="text-[10px] font-black tracking-[0.2em] text-white/20 uppercase">Est. Total</span>
+              <span className="text-sm font-black text-blue-400">
+                ${(parseFloat(limitPrice) * (parseFloat(shares) || 0)).toFixed(2)}
+              </span>
+            </div>
+          </div>
+        )}
 
-        <div className="flex justify-end gap-2 text-white/30">
-          {["+$1", "+$20", "+$100", "Max"].map((btn) => (
-            <button
-              key={btn}
-              className="px-2 py-1 text-[11px] font-bold hover:text-white transition-colors"
-            >
-              {btn}
-            </button>
-          ))}
-        </div>
+        {orderType === "Market" && (
+          <div className="flex justify-end gap-2 text-white/30">
+            {["+$1", "+$20", "+$100", "Max"].map((btn) => (
+              <button
+                key={btn}
+                className="px-2 py-1 text-[11px] font-bold hover:text-white transition-colors"
+              >
+                {btn}
+              </button>
+            ))}
+          </div>
+        )}
 
-        <button className="w-full rounded-2xl bg-blue-600/80 py-4 text-center text-lg font-black text-white transition-all hover:bg-blue-600 hover:scale-[1.02] shadow-xl shadow-blue-600/20 active:scale-95 group">
-          <span className="group-hover:tracking-widest transition-all">TRADE</span>
-        </button>
+        <div className="pt-2">
+          <GooeyButton 
+            label={`${activeTab} ${orderType}`}
+            onClick={() => console.log(`Executing ${activeTab} ${orderType} order`)}
+          />
+        </div>
 
         <p className="text-center text-[10px] font-bold text-white/20">
           By trading, you agree to the <span className="underline cursor-pointer hover:text-white transition-colors">Terms of Use</span>.
