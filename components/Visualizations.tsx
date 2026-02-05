@@ -34,7 +34,7 @@ const chartConfig = {
 } satisfies ChartConfig
 
 interface VisualizationsProps {
-  activeView: "1D" | "2D" | "Table";
+  activeView: "1D" | "2D" | "Odds";
 }
 
 export const Visualizations = ({ activeView }: VisualizationsProps) => {
@@ -87,7 +87,7 @@ export const Visualizations = ({ activeView }: VisualizationsProps) => {
 
   return (
     <div className="flex flex-col gap-12 rounded-3xl border border-white/5 bg-white/5 p-8 backdrop-blur-xl">
-      {activeView === "Table" ? (
+      {activeView === "Odds" ? (
         <div className="flex flex-col gap-8">
           <div className="overflow-hidden rounded-2xl border border-white/5 bg-white/[0.02]">
             <table className="w-full text-left">

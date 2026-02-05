@@ -3,8 +3,8 @@ import { Link2, Bookmark } from "lucide-react";
 import { cn } from "./utils";
 
 interface MarketHeaderProps {
-  activeView: "1D" | "2D" | "Table";
-  onViewChange: (view: "1D" | "2D" | "Table") => void;
+  activeView: "1D" | "2D" | "Odds";
+  onViewChange: (view: "1D" | "2D" | "Odds") => void;
 }
 
 export const MarketHeader = ({ activeView, onViewChange }: MarketHeaderProps) => {
@@ -34,15 +34,15 @@ export const MarketHeader = ({ activeView, onViewChange }: MarketHeaderProps) =>
 
       <div className="flex items-center gap-4">
         <button 
-          onClick={() => onViewChange("Table")}
+          onClick={() => onViewChange("Odds")}
           className={cn(
             "rounded-xl px-6 py-2.5 text-xs font-black uppercase tracking-widest transition-all",
-            activeView === "Table" 
+            activeView === "Odds" 
               ? "bg-white text-black shadow-xl shadow-white/20 scale-105" 
               : "bg-white/5 text-white/30 hover:bg-white/10 border border-white/5"
           )}
         >
-          Table
+          Odds
         </button>
         <div className="h-4 w-[1px] bg-white/10 mx-2" />
         <button 

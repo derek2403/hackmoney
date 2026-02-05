@@ -8,7 +8,7 @@ import { LiquidChrome } from "../components/LiquidChrome";
 import { MarketRules } from "../components/MarketRules";
 
 export default function Home() {
-  const [view, setView] = useState<"1D" | "2D" | "Table">("1D");
+  const [view, setView] = useState<"1D" | "2D" | "Odds">("1D");
 
   return (
     <div className="relative min-h-screen bg-black text-white selection:bg-blue-500/30 selection:text-white overflow-x-hidden">
