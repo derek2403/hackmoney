@@ -335,7 +335,7 @@ This project integrates three hackathon partner tracks to create a complete pred
 
 ### Architecture Overview
 
-![Multi-Dimensional Prediction Market Architecture](public/Architecture.png)
+![Multi-Dimensional Prediction Market Architecture](public/architecture.png)
 
 ---
 
