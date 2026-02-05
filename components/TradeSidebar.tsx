@@ -20,20 +20,21 @@ const QUESTIONS = [
   },
 ];
 
-export const TradeSidebar = () => {
+interface TradeSidebarProps {
+  selections: Record<number, string | null>;
+  onSelectionChange: (selections: Record<number, string | null>) => void;
+}
+
+export const TradeSidebar = ({ selections, onSelectionChange }: TradeSidebarProps) => {
   const [activeTab, setActiveTab] = useState("Buy");
   const [orderType, setOrderType] = useState("Market");
   const [amount, setAmount] = useState("0");
   const [limitPrice, setLimitPrice] = useState("0.50");
   const [shares, setShares] = useState("0");
-  const [selections, setSelections] = useState<Record<number, string | null>>({
-    1: null,
-    2: null,
-    3: null,
-  });
 
   const handleSelect = (qId: number, option: string) => {
-    setSelections((prev) => ({ ...prev, [qId]: option }));
+    const newSelections = { ...selections, [qId]: option };
+    onSelectionChange(newSelections);
   };
 
   return (

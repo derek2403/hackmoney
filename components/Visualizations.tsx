@@ -3,6 +3,24 @@ import { TrendingUp, LayoutGrid } from "lucide-react"
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts"
 import { cn } from "./utils"
 
+const QUESTIONS = [
+  {
+    id: 1,
+    text: "Khamenei out as Supreme Leader of Iran by January 31?",
+    image: "👳‍♂️",
+  },
+  {
+    id: 2,
+    text: "US strikes Iran by January 31?",
+    image: "🇺🇸",
+  },
+  {
+    id: 3,
+    text: "Israel next strikes Iran by January 31?",
+    image: "🇮🇱",
+  },
+];
+
 import {
   ChartContainer,
   ChartTooltip,
@@ -11,119 +29,268 @@ import {
 } from "./ui/chart"
 
 const OUTCOMES = [
-  { label: "Khamenei out as Supreme Leader of Iran by January 31?", prob: "77%", color: "bg-rose-500" },
-  { label: "US strikes Iran by January 31?", prob: "2.3%", color: "bg-orange-500" },
-  { label: "Israel next strikes Iran by January 31?", prob: "1.7%", color: "bg-emerald-500" },
+  { label: "Khamenei out as Supreme Leader of Iran by January 31?", prob: "70%", color: "bg-rose-500" },
+  { label: "US strikes Iran by January 31?", prob: "60%", color: "bg-orange-500" },
+  { label: "Israel next strikes Iran by January 31?", prob: "50%", color: "bg-emerald-500" },
 ];
 
 const JOINT_OUTCOMES = [
-  { id: 1, outcomes: [false, false, false], description: "Khamenei No, US No, Israel No", probability: "15.76%" },
-  { id: 2, outcomes: [false, false, true], description: "Khamenei No, US No, Israel Yes", probability: "7.73%" },
-  { id: 3, outcomes: [false, true, false], description: "Khamenei No, US Yes, Israel No", probability: "8.54%" },
-  { id: 4, outcomes: [false, true, true], description: "Khamenei No, US Yes, Israel Yes", probability: "7.73%" },
-  { id: 5, outcomes: [true, false, false], description: "Khamenei Yes, US No, Israel No", probability: "33.14%" },
-  { id: 6, outcomes: [true, false, true], description: "Khamenei Yes, US No, Israel Yes", probability: "7.73%" },
-  { id: 7, outcomes: [true, true, false], description: "Khamenei Yes, US Yes, Israel No", probability: "11.62%" },
-  { id: 8, outcomes: [true, true, true], description: "Khamenei Yes, US Yes, Israel Yes", probability: "7.73%" },
+  { id: 1, outcomes: [false, false, false], description: "Khamenei No, US No, Israel No", probability: 6.00 },
+  { id: 2, outcomes: [false, false, true], description: "Khamenei No, US No, Israel Yes", probability: 6.00 },
+  { id: 3, outcomes: [false, true, false], description: "Khamenei No, US Yes, Israel No", probability: 9.00 },
+  { id: 4, outcomes: [false, true, true], description: "Khamenei No, US Yes, Israel Yes", probability: 9.00 },
+  { id: 5, outcomes: [true, false, false], description: "Khamenei Yes, US No, Israel No", probability: 14.00 },
+  { id: 6, outcomes: [true, false, true], description: "Khamenei Yes, US No, Israel Yes", probability: 14.00 },
+  { id: 7, outcomes: [true, true, false], description: "Khamenei Yes, US Yes, Israel No", probability: 21.00 },
+  { id: 8, outcomes: [true, true, true], description: "Khamenei Yes, US Yes, Israel Yes", probability: 21.00 },
 ];
+
+// Check if an outcome matches the user's selections
+const doesOutcomeMatch = (outcome: typeof JOINT_OUTCOMES[0], selections: Record<number, string | null>): boolean => {
+  let matches = true;
+  
+  // Check each question
+  for (let qId = 1; qId <= 3; qId++) {
+    const selection = selections[qId];
+    if (selection === null || selection === "Any") continue; // "Any" or null means match all
+    
+    const outcomeValue = outcome.outcomes[qId - 1];
+    const isYes = selection === "Yes";
+    
+    if (isYes && !outcomeValue) {
+      matches = false;
+      break;
+    } else if (!isYes && outcomeValue) {
+      matches = false;
+      break;
+    }
+  }
+  
+  return matches;
+};
+
+// Calculate probability for selected market
+const calculateSelectedMarketProbability = (selections: Record<number, string | null>): number | null => {
+  const hasSelection = Object.values(selections).some(s => s !== null);
+  if (!hasSelection) return null;
+
+  let totalProbability = 0;
+
+  for (const outcome of JOINT_OUTCOMES) {
+    if (doesOutcomeMatch(outcome, selections)) {
+      totalProbability += outcome.probability;
+    }
+  }
+
+  return totalProbability;
+};
 
 const chartConfig = {
   khamenei: { label: "Khamenei", color: "#f43f5e" },
   us_strikes: { label: "US", color: "#f97316" },
   israel_strikes: { label: "Israel", color: "#10b981" },
+  selected_market: { label: "Selected Market", color: "#3b82f6" },
 } satisfies ChartConfig
 
 interface VisualizationsProps {
   activeView: "1D" | "2D" | "Odds";
+  selections: Record<number, string | null>;
 }
 
-export const Visualizations = ({ activeView }: VisualizationsProps) => {
+export const Visualizations = ({ activeView, selections }: VisualizationsProps) => {
   const [range, setRange] = useState<"1D" | "1M" | "ALL">("ALL");
+
+  const selectedMarketProbability = useMemo(() => {
+    return calculateSelectedMarketProbability(selections);
+  }, [selections]);
 
   const data = useMemo(() => {
     const noise = (val: number) => (Math.random() - 0.5) * val;
+    const currentSelectedProb = selectedMarketProbability;
 
     if (range === "1D") {
       return Array.from({ length: 24 }, (_, i) => {
         const t = i / 23;
         const hour = i.toString().padStart(2, '0');
+        const isLast = i === 23;
+        
+        // Generate historical data for selected market (dummy data with trend)
+        let selectedMarketValue: number | null = null;
+        if (currentSelectedProb !== null) {
+          if (isLast) {
+            // Latest value must be calculated correctly
+            selectedMarketValue = currentSelectedProb;
+          } else {
+            // Historical data: trend towards current value with some noise
+            const baseTrend = currentSelectedProb - 5 + (t * 5); // Trend from -5% to current
+            selectedMarketValue = Number((baseTrend + noise(1.5)).toFixed(2));
+            selectedMarketValue = Math.max(0, Math.min(100, selectedMarketValue)); // Clamp to 0-100
+          }
+        }
+        
         return {
           label: `${hour}:00`,
-          khamenei: Number((76 + (t * 1) + noise(0.5)).toFixed(1)),
-          us_strikes: Number((3 - (t * 0.7) + noise(0.2)).toFixed(1)),
-          israel_strikes: Number((2.5 - (t * 0.8) + noise(0.2)).toFixed(1)),
+          khamenei: Number((69 + (t * 1) + noise(0.5)).toFixed(1)),
+          us_strikes: Number((59 + (t * 1) + noise(0.5)).toFixed(1)),
+          israel_strikes: Number((49 + (t * 1) + noise(0.5)).toFixed(1)),
+          selected_market: selectedMarketValue,
         };
       });
     }
     if (range === "1M") {
       return Array.from({ length: 30 }, (_, i) => {
         const t = i / 29;
+        const isLast = i === 29;
+        
+        let selectedMarketValue: number | null = null;
+        if (currentSelectedProb !== null) {
+          if (isLast) {
+            selectedMarketValue = currentSelectedProb;
+          } else {
+            const baseTrend = currentSelectedProb - 8 + (t * 8);
+            selectedMarketValue = Number((baseTrend + noise(2)).toFixed(2));
+            selectedMarketValue = Math.max(0, Math.min(100, selectedMarketValue));
+          }
+        }
+        
         return {
-          label: `${i + 1}日`,
-          khamenei: Number((65 + (t * 12) + noise(2)).toFixed(1)),
-          us_strikes: Number((8 - (t * 5.7) + noise(1)).toFixed(1)),
-          israel_strikes: Number((7 - (t * 5.3) + noise(1)).toFixed(1)),
+          label: `Day ${i + 1}`,
+          khamenei: Number((60 + (t * 10) + noise(2)).toFixed(1)),
+          us_strikes: Number((50 + (t * 10) + noise(2)).toFixed(1)),
+          israel_strikes: Number((40 + (t * 10) + noise(2)).toFixed(1)),
+          selected_market: selectedMarketValue,
         };
       });
     }
     // ALL (Monthly - Full Year Trend)
-    const months = ["2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月", "1月", "2月"];
+    const months = ["Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb"];
     return months.map((m, i) => {
       const t = i / (months.length - 1);
+      const isLast = i === months.length - 1;
+      
       // Historical data for Khamenei climb
-      const baseK = i < 8 ? 10 + (i * 3) : 38 + (i - 8) * 8;
-      // Historical data for Strikes decline
-      const baseUS = i < 8 ? 8 + (i * 1.5) : 20 - (i - 8) * 4;
-      const baseIsr = i < 8 ? 6 + (i * 1.2) : 15 - (i - 8) * 3;
+      const baseK = i < 8 ? 10 + (i * 3) : 34 + (i - 8) * 4.5;
+      // Historical data for US and Israel strikes
+      const baseUS = i < 8 ? 20 + (i * 2) : 36 + (i - 8) * 3;
+      const baseIsr = i < 8 ? 15 + (i * 1.5) : 28.5 + (i - 8) * 2.7;
+
+      let selectedMarketValue: number | null = null;
+      if (currentSelectedProb !== null) {
+        if (isLast) {
+          selectedMarketValue = currentSelectedProb;
+        } else {
+          const baseTrend = currentSelectedProb - 10 + (t * 10);
+          selectedMarketValue = Number((baseTrend + noise(3)).toFixed(2));
+          selectedMarketValue = Math.max(0, Math.min(100, selectedMarketValue));
+        }
+      }
 
       return {
         label: m,
-        khamenei: i === months.length - 1 ? 77 : Number((baseK + noise(2)).toFixed(1)),
-        us_strikes: i === months.length - 1 ? 2.3 : Math.max(0.5, Number((baseUS + noise(1)).toFixed(1))),
-        israel_strikes: i === months.length - 1 ? 1.7 : Math.max(0.5, Number((baseIsr + noise(1)).toFixed(1))),
+        khamenei: i === months.length - 1 ? 70 : Number((baseK + noise(2)).toFixed(1)),
+        us_strikes: i === months.length - 1 ? 60 : Math.max(0.5, Number((baseUS + noise(1)).toFixed(1))),
+        israel_strikes: i === months.length - 1 ? 50 : Math.max(0.5, Number((baseIsr + noise(1)).toFixed(1))),
+        selected_market: selectedMarketValue,
       };
     });
-  }, [range]);
+  }, [range, selectedMarketProbability]);
 
   return (
     <div className="flex flex-col gap-12 rounded-3xl border border-white/5 bg-white/5 p-8 backdrop-blur-xl">
       {activeView === "Odds" ? (
         <div className="flex flex-col gap-8">
+          {/* Selected Market Indicator */}
+          {selectedMarketProbability !== null && (
+            <div className="flex items-center justify-between rounded-xl bg-white text-black shadow-xl shadow-white/20 px-6 py-4">
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-black uppercase tracking-widest">Selected Odds</span>
+              </div>
+              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-3 text-xs font-bold text-black/60">
+                  {QUESTIONS.map((q, idx) => {
+                    const selection = selections[q.id];
+                    if (!selection) return null;
+                    return (
+                      <div key={q.id} className="flex items-center gap-2">
+                        <span>{q.image}</span>
+                        <span className={cn(
+                          selection === "Yes" ? "text-emerald-600" : 
+                          selection === "No" ? "text-rose-600" : 
+                          "text-black/60"
+                        )}>
+                          {selection}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="text-right">
+                  <div className="text-2xl font-black text-black">
+                    {selectedMarketProbability.toFixed(2)}%
+                  </div>
+                  <div className="text-[10px] font-bold text-black/40 uppercase tracking-widest">For The Win</div>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="overflow-hidden rounded-2xl border border-white/5 bg-white/[0.02]">
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b border-white/5 text-[10px] font-black uppercase tracking-[0.2em] text-white/20">
-                  <th className="px-6 py-4">Outcome</th>
-                  <th className="px-6 py-4">Description</th>
-                  <th className="px-6 py-4 text-right">Probability</th>
+                  <th className="px-6 py-4">Yes Selection</th>
+                  <th className="px-6 py-4">Market</th>
+                  <th className="px-6 py-4 text-right">Odds</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {JOINT_OUTCOMES.map((row) => (
-                  <tr key={row.id} className="group hover:bg-white/[0.02] transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex gap-2">
-                        {row.outcomes.map((isOn, idx) => (
-                          <div
-                            key={idx}
-                            className={cn(
-                              "h-3 w-3 rounded-full border-2",
-                              isOn 
-                                ? cn(OUTCOMES[idx].color, "border-transparent") 
-                                : "border-white/10 bg-transparent"
-                            )}
-                          />
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm font-bold text-white/40 group-hover:text-white/70 transition-colors">
-                      {row.description}
-                    </td>
-                    <td className="px-6 py-4 text-right text-sm font-black text-white">
-                      {row.probability}
-                    </td>
-                  </tr>
-                ))}
+                {JOINT_OUTCOMES.map((row) => {
+                  const isSelected = doesOutcomeMatch(row, selections);
+                  return (
+                    <tr 
+                      key={row.id} 
+                      className={cn(
+                        "group transition-all",
+                        isSelected 
+                          ? "bg-white text-black shadow-xl shadow-white/20" 
+                          : "hover:bg-white/[0.02]"
+                      )}
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex gap-2 items-center">
+                          {row.outcomes.map((isOn, idx) => (
+                            <div
+                              key={idx}
+                              className={cn(
+                                "h-3 w-3 rounded-full border-2",
+                                isOn 
+                                  ? cn(OUTCOMES[idx].color, "border-transparent") 
+                                  : isSelected
+                                  ? "border-black/20 bg-transparent"
+                                  : "border-white/10 bg-transparent"
+                              )}
+                            />
+                          ))}
+                        </div>
+                      </td>
+                      <td className={cn(
+                        "px-6 py-4 text-sm font-bold transition-colors",
+                        isSelected 
+                          ? "text-black" 
+                          : "text-white/40 group-hover:text-white/70"
+                      )}>
+                        {row.description}
+                      </td>
+                      <td className={cn(
+                        "px-6 py-4 text-right text-sm font-black transition-colors",
+                        isSelected 
+                          ? "text-black" 
+                          : "text-white"
+                      )}>
+                        {row.probability.toFixed(2)}%
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -142,7 +309,7 @@ export const Visualizations = ({ activeView }: VisualizationsProps) => {
       ) : activeView === "1D" ? (
         <div className="w-full">
           <div className="h-[350px] w-full relative">
-            <ChartContainer config={chartConfig} className="h-full w-full aspect-auto">
+            <ChartContainer config={chartConfig} className="h-full w-full aspect-auto relative">
               <LineChart
                 data={data}
                 margin={{ left: 0, right: 40, top: 10, bottom: 20 }}
@@ -194,8 +361,68 @@ export const Visualizations = ({ activeView }: VisualizationsProps) => {
                   dot={false}
                   animationDuration={0}
                 />
+                {selectedMarketProbability !== null && (
+                  <Line
+                    dataKey="selected_market"
+                    type="monotone"
+                    stroke="#3b82f6"
+                    strokeWidth={4}
+                    dot={(props: any) => {
+                      // Only show dot on the last data point
+                      const isLast = props.index === data.length - 1;
+                      if (!isLast) return null;
+                      return (
+                        <circle
+                          {...props}
+                          r={6}
+                          fill="#3b82f6"
+                          stroke="#ffffff"
+                          strokeWidth={2}
+                          style={{
+                            filter: "drop-shadow(0 0 12px rgba(59, 130, 246, 1))",
+                            animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+                          }}
+                        />
+                      );
+                    }}
+                    activeDot={{
+                      r: 8,
+                      fill: "#3b82f6",
+                      stroke: "#ffffff",
+                      strokeWidth: 3,
+                      style: {
+                        filter: "drop-shadow(0 0 16px rgba(59, 130, 246, 1))",
+                      },
+                    }}
+                    animationDuration={300}
+                    style={{
+                      filter: "drop-shadow(0 0 8px rgba(59, 130, 246, 0.6))",
+                    }}
+                  />
+                )}
               </LineChart>
             </ChartContainer>
+            
+            {/* Shining effect overlay */}
+            {selectedMarketProbability !== null && (
+              <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl">
+                <div 
+                  className="absolute inset-0"
+                  style={{
+                    background: `linear-gradient(90deg, 
+                      transparent 0%, 
+                      rgba(59, 130, 246, 0.1) 45%, 
+                      rgba(59, 130, 246, 0.3) 50%, 
+                      rgba(59, 130, 246, 0.1) 55%, 
+                      transparent 100%
+                    )`,
+                    animation: "shine 3s ease-in-out infinite",
+                    width: "200%",
+                    height: "100%",
+                  }}
+                />
+              </div>
+            )}
           </div>
 
           <div className="mt-12 flex justify-between items-center border-t border-white/5 pt-8">

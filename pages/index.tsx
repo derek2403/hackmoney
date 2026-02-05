@@ -9,6 +9,11 @@ import { MarketRules } from "../components/MarketRules";
 
 export default function Home() {
   const [view, setView] = useState<"1D" | "2D" | "Odds">("1D");
+  const [selections, setSelections] = useState<Record<number, string | null>>({
+    1: null,
+    2: null,
+    3: null,
+  });
 
   return (
     <div className="relative min-h-screen bg-black text-white selection:bg-blue-500/30 selection:text-white overflow-x-hidden">
@@ -37,13 +42,13 @@ export default function Home() {
             {/* Main Content Area */}
             <div className="flex-1 space-y-12">
               <MarketHeader activeView={view} onViewChange={setView} />
-              <Visualizations activeView={view} />
+              <Visualizations activeView={view} selections={selections} />
               <MarketRules />
             </div>
 
             {/* Sidebar */}
             <div className="sticky top-32">
-              <TradeSidebar />
+              <TradeSidebar selections={selections} onSelectionChange={setSelections} />
             </div>
           </div>
         </main>
