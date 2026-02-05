@@ -1,5 +1,14 @@
-import React from "react";
-import { cn } from "./utils";
+import React, { useState, useMemo } from "react"
+import { TrendingUp, LayoutGrid } from "lucide-react"
+import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts"
+import { cn } from "./utils"
+
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "./ui/chart"
 
 const OUTCOMES = [
   { label: "Khamenei out as Supreme Leader of Iran by January 31?", prob: "77%", color: "bg-rose-500" },
@@ -18,11 +27,55 @@ const JOINT_OUTCOMES = [
   { id: 8, outcomes: [true, true, true], description: "Khamenei Yes, US Yes, Israel Yes", probability: "7.73%" },
 ];
 
+const chartConfig = {
+  khamenei: { label: "Khamenei", color: "#f43f5e" },
+  us_strikes: { label: "US", color: "#f97316" },
+  israel_strikes: { label: "Israel", color: "#10b981" },
+} satisfies ChartConfig
+
 interface VisualizationsProps {
   activeView: "1D" | "2D" | "Table";
 }
 
 export const Visualizations = ({ activeView }: VisualizationsProps) => {
+  const [range, setRange] = useState<"1D" | "1M" | "ALL">("ALL");
+
+  const data = useMemo(() => {
+    // Helper for organic noise
+    const noise = (val: number) => (Math.random() - 0.5) * val;
+
+    if (range === "1D") {
+      return Array.from({ length: 24 }, (_, i) => {
+        const t = i / 23;
+        return {
+          label: `${i}:00`,
+          khamenei: Number((76 + (t * 1) + noise(0.5)).toFixed(1)),
+          us_strikes: Number((3 - (t * 0.7) + noise(0.2)).toFixed(1)),
+          israel_strikes: Number((2.5 - (t * 0.8) + noise(0.2)).toFixed(1)),
+        };
+      });
+    }
+    if (range === "1M") {
+      return Array.from({ length: 30 }, (_, i) => {
+        const t = i / 29;
+        return {
+          label: `${i + 1}日`,
+          khamenei: Number((65 + (t * 12) + noise(2)).toFixed(1)),
+          us_strikes: Number((8 - (t * 5.7) + noise(1)).toFixed(1)),
+          israel_strikes: Number((7 - (t * 5.3) + noise(1)).toFixed(1)),
+        };
+      });
+    }
+    // ALL (Monthly)
+    return [
+      { label: "10月", khamenei: 15, us_strikes: 12, israel_strikes: 10 },
+      { label: "11月", khamenei: 22, us_strikes: 18, israel_strikes: 15 },
+      { label: "12月", khamenei: 38, us_strikes: 25, israel_strikes: 20 },
+      { label: "1月", khamenei: 62, us_strikes: 12, israel_strikes: 10 },
+      { label: "2月", khamenei: 77, us_strikes: 2.3, israel_strikes: 1.7 },
+    ];
+  }, [range]);
+
   return (
     <div className="flex flex-col gap-12 rounded-3xl border border-white/5 bg-white/5 p-8 backdrop-blur-xl">
       {activeView === "Table" ? (
@@ -78,15 +131,83 @@ export const Visualizations = ({ activeView }: VisualizationsProps) => {
           </div>
         </div>
       ) : activeView === "1D" ? (
-        <div className="relative py-20 px-4">
-          <div className="relative h-[2px] w-full bg-white/5">
-            <div className="absolute top-1/2 left-[77%] h-4 w-4 -translate-y-1/2 rounded-full border-4 border-black bg-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.5)] transition-transform hover:scale-125 cursor-pointer" />
-            <div className="absolute top-1/2 left-[2.3%] h-4 w-4 -translate-y-1/2 rounded-full border-4 border-black bg-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.5)] transition-transform hover:scale-125 cursor-pointer" />
-            <div className="absolute top-1/2 left-[1.7%] h-4 w-4 -translate-y-1/2 rounded-full border-4 border-black bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)] transition-transform hover:scale-125 cursor-pointer" />
+        <div className="w-full">
+          <div className="h-[350px] w-full relative">
+            <ChartContainer config={chartConfig} className="h-full w-full aspect-auto">
+              <LineChart
+                data={data}
+                margin={{ left: 0, right: 40, top: 10, bottom: 20 }}
+              >
+                <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                <XAxis
+                  dataKey="label"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: 'rgba(255,255,255,0.2)', fontSize: 10, fontWeight: 900 }}
+                  dy={10}
+                  interval={range === "1D" ? 3 : range === "1M" ? 5 : 2}
+                />
+                <YAxis
+                  orientation="right"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: 'rgba(255,255,255,0.2)', fontSize: 10, fontWeight: 900 }}
+                  domain={[0, 100]}
+                  ticks={[0, 20, 40, 60, 80]}
+                  tickFormatter={(val) => `${val}%`}
+                />
+                <ChartTooltip 
+                  cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1 }} 
+                  content={<ChartTooltipContent hideLabel valueFormatter={(val) => `${val}%`} />} 
+                />
+                <Line
+                  dataKey="khamenei"
+                  type="monotone"
+                  stroke="#f43f5e"
+                  strokeWidth={3}
+                  dot={false}
+                  animationDuration={0}
+                />
+                <Line
+                  dataKey="us_strikes"
+                  type="monotone"
+                  stroke="#f97316"
+                  strokeWidth={3}
+                  dot={false}
+                  animationDuration={0}
+                />
+                <Line
+                  dataKey="israel_strikes"
+                  type="monotone"
+                  stroke="#10b981"
+                  strokeWidth={3}
+                  dot={false}
+                  animationDuration={0}
+                />
+              </LineChart>
+            </ChartContainer>
           </div>
-          <div className="mt-8 flex justify-between text-[11px] font-black tracking-[0.2em] text-white/20 uppercase">
-            <span>Outcome No</span>
-            <span>Yes</span>
+
+          <div className="mt-12 flex justify-between items-center border-t border-white/5 pt-8">
+            <div className="flex flex-col gap-1">
+              <span className="text-[14px] font-black text-white">$166,140,452 vol</span>
+            </div>
+            
+            <div className="flex items-center gap-4 text-[11px] font-black text-white/30 tracking-widest uppercase">
+              <span 
+                onClick={() => setRange("1D")}
+                className={cn("hover:text-white cursor-pointer transition-colors", range === "1D" && "text-white")}
+              >1D</span>
+              <span 
+                onClick={() => setRange("1M")}
+                className={cn("hover:text-white cursor-pointer transition-colors", range === "1M" && "text-white")}
+              >1M</span>
+              <span 
+                onClick={() => setRange("ALL")}
+                className={cn("hover:text-white cursor-pointer transition-colors", range === "ALL" && "text-white")}
+              >ALL</span>
+              <LayoutGrid className="h-4 w-4 ml-2" />
+            </div>
           </div>
         </div>
       ) : (
