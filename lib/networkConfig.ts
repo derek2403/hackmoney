@@ -17,3 +17,6 @@ export const NAME_WRAPPER_ADDRESS = '0x0635513f179D50A207757E05759CbD106d7dFcE8'
 
 // Parent domain for market subdomains
 export const PARENT_DOMAIN = 'jybigbig.eth';
+
+// SwapRouter deployed on Sepolia
+export const SWAP_ROUTER_ADDRESS = '0xEFd7feABc1D820293e5eF988b6715DADd1D26bB2' as `0x${string}`;
