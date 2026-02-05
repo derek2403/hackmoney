@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import Image from "next/image";
-import { Cinzel, Inter } from "next/font/google";
+import { Cinzel } from "next/font/google";
 import gsap from "gsap";
 
 const cinzel = Cinzel({
@@ -9,38 +9,41 @@ const cinzel = Cinzel({
     variable: "--font-cinzel",
 });
 
-const inter = Inter({
-    subsets: ["latin"],
-    variable: "--font-inter",
-});
+const Card = ({ className = "", imageSrc }: { className?: string; imageSrc?: string }) => (
+    <div className={`relative w-48 h-72 group ${className}`}>
+        {/* Stack effect layers with blur */}
+        <div className="absolute inset-0 translate-x-1 translate-y-1 bg-white/10 rounded-lg border border-white/5 blur-[2px]" />
+        <div className="absolute inset-0 translate-x-0.5 translate-y-0.5 bg-white/5 rounded-lg blur-[1px]" />
 
-const Card = ({ className = "" }: { className?: string }) => (
-    <div className={`relative w-40 h-60 group ${className}`}>
-        {/* Stack effect layers */}
-        <div className="absolute inset-0 translate-x-1 translate-y-1 bg-white/10 rounded-lg border border-white/5 blur-[1px]" />
-
-        {/* Main Card Body */}
-        <div className="absolute inset-0 bg-[#fdfaf3] rounded-lg shadow-2xl overflow-hidden shadow-black/80 border border-white/20">
-            {/* Golden Inner Border */}
-            <div className="absolute inset-[5px] border border-[#d4af37]/40 rounded-[7px]" />
-            <div className="absolute inset-[7px] border border-[#d4af37]/20 rounded-[5px]" />
+        {/* Main Card Body with enhanced blur shadow */}
+        <div className="absolute inset-0 bg-[#fdfaf3] rounded-lg shadow-2xl overflow-hidden shadow-black/80 border border-white/20 backdrop-blur-sm">
 
             {/* Texture/Noise */}
-            <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/felt.png")' }} />
+            <div className="absolute inset-0 opacity-[0.03] pointer-events-none z-10" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/felt.png")' }} />
 
-            {/* Card Content Placeholder */}
-            <div className="absolute inset-0 p-4 flex flex-col items-center justify-center text-black/10">
-                <div className="w-10 h-10 border border-current rounded-full flex items-center justify-center">
-                    <div className="w-5 h-5 border border-current" />
+            {/* Card Image */}
+            {imageSrc && (
+                <div className="absolute inset-0">
+                    <Image
+                        src={imageSrc}
+                        alt="Card content"
+                        fill
+                        className="object-cover"
+                    />
                 </div>
-            </div>
+            )}
         </div>
     </div>
 );
 
 const Deck = ({ className = "" }: { className?: string }) => (
-    <div className={`relative w-40 h-60 ${className}`}>
-        {/* Generate a thick stack effect using multiple layers */}
+    <div className={`relative w-48 h-72 ${className} group/deck`}>
+        {/* Glowing effect layers - MAXIMUM VISIBILITY */}
+        <div className="absolute inset-0 -z-10 rounded-lg bg-gradient-to-br from-amber-300/70 via-yellow-200/70 to-orange-300/70 blur-3xl opacity-90 group-hover/deck:opacity-100 transition-opacity duration-500 animate-pulse-glow" />
+        <div className="absolute inset-0 -z-10 rounded-lg bg-gradient-to-br from-amber-400/60 via-yellow-300/60 to-orange-400/60 blur-4xl opacity-95 group-hover/deck:opacity-100 transition-opacity duration-500 animate-pulse-glow-slow" />
+        <div className="absolute inset-0 -z-10 rounded-lg bg-amber-300/50 blur-[120px] opacity-90 animate-pulse-glow-slow" />
+
+        {/* Generate a thick stack effect using multiple layers with blur */}
         {[...Array(12)].map((_, i) => (
             <div
                 key={i}
@@ -48,12 +51,16 @@ const Deck = ({ className = "" }: { className?: string }) => (
                 style={{
                     transform: `translate(${i * 0.5}px, ${i * 0.5}px)`,
                     backgroundColor: i === 11 ? '#fdfaf3' : `hsl(45, 20%, ${90 - (i * 2)}%)`,
-                    zIndex: 10 - i
+                    zIndex: 10 - i,
+                    filter: i < 11 ? 'blur(0.5px)' : 'none'
                 }}
             />
         ))}
-        {/* Main top card with custom shadow to bridge the stack */}
-        <Card className="shadow-xl hover:-translate-y-2 hover:-translate-x-0.5 transition-all duration-300 cursor-pointer relative z-20" />
+        {/* Main top card with cover image and enhanced glow shadow */}
+        <Card
+            imageSrc="/cards/cover.png"
+            className="shadow-[0_25px_50px_-12px_rgba(0,0,0,0.85),0_0_60px_rgba(251,191,36,0.6),0_0_90px_rgba(251,191,36,0.3)] hover:shadow-[0_30px_60px_-12px_rgba(0,0,0,0.9),0_0_100px_rgba(251,191,36,0.8),0_0_140px_rgba(251,191,36,0.4)] hover:-translate-y-3 hover:scale-105 transition-all duration-500 cursor-pointer relative z-20"
+        />
     </div>
 );
 
@@ -78,7 +85,7 @@ export default function Home() {
     }, []);
 
     return (
-        <div className={`${cinzel.variable} ${inter.variable} min-h-screen bg-[#0a0a0b] text-[#e0e0e0] font-sans selection:bg-amber-500/30 relative overflow-hidden`}>
+        <div className={`${cinzel.variable} min-h-screen bg-[#0a0a0b] text-[#e0e0e0] font-serif selection:bg-amber-500/30 relative overflow-hidden`}>
             {/* Background elements for depth */}
             <div className="fixed inset-0 pointer-events-none z-0">
                 <div className="absolute inset-0 bg-[#0a0a0b]" />
@@ -107,10 +114,32 @@ export default function Home() {
             </div>
 
             <main className="relative z-10 container mx-auto px-6 lg:px-12 min-h-screen flex items-center">
-                <div ref={cardsRef} className="flex flex-col lg:flex-row w-full items-center justify-between">
-                    {/* Left Side: Empty container for future content */}
-                    <div className="w-full lg:w-1/2 flex flex-col space-y-8 py-20 lg:py-0">
-                        {/* Content will be added here */}
+                <div className="flex flex-col lg:flex-row w-full items-center justify-between">
+                    {/* Left Side: Big Tagline */}
+                    <div className="w-full lg:w-1/2 flex flex-col space-y-4 py-20 lg:py-0 text-white tracking-tight">
+                        <h1 className="animate-item text-3xl md:text-4xl lg:text-5xl leading-[1.2] font-light">
+                            The world&apos;s first combined and<br />
+                            most accurate source of<br />
+                            <span className={`${cinzel.className} text-white font-black tracking-widest text-5xl md:text-6xl lg:text-7xl block mt-4 mb-2 uppercase`}>
+                                TRUTH
+                            </span>
+                        </h1>
+                        <div className="mt-8" />
+
+                        {/* Shape-shifting Enter Button */}
+                        <div className="animate-item flex">
+                            <button className={`
+                                group relative px-10 py-3 bg-white text-black font-black tracking-widest text-sm
+                                transition-all duration-500 ease-in-out
+                                [clip-path:polygon(10px_0%,calc(100%-10px)_0%,100%_50%,calc(100%-10px)_100%,10px_100%,0%_50%)]
+                                hover:[clip-path:polygon(0%_0%,100%_0%,100%_100%,100%_100%,0%_100%,0%_100%)]
+                                hover:rounded-sm
+                                ${cinzel.className}
+                            `}>
+                                ENTER
+                                <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                            </button>
+                        </div>
                     </div>
 
                     {/* Right Side: Shared container for Stage and Deck */}
@@ -118,16 +147,16 @@ export default function Home() {
                         {/* Central Stage (The 4 Cards) */}
                         <div className="animate-item relative w-full max-w-[600px] aspect-square flex items-center justify-center">
                             <div className="relative w-full h-full">
-                                {/* Top Middle Card */}
+                                {/* Top Middle Card - Trending */}
                                 <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[105%]">
-                                    <Card className="hover:-translate-y-2 transition-transform duration-300 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.8)]" />
+                                    <Card imageSrc="/cards/trending.png" className="hover:-translate-y-2 transition-transform duration-300 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
                                 </div>
 
-                                {/* Bottom Row: Left, Middle, Right */}
+                                {/* Bottom Row: Politics, Crypto, Tech */}
                                 <div className="absolute left-1/2 top-1/2 -translate-x-1/2 translate-y-[15%] flex gap-6">
-                                    <Card className="hover:-translate-y-2 transition-transform duration-300 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.8)]" />
-                                    <Card className="hover:-translate-y-2 transition-transform duration-300 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.8)]" />
-                                    <Card className="hover:-translate-y-2 transition-transform duration-300 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.8)]" />
+                                    <Card imageSrc="/cards/politics.png" className="hover:-translate-y-2 transition-transform duration-300 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
+                                    <Card imageSrc="/cards/crypto.png" className="hover:-translate-y-2 transition-transform duration-300 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
+                                    <Card imageSrc="/cards/tech.png" className="hover:-translate-y-2 transition-transform duration-300 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
                                 </div>
                             </div>
                         </div>
@@ -153,6 +182,20 @@ const GlobalStyles = () => (
         @keyframes subtle-float {
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-10px); }
+        }
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 0.7; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+        @keyframes pulse-glow-slow {
+            0%, 100% { opacity: 0.6; transform: scale(1); }
+            50% { opacity: 0.95; transform: scale(1.12); }
+        }
+        .animate-pulse-glow {
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+        .animate-pulse-glow-slow {
+            animation: pulse-glow-slow 3s ease-in-out infinite;
         }
         body {
             background: #0a0a0b;
