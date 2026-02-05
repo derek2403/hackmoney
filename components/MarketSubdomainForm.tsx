@@ -25,6 +25,7 @@ export const MarketSubdomainForm: React.FC<MarketSubdomainFormProps> = ({
     const {
         step,
         hash,
+        setAddrHash,
         error,
         createSubdomain,
         reset
@@ -118,7 +119,7 @@ export const MarketSubdomainForm: React.FC<MarketSubdomainFormProps> = ({
                         onChange={(e) => setLabel(e.target.value.toLowerCase())}
                         placeholder="e.g., trump2024"
                         className="flex-1 px-4 py-3 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                        disabled={step === 'creating'}
+                        disabled={step === 'creating' || step === 'settingAddress'}
                     />
                     <span className="px-4 py-3 bg-gray-100 border border-l-0 border-gray-300 rounded-r-lg text-gray-600">
                         .{parentDomain}
@@ -144,7 +145,7 @@ export const MarketSubdomainForm: React.FC<MarketSubdomainFormProps> = ({
                         checked={useCustomResolver}
                         onChange={(e) => setUseCustomResolver(e.target.checked)}
                         className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                        disabled={step === 'creating'}
+                        disabled={step === 'creating' || step === 'settingAddress'}
                     />
                     <span className="text-sm text-gray-700">
                         Use custom resolver (for market contract)
@@ -164,7 +165,7 @@ export const MarketSubdomainForm: React.FC<MarketSubdomainFormProps> = ({
                         onChange={(e) => setResolverAddress(e.target.value)}
                         placeholder="0x..."
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-mono text-sm"
-                        disabled={step === 'creating'}
+                        disabled={step === 'creating' || step === 'settingAddress'}
                     />
                     <p className="mt-1 text-xs text-gray-500">
                         Enter the market swap router contract address
@@ -189,35 +190,62 @@ export const MarketSubdomainForm: React.FC<MarketSubdomainFormProps> = ({
             {/* Submit Button */}
             <button
                 type="submit"
-                disabled={!isValidLabel || step === 'creating'}
-                className={`w-full py-3 px-6 rounded-lg font-medium transition-all ${!isValidLabel || step === 'creating'
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg'
+                disabled={!isValidLabel || step === 'creating' || step === 'settingAddress'}
+                className={`w-full py-3 px-6 rounded-lg font-medium transition-all ${!isValidLabel || step === 'creating' || step === 'settingAddress'
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md hover:shadow-lg'
                     }`}
             >
                 {step === 'creating' ? (
                     <span className="flex items-center justify-center gap-2">
                         <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                        Creating Subdomain...
+                        Step 1/2: Creating Subdomain...
+                    </span>
+                ) : step === 'settingAddress' ? (
+                    <span className="flex items-center justify-center gap-2">
+                        <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                        Step 2/2: Setting Address Record...
                     </span>
                 ) : (
                     'Create Subdomain'
                 )}
             </button>
 
-            {/* Transaction Hash */}
-            {hash && step === 'creating' && (
-                <p className="text-center text-sm text-gray-500">
-                    Transaction: {' '}
-                    <a
-                        href={`https://sepolia.etherscan.io/tx/${hash}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
-                    >
-                        {hash.slice(0, 10)}...{hash.slice(-8)}
-                    </a>
-                </p>
+            {/* Progress Indicator */}
+            {(step === 'creating' || step === 'settingAddress') && (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-700 mb-2">
+                        {step === 'creating'
+                            ? '✓ Creating subdomain... Please confirm in your wallet.'
+                            : '✓ Subdomain created! Now setting address record so MetaMask can resolve it...'}
+                    </p>
+                    {hash && (
+                        <p className="text-xs text-blue-600">
+                            Subdomain TX: {' '}
+                            <a
+                                href={`https://sepolia.etherscan.io/tx/${hash}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="hover:underline"
+                            >
+                                {hash.slice(0, 10)}...{hash.slice(-8)}
+                            </a>
+                        </p>
+                    )}
+                    {setAddrHash && (
+                        <p className="text-xs text-blue-600 mt-1">
+                            Address TX: {' '}
+                            <a
+                                href={`https://sepolia.etherscan.io/tx/${setAddrHash}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="hover:underline"
+                            >
+                                {setAddrHash.slice(0, 10)}...{setAddrHash.slice(-8)}
+                            </a>
+                        </p>
+                    )}
+                </div>
             )}
         </form>
     );
