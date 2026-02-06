@@ -1,13 +1,19 @@
 import React, { useEffect, useRef } from "react";
 import Image from "next/image";
-import { Cinzel } from "next/font/google";
+import { Cinzel, Permanent_Marker } from "next/font/google";
 import gsap from "gsap";
 import DecryptedText from "../components/DecryptedText";
+import { HyperText } from "@/components/ui/hyper-text"
 
 const cinzel = Cinzel({
     subsets: ["latin"],
     weight: ["400", "700", "900"],
     variable: "--font-cinzel",
+});
+
+const permanentMarker = Permanent_Marker({
+    subsets: ["latin"],
+    weight: "400",
 });
 
 const Card = ({ className = "", imageSrc }: { className?: string; imageSrc?: string }) => (
@@ -90,6 +96,23 @@ export default function Home() {
         "/cards/tech.png",
     ]);
 
+    // Selected card index (0–3); null = none selected. Click to select, click again to deselect.
+    const [selectedCardIndex, setSelectedCardIndex] = React.useState<number | null>(null);
+
+    // When Politics is clicked: all cards disappear, then 3 cards show on top row
+    const [promotingFromIndex, setPromotingFromIndex] = React.useState<number | null>(null);
+    const topCardSlotRef = useRef<HTMLDivElement>(null);
+    const bottomRowRef = useRef<HTMLDivElement>(null);
+    const threeCardsRowRef = useRef<HTMLDivElement>(null);
+
+    const THREE_CARDS = ["/cards/tradewar.png", "/cards/iranwar.png", "/cards/uselection.png"];
+
+    // Layout: "four" = 1 top + 3 bottom; "three" = single row of 3 cards on top
+    const [layoutMode, setLayoutMode] = React.useState<"four" | "three">("four");
+
+    // After Politics: 3 cards pop in on top row (set when switching to three layout)
+    const [animateNewBottomRow, setAnimateNewBottomRow] = React.useState(false);
+
     // Phase: intro (tagline) -> transitioning (tagline out) -> cards
     const [phase, setPhase] = React.useState<ViewPhase>("intro");
     const cardsVisible = phase === "cards";
@@ -114,26 +137,67 @@ export default function Home() {
         );
     }, [truthRevealed]);
 
-    // When transitioning: animate tagline out, then switch to cards
+    // When transitioning: tagline smoothly minimises till disappear, then switch to cards
     useEffect(() => {
         if (phase !== "transitioning" || !taglineRef.current) return;
         gsap.to(taglineRef.current, {
             opacity: 0,
-            scale: 0.98,
+            scale: 0,
             duration: 0.5,
             ease: "power2.in",
+            transformOrigin: "center center",
             onComplete: () => setPhase("cards"),
         });
     }, [phase]);
 
-    // When cards view mounts: smooth card entrance
+    // Politics clicked: all 4 cards smoothly minimise in place (scale down + fade) till disappear, then show 3 cards
+    useEffect(() => {
+        if (promotingFromIndex !== 1 || !cardsRef.current) return;
+        const cardEls = cardsRef.current.querySelectorAll(".card-display");
+        if (cardEls.length < 4) return;
+        gsap.to(cardEls, {
+            opacity: 0,
+            scale: 0,
+            duration: 0.65,
+            ease: "power2.in",
+            transformOrigin: "center center",
+            overwrite: true,
+            onComplete: () => {
+                setDisplayedCards(THREE_CARDS);
+                setLayoutMode("three");
+                setPromotingFromIndex(null);
+                setSelectedCardIndex(null);
+                setAnimateNewBottomRow(true);
+            },
+        });
+    }, [promotingFromIndex]);
+
+    // Three-card row pop-out (after all cards disappear): same animation as initial cards
+    useEffect(() => {
+        if (!animateNewBottomRow || layoutMode !== "three" || !threeCardsRowRef.current) return;
+        const children = Array.from(threeCardsRowRef.current.children) as HTMLElement[];
+        if (children.length === 0) return;
+        gsap.set(children, { opacity: 0, y: 40, scale: 0.88 });
+        gsap.to(children, {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            duration: 0.7,
+            ease: "back.out(1.05)",
+            onComplete: () => setAnimateNewBottomRow(false),
+        });
+    }, [animateNewBottomRow, layoutMode]);
+
+    // When cards view mounts: smooth card entrance (top card / Trending stays in place, no vertical move)
     useEffect(() => {
         if (phase !== "cards" || !cardsRef.current) return;
 
         const container = cardsRef.current;
         const cardEls = container.querySelectorAll(".card-display");
         gsap.set(container, { opacity: 0 });
-        gsap.set(cardEls, { opacity: 0, y: 40, scale: 0.88 });
+        gsap.set(cardEls, { opacity: 0, scale: 0.88 });
+        gsap.set(cardEls[0], { y: 0 }); // Top card (Trending): no move down, only fade + scale
+        gsap.set(Array.from(cardEls).slice(1), { y: 40 }); // Bottom row: start lower, animate up
 
         const tl = gsap.timeline({ delay: 0.15 });
         tl.to(container, { opacity: 1, duration: 0.4, ease: "power2.out" });
@@ -181,15 +245,15 @@ export default function Home() {
         const cardElements = cardsRef.current?.querySelectorAll('.card-display');
         if (!cardElements) return;
 
-        // Step 1: Smooth fade out current cards
+        // Step 1: Smooth minimise till disappear
         await new Promise<void>((resolve) => {
             gsap.to(cardElements, {
                 opacity: 0,
-                scale: 0.92,
-                y: 20,
+                scale: 0,
                 duration: 0.5,
                 stagger: 0.06,
                 ease: "power2.in",
+                transformOrigin: "center center",
                 onComplete: resolve
             });
         });
@@ -246,10 +310,10 @@ export default function Home() {
                                     animateOn="view"
                                     revealDirection="start"
                                     sequential
-                                    speed={200}
+                                    speed={100}
                                     maxIterations={500}
-                                    className={`${cinzel.className} text-black font-black tracking-widest`}
-                                    parentClassName={`${cinzel.className} text-black font-black tracking-widest text-5xl md:text-6xl lg:text-7xl block mt-4 mb-0 uppercase`}
+                                    className={`${permanentMarker.className} text-black font-black tracking-widest`}
+                                    parentClassName={`${permanentMarker.className} text-black font-black tracking-widest text-5xl md:text-6xl lg:text-7xl block mt-4 mb-0 uppercase`}
                                     onComplete={() => setTruthRevealed(true)}
                                 />
                             </h1>
@@ -278,22 +342,68 @@ export default function Home() {
                     {/* Cards – only visible after clicking the TRUTH deck; replaces tagline view */}
                     {cardsVisible && (
                         <div className="w-full flex items-center justify-center relative">
-                            {/* Central Stage (The 4 Cards) */}
-                            <div ref={cardsRef} className="animate-item relative w-full max-w-[600px] aspect-square flex items-center justify-center">
-                                <div className="relative w-full h-full">
-                                    {/* Top Middle Card */}
-                                    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[105%]">
-                                        <Card imageSrc={displayedCards[0]} className="card-display hover:-translate-y-2 transition-transform duration-300 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
+                            {layoutMode === "four" && (
+                                <>
+                                    {/* Layout: 1 top + 3 bottom */}
+                                    <div ref={cardsRef} className="animate-item relative w-full max-w-[600px] aspect-square flex items-center justify-center">
+                                        <div className="relative w-full h-full">
+                                            <div
+                                                ref={topCardSlotRef}
+                                                role="button"
+                                                tabIndex={0}
+                                                onClick={() => setSelectedCardIndex((i) => (i === 0 ? null : 0))}
+                                                onKeyDown={(e) => e.key === "Enter" && setSelectedCardIndex((i) => (i === 0 ? null : 0))}
+                                                className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[105%] cursor-pointer rounded-lg transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0b] ${selectedCardIndex === 0 ? "ring-2 ring-amber-400 ring-offset-2 ring-offset-[#0a0a0b] scale-105 z-10 shadow-[0_0_30px_rgba(251,191,36,0.4)]" : ""}`}
+                                            >
+                                                <Card imageSrc={displayedCards[0]} className="card-display hover:-translate-y-6 transition-transform duration-300 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
+                                            </div>
+                                            <div ref={bottomRowRef} className="absolute left-1/2 top-1/2 -translate-x-1/2 translate-y-[15%] flex gap-6">
+                                                {[1, 2, 3].map((idx) => (
+                                                    <div
+                                                        key={idx}
+                                                        role="button"
+                                                        tabIndex={0}
+                                                        onClick={() => {
+                                                            if (idx === 1 && displayedCards[1] === "/cards/politics.png") {
+                                                                setPromotingFromIndex(1);
+                                                            } else {
+                                                                setSelectedCardIndex((i) => (i === idx ? null : idx));
+                                                            }
+                                                        }}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === "Enter") {
+                                                                if (idx === 1 && displayedCards[1] === "/cards/politics.png") setPromotingFromIndex(1);
+                                                                else setSelectedCardIndex((i) => (i === idx ? null : idx));
+                                                            }
+                                                        }}
+                                                        className={`cursor-pointer rounded-lg transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0b] ${selectedCardIndex === idx ? "ring-2 ring-amber-400 ring-offset-2 ring-offset-[#0a0a0b] scale-105 z-10 shadow-[0_0_30px_rgba(251,191,36,0.4)] -translate-y-6" : "hover:-translate-y-6"}`}
+                                                    >
+                                                        <Card imageSrc={displayedCards[idx]} className="card-display transition-transform duration-300 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
                                     </div>
-
-                                    {/* Bottom Row: 3 Cards */}
-                                    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 translate-y-[15%] flex gap-6">
-                                        <Card imageSrc={displayedCards[1]} className="card-display hover:-translate-y-2 transition-transform duration-300 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
-                                        <Card imageSrc={displayedCards[2]} className="card-display hover:-translate-y-2 transition-transform duration-300 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
-                                        <Card imageSrc={displayedCards[3]} className="card-display hover:-translate-y-2 transition-transform duration-300 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
-                                    </div>
+                                </>
+                            )}
+                            {layoutMode === "three" && (
+                                /* Single row of 3 cards (all on top) – pop-out animation when mounted */
+                                <div ref={threeCardsRowRef} className="flex items-center justify-center gap-6 w-full max-w-[700px]">
+                                    {[0, 1, 2].map((idx) => (
+                                        <div
+                                            key={idx}
+                                            role="button"
+                                            tabIndex={0}
+                                            onClick={() => setSelectedCardIndex((i) => (i === idx ? null : idx))}
+                                            onKeyDown={(e) => e.key === "Enter" && setSelectedCardIndex((i) => (i === idx ? null : idx))}
+                                            className={`cursor-pointer rounded-lg transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0b] ${selectedCardIndex === idx ? "ring-2 ring-amber-400 ring-offset-2 ring-offset-[#0a0a0b] scale-105 z-10 shadow-[0_0_30px_rgba(251,191,36,0.4)] -translate-y-6" : "hover:-translate-y-6"}`}
+                                            style={animateNewBottomRow ? { opacity: 0, transform: "translateY(40px) scale(0.88)" } : undefined}
+                                        >
+                                            <Card imageSrc={displayedCards[idx]} className="card-display transition-transform duration-300 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
+                                        </div>
+                                    ))}
                                 </div>
-                            </div>
+                            )}
                         </div>
                     )}
                 </div>
