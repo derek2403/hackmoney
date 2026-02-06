@@ -96,9 +96,10 @@ const chartConfig = {
 interface VisualizationsProps {
   activeView: "1D" | "2D" | "3D" | "Odds";
   selections: Record<number, string | null>;
+  onSelectionChange: (selections: Record<number, string | null>) => void;
 }
 
-export const Visualizations = ({ activeView, selections }: VisualizationsProps) => {
+export const Visualizations = ({ activeView, selections, onSelectionChange }: VisualizationsProps) => {
   const [range, setRange] = useState<"1D" | "1M" | "ALL">("ALL");
 
   const selectedMarketProbability = useMemo(() => {
@@ -500,16 +501,11 @@ export const Visualizations = ({ activeView, selections }: VisualizationsProps) 
       ) : (
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.25em] text-white/30">
-                3D Market Matrix
-              </p>
-              <p className="text-xs font-bold text-white/50 mt-1">
-                8 joint-outcome possibilities across A, B, C.
-              </p>
+            <div className="flex flex-col gap-1">
+              <span className="text-[14px] font-black text-white">$166,140,452 vol</span>
             </div>
           </div>
-          <JointMarket3D />
+          <JointMarket3D selections={selections} onSelectionChange={onSelectionChange} />
         </div>
       )}
 

@@ -42,7 +42,7 @@ export default function Home() {
             {/* Main Content Area */}
             <div className="flex-1 space-y-12">
               <MarketHeader activeView={view} onViewChange={setView} />
-              <Visualizations activeView={view} selections={selections} />
+              <Visualizations activeView={view} selections={selections} onSelectionChange={setSelections} />
               <MarketRules />
             </div>
 

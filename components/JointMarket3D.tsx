@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 
 type JointOutcome = {
   id: number;
@@ -24,6 +24,8 @@ const DEFAULT_OUTCOMES: JointOutcome[] = [
 
 interface JointMarket3DProps {
   outcomes?: JointOutcome[];
+  selections?: Record<number, string | null>;
+  onSelectionChange?: (selections: Record<number, string | null>) => void;
 }
 
 /**
@@ -36,7 +38,11 @@ interface JointMarket3DProps {
  *   Y: B (US strikes)    No → Yes
  *   Z: C (Israel strikes) No → Yes
  */
-export const JointMarket3D: React.FC<JointMarket3DProps> = ({ outcomes = DEFAULT_OUTCOMES }) => {
+export const JointMarket3D: React.FC<JointMarket3DProps> = ({
+  outcomes = DEFAULT_OUTCOMES,
+  selections,
+  onSelectionChange,
+}) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
 
@@ -52,64 +58,85 @@ export const JointMarket3D: React.FC<JointMarket3DProps> = ({ outcomes = DEFAULT
     scene.background = null;
 
     const camera = new THREE.PerspectiveCamera(35, width / height, 0.1, 100);
-    camera.position.set(5, 4, 5);
+    camera.position.set(3.5, 3, 5);
+    camera.lookAt(0, 0, 0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(width, height);
     renderer.setPixelRatio(window.devicePixelRatio || 1);
+    // Fully transparent clear color per spec
+    renderer.setClearColor(0x000000, 0);
+    // Enable shadows for mirror-like depth
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(renderer.domElement);
 
-    // Soft ambient + subtle directional light
-    const ambient = new THREE.AmbientLight(0xffffff, 0.9);
+    // Enhanced lighting for visible mirror-like reflections
+    // Reduced ambient to make directional lights more prominent
+    const ambient = new THREE.AmbientLight(0xffffff, 0.25);
     scene.add(ambient);
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.25);
-    dirLight.position.set(3, 6, 4);
+    
+    // Strong main directional light - creates primary reflection
+    const dirLight = new THREE.DirectionalLight(0xffffff, 2.5);
+    dirLight.position.set(5, 8, 6);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 2048;
+    dirLight.shadow.mapSize.height = 2048;
+    dirLight.shadow.camera.near = 0.5;
+    dirLight.shadow.camera.far = 50;
     scene.add(dirLight);
+    
+    // Secondary directional light from opposite angle - creates secondary reflection
+    const dirLight2 = new THREE.DirectionalLight(0xffffff, 1.8);
+    dirLight2.position.set(-4, 5, -5);
+    scene.add(dirLight2);
+    
+    // Fill light for better reflections
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    fillLight.position.set(-3, 4, -4);
+    scene.add(fillLight);
+    
+    // Rim light for edge highlights and reflections
+    const rimLight = new THREE.DirectionalLight(0xffffff, 1.0);
+    rimLight.position.set(-2, -2, -3);
+    scene.add(rimLight);
+    
+    // Point light for additional reflection hotspots
+    const pointLight = new THREE.PointLight(0xffffff, 1.5, 20);
+    pointLight.position.set(3, 4, 4);
+    scene.add(pointLight);
 
-    // Controls
-    const controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.08;
-    controls.rotateSpeed = 0.6;
-    controls.enablePan = false;
-    controls.minDistance = 3;
-    controls.maxDistance = 10;
-
-    // Group containing the entire structure (outer cube + inner cubes)
+    // Group containing the entire cube of 8 sub‑cubes
     const rootGroup = new THREE.Group();
     rootGroup.position.set(0, 0, 0);
+    rootGroup.scale.setScalar(1.25); // Scale up the entire model
     scene.add(rootGroup);
-
-    // Outer cube: size 2, centered at origin
-    const outerSize = 2;
-    const outerGeometry = new THREE.BoxGeometry(outerSize, outerSize, outerSize);
-    const outerMaterial = new THREE.MeshBasicMaterial({
-      color: 0xffffff,
-      opacity: 0.35,
-      transparent: true,
-      wireframe: false,
-    });
-    const outerCube = new THREE.Mesh(outerGeometry, outerMaterial);
-    rootGroup.add(outerCube);
-
-    // Edge outline
-    const edges = new THREE.EdgesGeometry(outerGeometry);
-    const edgeLines = new THREE.LineSegments(
-      edges,
-      new THREE.LineBasicMaterial({ color: 0xd1d5db, opacity: 0.9, transparent: true })
-    );
-    outerCube.add(edgeLines);
 
     // Inner cubes (composite cube of 8 small cubes)
     // Each small cube has identical dimensions and together form a solid cube.
     const cubeSize = 1; // edge length of each small cube
-    const cellSize = cubeSize; // alias for clarity
-    // Cyan‑teal family like the reference visual
-    const baseColor = new THREE.Color(0x38bdf8);
-
     const maxProb = outcomes.reduce((m, o) => Math.max(m, o.probability), 0.0001);
 
-    const cubes: { mesh: THREE.Mesh; outcome: JointOutcome }[] = [];
+    const glassColor = new THREE.Color(0xffffff);
+
+    type CubeEntry = {
+      mesh: THREE.Mesh;
+      outcome: JointOutcome;
+      material: THREE.MeshPhysicalMaterial;
+      basePosition: THREE.Vector3;
+      target: {
+        transmission: number;
+        opacity: number;
+        roughness: number;
+        metalness?: number;
+        clearcoat?: number;
+        clearcoatRoughness?: number;
+        thickness?: number;
+        color: THREE.Color;
+      };
+    };
+
+    const cubes: CubeEntry[] = [];
 
     outcomes.forEach((outcome) => {
       const xIndex = outcome.aYes ? 1 : 0;
@@ -124,50 +151,97 @@ export const JointMarket3D: React.FC<JointMarket3DProps> = ({ outcomes = DEFAULT
       const y = yIndex === 0 ? -offset : offset;
       const z = zIndex === 0 ? -offset : offset;
 
-      const geom = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
-      const opacity = 0.12 + 0.85 * (outcome.probability / maxProb); // 0.12–0.97
+      // Smaller cubes to create more margin/spacing between them with rounded corners
+      const margin = 0.08; // Larger margin between cubes
+      const cubeSizeWithMargin = cubeSize - margin;
+      const cornerRadius = 0.08; // Radius for rounded corners
+      const segments = 4; // Number of segments for smoothness
+      const geom = new RoundedBoxGeometry(
+        cubeSizeWithMargin,
+        cubeSizeWithMargin,
+        cubeSizeWithMargin,
+        segments,
+        cornerRadius
+      );
+      const opacity = 0.25 + 0.1 * (outcome.probability / maxProb); // 0.25–0.35
 
-      const mat = new THREE.MeshStandardMaterial({
-        color: baseColor,
-        opacity,
+      const mat = new THREE.MeshPhysicalMaterial({
+        color: glassColor.clone(),
         transparent: true,
-        roughness: 0.3,
-        metalness: 0.0,
-        flatShading: true,
+        opacity,
+        roughness: 0.25,
+        transmission: 1,
+        thickness: 0.4,
+        clearcoat: 0.3,
+        ior: 1.4,
       });
 
       const mesh = new THREE.Mesh(geom, mat);
-      mesh.position.set(x, y, z);
+      const basePosition = new THREE.Vector3(x, y, z);
+      mesh.position.copy(basePosition);
       mesh.userData.outcome = outcome;
+      // Enable shadows for all cubes
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
       rootGroup.add(mesh);
-      cubes.push({ mesh, outcome });
+      cubes.push({
+        mesh,
+        outcome,
+        material: mat,
+        basePosition,
+        target: {
+          transmission: 1,
+          opacity,
+          roughness: 0.25,
+          color: glassColor.clone(),
+        },
+      });
     });
 
-    // Axis helpers
-    const axisMaterial = new THREE.LineBasicMaterial({ color: 0x9ca3af, opacity: 0.5, transparent: true });
-    const axisLength = outerSize * 0.8;
+    // Add axes on the sides of the cube model (attached to rootGroup so they rotate with cube)
+    const axisLength = 1.8; // Length of axis lines
+    const axisColor = 0x000000; // Black axes
+    const axisOpacity = 0.8;
+    const axisOffset = 1.2; // Distance from cube center to axis start
+    
+    // X-axis (horizontal, extending to the right)
+    const xAxisGeometry = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(axisLength, 0, 0)
+    ]);
+    const xAxisMaterial = new THREE.LineBasicMaterial({ color: axisColor, opacity: axisOpacity, transparent: true, linewidth: 2 });
+    const xAxis = new THREE.Line(xAxisGeometry, xAxisMaterial);
+    xAxis.position.set(-axisLength / 2, -axisOffset, -axisOffset);
+    rootGroup.add(xAxis);
+    
+    // Y-axis (vertical, extending upward)
+    const yAxisGeometry = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(0, axisLength, 0)
+    ]);
+    const yAxisMaterial = new THREE.LineBasicMaterial({ color: axisColor, opacity: axisOpacity, transparent: true, linewidth: 2 });
+    const yAxis = new THREE.Line(yAxisGeometry, yAxisMaterial);
+    yAxis.position.set(-axisOffset, -axisLength / 2, -axisOffset);
+    rootGroup.add(yAxis);
+    
+    // Z-axis (depth, extending forward)
+    const zAxisGeometry = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(0, 0, axisLength)
+    ]);
+    const zAxisMaterial = new THREE.LineBasicMaterial({ color: axisColor, opacity: axisOpacity, transparent: true, linewidth: 2 });
+    const zAxis = new THREE.Line(zAxisGeometry, zAxisMaterial);
+    zAxis.position.set(-axisOffset, -axisOffset, -axisLength / 2);
+    rootGroup.add(zAxis);
 
-    function addAxis(from: THREE.Vector3, to: THREE.Vector3) {
-      const geo = new THREE.BufferGeometry().setFromPoints([from, to]);
-      const line = new THREE.Line(geo, axisMaterial);
-      scene.add(line);
-    }
-
-    // X axis (A)
-    addAxis(new THREE.Vector3(-axisLength / 2, -outerSize * 0.7, -outerSize * 0.7), new THREE.Vector3(axisLength / 2, -outerSize * 0.7, -outerSize * 0.7));
-    // Y axis (B)
-    addAxis(new THREE.Vector3(-outerSize * 0.7, -axisLength / 2, -outerSize * 0.7), new THREE.Vector3(-outerSize * 0.7, axisLength / 2, -outerSize * 0.7));
-    // Z axis (C)
-    addAxis(new THREE.Vector3(-outerSize * 0.7, -outerSize * 0.7, -axisLength / 2), new THREE.Vector3(-outerSize * 0.7, -outerSize * 0.7, axisLength / 2));
-
-    // Axis labels (simple CSS2D-style via DOM, positioned roughly)
+    // Axis labels (CSS2D overlay, anchored to cube so they move with it)
     const labelContainer = document.createElement("div");
     labelContainer.style.position = "absolute";
     labelContainer.style.inset = "0";
     labelContainer.style.pointerEvents = "none";
     container.appendChild(labelContainer);
 
-    function makeLabel(text: string, style: Partial<CSSStyleDeclaration>): HTMLDivElement {
+    function makeLabel(text: string): HTMLDivElement {
       const el = document.createElement("div");
       el.textContent = text;
       el.style.position = "absolute";
@@ -177,25 +251,87 @@ export const JointMarket3D: React.FC<JointMarket3DProps> = ({ outcomes = DEFAULT
       el.style.textTransform = "uppercase";
       // Light text so labels remain visible over dark or gradient backgrounds
       el.style.color = "rgba(255,255,255,0.7)";
-      Object.assign(el.style, style);
+      el.style.whiteSpace = "nowrap";
+      el.style.transform = "translate(-50%, -50%)";
       labelContainer.appendChild(el);
       return el;
     }
+    type LabelAnchor = {
+      el: HTMLDivElement;
+      localPosition: THREE.Vector3;
+    };
 
-    makeLabel("A: Khamenei out", { left: "50%", bottom: "8px", transform: "translateX(-50%)" });
-    makeLabel("No", { left: "18%", bottom: "18px", fontSize: "10px" });
-    makeLabel("Yes", { right: "18%", bottom: "18px", fontSize: "10px" });
+    // Axis labels positioned at the ends of axes with market names (matching navbar styling)
+    const labelX = makeLabel("A: Khamenei out");
+    labelX.style.fontSize = "14px"; // text-sm equivalent
+    labelX.style.fontWeight = "700"; // font-bold
+    labelX.style.color = "rgba(255,255,255,1)"; // text-white
+    labelX.style.textTransform = "none"; // Override uppercase for readable market names
+    labelX.style.letterSpacing = "normal"; // Remove wide letter spacing
+    
+    const labelY = makeLabel("B: US strikes");
+    labelY.style.fontSize = "14px"; // text-sm equivalent
+    labelY.style.fontWeight = "700"; // font-bold
+    labelY.style.color = "rgba(255,255,255,1)"; // text-white
+    labelY.style.textTransform = "none"; // Override uppercase for readable market names
+    labelY.style.letterSpacing = "normal"; // Remove wide letter spacing
+    
+    const labelZ = makeLabel("C: Israel next strikes");
+    labelZ.style.fontSize = "14px"; // text-sm equivalent
+    labelZ.style.fontWeight = "700"; // font-bold
+    labelZ.style.color = "rgba(255,255,255,1)"; // text-white
+    labelZ.style.textTransform = "none"; // Override uppercase for readable market names
+    labelZ.style.letterSpacing = "normal"; // Remove wide letter spacing
+    
+    // Origin label ("no" at the intersection of all three axes)
+    const labelOrigin = makeLabel("NO");
+    labelOrigin.style.fontSize = "14px"; // text-sm equivalent
+    labelOrigin.style.fontWeight = "700"; // font-bold
+    labelOrigin.style.color = "rgba(161,161,170,1)"; // text-zinc-500
+    labelOrigin.style.textTransform = "none";
+    labelOrigin.style.letterSpacing = "normal"; // Remove wide letter spacing
+    
+    const labelAnchors: LabelAnchor[] = [
+      // Origin label at the intersection of all three axes
+      { el: labelOrigin, localPosition: new THREE.Vector3(-axisOffset, -axisOffset, -axisOffset) },
+      // X-axis label (close to the axis line, near the middle)
+      { el: labelX, localPosition: new THREE.Vector3(axisLength * 0.6, -axisOffset, -axisOffset) },
+      // Y-axis label (close to the axis line, near the middle)
+      { el: labelY, localPosition: new THREE.Vector3(-axisOffset, axisLength * 0.6, -axisOffset) },
+      // Z-axis label (close to the axis line, near the middle)
+      { el: labelZ, localPosition: new THREE.Vector3(-axisOffset, -axisOffset, axisLength * 0.6) },
+    ];
 
-    makeLabel("B: US strikes", { left: "4%", top: "50%", transform: "rotate(-90deg) translateY(-50%)", transformOrigin: "left center" });
-    makeLabel("No", { left: "10%", bottom: "28%", fontSize: "10px" });
-    makeLabel("Yes", { left: "10%", top: "22%", fontSize: "10px" });
-
-    makeLabel("C: Israel next strikes", { right: "6%", bottom: "50%", transform: "rotate(90deg) translateY(50%)", transformOrigin: "right center" });
-    makeLabel("No", { right: "12%", bottom: "28%", fontSize: "10px" });
-    makeLabel("Yes", { right: "12%", top: "22%", fontSize: "10px" });
-
-    // Tooltip
+    // Tooltip & selection
     let hovered: THREE.Mesh | null = null;
+    
+    // Helper: find which outcomes match current selections (can be multiple)
+    function findMatchingOutcomeIds(selections: Record<number, string | null> | undefined): Set<number> {
+      const matchingIds = new Set<number>();
+      if (!selections) return matchingIds;
+      const hasAnySelection = Object.values(selections).some((s) => s !== null && s !== "Any");
+      if (!hasAnySelection) return matchingIds;
+
+      for (const outcome of outcomes) {
+        let matches = true;
+        for (let qId = 1; qId <= 3; qId++) {
+          const selection = selections[qId];
+          if (selection === null || selection === "Any") continue;
+          
+          const outcomeValue = qId === 1 ? outcome.aYes : qId === 2 ? outcome.bYes : outcome.cYes;
+          const isYes = selection === "Yes";
+          
+          if (isYes !== outcomeValue) {
+            matches = false;
+            break;
+          }
+        }
+        if (matches) matchingIds.add(outcome.id);
+      }
+      return matchingIds;
+    }
+
+    let selectedOutcomeIds = new Set<number>(findMatchingOutcomeIds(selections));
     const tooltip = tooltipRef.current;
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
@@ -220,10 +356,38 @@ export const JointMarket3D: React.FC<JointMarket3DProps> = ({ outcomes = DEFAULT
         tooltip.style.top = `${event.clientY - rect.top + 12}px`;
 
         if (outcome) {
-          tooltip.innerHTML = `<div style="font-size:11px;font-weight:700;margin-bottom:4px;">${outcome.label}</div>
-            <div style="font-size:11px;opacity:0.7;">Probability: <span style="font-weight:700;">${outcome.probability.toFixed(
-              2
-            )}%</span></div>`;
+          const isHoveredCubeSelected = selectedOutcomeIds.has(outcome.id);
+          
+          if (isHoveredCubeSelected && selectedOutcomeIds.size > 1) {
+            // Show combined market information for selected group
+            const selectedOutcomes = outcomes.filter((o) => selectedOutcomeIds.has(o.id));
+            const totalProbability = selectedOutcomes.reduce((sum, o) => sum + o.probability, 0);
+            
+            // Build description showing the combined selection
+            const q1Values = new Set(selectedOutcomes.map(o => o.aYes));
+            const q2Values = new Set(selectedOutcomes.map(o => o.bYes));
+            const q3Values = new Set(selectedOutcomes.map(o => o.cYes));
+            
+            const q1Desc = q1Values.size === 1 
+              ? (q1Values.has(true) ? "Khamenei Yes" : "Khamenei No")
+              : "Khamenei Any";
+            const q2Desc = q2Values.size === 1
+              ? (q2Values.has(true) ? "US Yes" : "US No")
+              : "US Any";
+            const q3Desc = q3Values.size === 1
+              ? (q3Values.has(true) ? "Israel Yes" : "Israel No")
+              : "Israel Any";
+            
+            tooltip.innerHTML = `<div style="font-size:11px;font-weight:700;margin-bottom:4px;">Combined Market (${selectedOutcomeIds.size} outcomes)</div>
+              <div style="font-size:10px;opacity:0.8;margin-bottom:4px;">${q1Desc}, ${q2Desc}, ${q3Desc}</div>
+              <div style="font-size:11px;opacity:0.7;">Total Probability: <span style="font-weight:700;">${totalProbability.toFixed(2)}%</span></div>`;
+          } else {
+            // Show individual cube information
+            tooltip.innerHTML = `<div style="font-size:11px;font-weight:700;margin-bottom:4px;">${outcome.label}</div>
+              <div style="font-size:11px;opacity:0.7;">Probability: <span style="font-weight:700;">${outcome.probability.toFixed(
+                2
+              )}%</span></div>`;
+          }
         }
       } else {
         hovered = null;
@@ -231,26 +395,280 @@ export const JointMarket3D: React.FC<JointMarket3DProps> = ({ outcomes = DEFAULT
       }
     }
 
-    function handleClick() {
-      cubes.forEach(({ mesh }) => {
-        mesh.scale.set(1, 1, 1);
-        (mesh.material as THREE.Material).opacity = (mesh.material as any).opacityBase ?? (mesh.material as any).opacity;
+    // Update materials based on selected outcome IDs (Set)
+    function updateMaterialsForSelection(selectedIds: Set<number>) {
+      cubes.forEach((entry) => {
+        const { material } = entry;
+        const isSelected = selectedIds.has(entry.outcome.id);
+
+        if (isSelected) {
+          // Mirror-like shiny green material with visible reflections
+          entry.target = {
+            transmission: 0.3, // Less transmission for more solid mirror look
+            opacity: 0.98, // Nearly fully opaque for strong reflections
+            roughness: 0.02, // Extremely low roughness for mirror-like shine
+            metalness: 0.3, // Higher metalness for stronger reflections
+            clearcoat: 1.0, // Maximum clearcoat for mirror shine
+            clearcoatRoughness: 0.01, // Ultra-smooth clearcoat for sharp reflections
+            thickness: 0.5, // Thickness for transmission
+            color: new THREE.Color(0xE8E3DF), // RGB(232, 227, 223) - Warm off-white
+          };
+          // Enable shadows for selected cubes
+          entry.mesh.castShadow = true;
+          entry.mesh.receiveShadow = true;
+        } else {
+          const glassOpacity = 0.25 + 0.1 * (entry.outcome.probability / maxProb);
+          entry.target = {
+            transmission: 1,
+            opacity: glassOpacity,
+            roughness: 0.25,
+            metalness: 0.0,
+            clearcoat: 0.3,
+            clearcoatRoughness: 0.3,
+            thickness: 0.4,
+            color: glassColor.clone(),
+          };
+        }
+        material.needsUpdate = true;
       });
-      if (hovered) {
-        hovered.scale.set(1.05, 1.05, 1.05);
-        const mat = hovered.material as any;
-        if (!mat.opacityBase) mat.opacityBase = mat.opacity;
-        mat.opacity = Math.min(1, mat.opacityBase + 0.2);
+    }
+
+    // Initialize materials based on current selections
+    updateMaterialsForSelection(selectedOutcomeIds);
+
+    function handleClick() {
+      // Only deselect on empty space if user wasn't dragging (spinning)
+      if (!hovered) {
+        // Only deselect if this was a genuine click, not a drag end
+        if (!hasDragged && selectedOutcomeIds.size > 0) {
+          selectedOutcomeIds.clear();
+          updateMaterialsForSelection(selectedOutcomeIds);
+          
+          if (onSelectionChange) {
+            onSelectionChange({
+              1: null,
+              2: null,
+              3: null,
+            });
+          }
+        }
+        return;
+      }
+
+      const clickedEntry = cubes.find((entry) => entry.mesh === hovered);
+      if (!clickedEntry) return;
+
+      // Toggle this cube in/out of selection (deselect if already selected)
+      const clickedId = clickedEntry.outcome.id;
+      if (selectedOutcomeIds.has(clickedId)) {
+        selectedOutcomeIds.delete(clickedId);
+      } else {
+        selectedOutcomeIds.add(clickedId);
+      }
+
+      // Update materials: selected cubes become solid white marble, others glass.
+      updateMaterialsForSelection(selectedOutcomeIds);
+
+      // Propagate selection change up to sync TradeSidebar
+      // When multiple cubes selected, compute union: if all agree → Yes/No, else → "Any"
+      if (onSelectionChange) {
+        if (selectedOutcomeIds.size === 0) {
+          onSelectionChange({
+            1: null,
+            2: null,
+            3: null,
+          });
+        } else {
+          const selectedOutcomes = outcomes.filter((o) => selectedOutcomeIds.has(o.id));
+          
+          // For each question, check if all selected outcomes agree
+          const newSelections: Record<number, string | null> = { 1: null, 2: null, 3: null };
+          
+          for (let qId = 1; qId <= 3; qId++) {
+            const values = selectedOutcomes.map((o) => 
+              qId === 1 ? o.aYes : qId === 2 ? o.bYes : o.cYes
+            );
+            const allTrue = values.every((v) => v === true);
+            const allFalse = values.every((v) => v === false);
+            
+            if (allTrue) {
+              newSelections[qId] = "Yes";
+            } else if (allFalse) {
+              newSelections[qId] = "No";
+            } else {
+              // Mixed values → "Any"
+              newSelections[qId] = "Any";
+            }
+          }
+          
+          onSelectionChange(newSelections);
+        }
       }
     }
 
     renderer.domElement.addEventListener("mousemove", updateTooltip);
     renderer.domElement.addEventListener("click", handleClick);
 
-    // Animation loop
+    // Pointer-driven rotation (rotate cube only when user drags)
+    let isDragging = false;
+    let hasDragged = false; // Track if user actually moved mouse during drag
+    let lastX = 0;
+    let lastY = 0;
+    let dragStartX = 0;
+    let dragStartY = 0;
+
+    function handlePointerDown(event: MouseEvent) {
+      isDragging = true;
+      hasDragged = false;
+      lastX = event.clientX;
+      lastY = event.clientY;
+      dragStartX = event.clientX;
+      dragStartY = event.clientY;
+    }
+
+    function handlePointerMove(event: MouseEvent) {
+      if (!isDragging) return;
+      const deltaX = event.clientX - lastX;
+      const deltaY = event.clientY - lastY;
+      lastX = event.clientX;
+      lastY = event.clientY;
+
+      // Check if user moved significantly (more than 3 pixels)
+      const totalMovement = Math.abs(event.clientX - dragStartX) + Math.abs(event.clientY - dragStartY);
+      if (totalMovement > 3) {
+        hasDragged = true;
+      }
+
+      const rotationSpeed = 0.005;
+      rootGroup.rotation.y += deltaX * rotationSpeed;
+      // Lock vertical tilt so axes/labels stay consistent
+      rootGroup.rotation.x = 0;
+    }
+
+    function handlePointerUp() {
+      isDragging = false;
+      // Reset hasDragged after a short delay to allow click handler to check it
+      setTimeout(() => {
+        hasDragged = false;
+      }, 100);
+    }
+
+    renderer.domElement.addEventListener("mousedown", handlePointerDown);
+    window.addEventListener("mousemove", handlePointerMove);
+    window.addEventListener("mouseup", handlePointerUp);
+
+    // Animation loop (lerp materials; rotation only changes on user drag)
     let frameId: number;
+    let lastTime = performance.now();
     const animate = () => {
-      controls.update();
+      const now = performance.now();
+      const delta = (now - lastTime) / 1000;
+      lastTime = now;
+
+      // Sync selectedOutcomeIds with current selections prop (if changed externally)
+      const currentMatchingIds = findMatchingOutcomeIds(selections);
+      // Compare sets by size and content
+      if (currentMatchingIds.size !== selectedOutcomeIds.size || 
+          ![...currentMatchingIds].every(id => selectedOutcomeIds.has(id))) {
+        selectedOutcomeIds = new Set(currentMatchingIds);
+        updateMaterialsForSelection(selectedOutcomeIds);
+      }
+
+      // Check if the hovered cube is selected (needed for group pop-out logic)
+      const hoveredOutcome = hovered ? (hovered.userData.outcome as JointOutcome | undefined) : undefined;
+      const isHoveredCubeSelected = hoveredOutcome ? selectedOutcomeIds.has(hoveredOutcome.id) : false;
+
+      // Lerp material properties towards targets and handle hover "split out"
+      cubes.forEach((entry) => {
+        const { material, target, basePosition, mesh } = entry;
+        const lerpFactor = 0.12;
+        material.transmission = THREE.MathUtils.lerp(
+          material.transmission,
+          target.transmission,
+          lerpFactor
+        );
+        material.opacity = THREE.MathUtils.lerp(material.opacity, target.opacity, lerpFactor);
+        material.roughness = THREE.MathUtils.lerp(
+          material.roughness,
+          target.roughness,
+          lerpFactor
+        );
+        if (target.metalness !== undefined) {
+          material.metalness = THREE.MathUtils.lerp(material.metalness, target.metalness, lerpFactor);
+        }
+        if (target.clearcoat !== undefined) {
+          material.clearcoat = THREE.MathUtils.lerp(material.clearcoat, target.clearcoat, lerpFactor);
+        }
+        if (target.clearcoatRoughness !== undefined) {
+          material.clearcoatRoughness = THREE.MathUtils.lerp(
+            material.clearcoatRoughness,
+            target.clearcoatRoughness,
+            lerpFactor
+          );
+        }
+        if (target.thickness !== undefined) {
+          material.thickness = THREE.MathUtils.lerp(material.thickness, target.thickness, lerpFactor);
+        }
+        material.color.lerp(target.color, lerpFactor);
+
+        // Enlarge & offset hovered cube slightly outwards from the composite cube
+        const isHovered = hovered === mesh;
+        const isSelected = selectedOutcomeIds.has(entry.outcome.id);
+        
+        // Determine if this cube should pop out:
+        // - If hovering over an unselected cube: only that cube pops out
+        // - If hovering over a selected cube: ALL selected cubes pop out together as a group
+        let shouldPopOut = false;
+        if (isHovered && !isHoveredCubeSelected) {
+          // Hovering over unselected cube: only that cube pops out
+          shouldPopOut = true;
+        } else if (isHoveredCubeSelected && isSelected) {
+          // Hovering over a selected cube: ALL selected cubes pop out together
+          shouldPopOut = true;
+        }
+        
+        const hoverScaleTarget = shouldPopOut ? 1.08 : 1.0;
+        const hoverOffset = shouldPopOut ? 0.3 : 0;
+
+        // Breathing animation - subtle pulsing in and out (all cubes in sync, slower)
+        const breathingSpeed = 0.6; // Slower cycles per second
+        const breathingAmplitude = 0.015; // Small scale variation (1.5% in/out)
+        const breathingScale = 1.0 + Math.sin(now * 0.001 * breathingSpeed * Math.PI * 2) * breathingAmplitude;
+        
+        // Combine hover scale with breathing scale
+        const scaleTarget = hoverScaleTarget * breathingScale;
+
+        const scaleLerp = 0.2;
+        const currentScale = mesh.scale.x; // uniform
+        const newScale = THREE.MathUtils.lerp(currentScale, scaleTarget, scaleLerp);
+        mesh.scale.setScalar(newScale);
+
+        // Move along the radial direction from origin
+        const dir = basePosition.clone().normalize();
+        const targetPos = basePosition.clone().add(dir.multiplyScalar(hoverOffset));
+        mesh.position.lerp(targetPos, 0.2);
+      });
+
+      // Update axis labels to stay attached to cube
+      const rect = container.getBoundingClientRect();
+      labelAnchors.forEach((anchor) => {
+        const worldPos = anchor.localPosition.clone();
+        rootGroup.localToWorld(worldPos);
+        worldPos.project(camera);
+
+        // Ignore labels behind the camera
+        if (worldPos.z < -1 || worldPos.z > 1) {
+          anchor.el.style.opacity = "0";
+          return;
+        }
+
+        const x = (worldPos.x * 0.5 + 0.5) * rect.width;
+        const y = (-worldPos.y * 0.5 + 0.5) * rect.height;
+        anchor.el.style.left = `${x}px`;
+        anchor.el.style.top = `${y}px`;
+        anchor.el.style.opacity = "1";
+      });
+
       renderer.render(scene, camera);
       frameId = requestAnimationFrame(animate);
     };
@@ -272,12 +690,14 @@ export const JointMarket3D: React.FC<JointMarket3DProps> = ({ outcomes = DEFAULT
       window.removeEventListener("resize", handleResize);
       renderer.domElement.removeEventListener("mousemove", updateTooltip);
       renderer.domElement.removeEventListener("click", handleClick);
+      renderer.domElement.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("mousemove", handlePointerMove);
+      window.removeEventListener("mouseup", handlePointerUp);
       container.removeChild(renderer.domElement);
       container.removeChild(labelContainer);
-      controls.dispose();
       renderer.dispose();
     };
-  }, [outcomes]);
+  }, [outcomes, selections, onSelectionChange]);
 
   return (
     <div
