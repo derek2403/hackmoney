@@ -3,8 +3,8 @@ import { Link2, Bookmark } from "lucide-react";
 import { cn } from "./utils";
 
 interface MarketHeaderProps {
-  activeView: "1D" | "2D" | "Odds";
-  onViewChange: (view: "1D" | "2D" | "Odds") => void;
+  activeView: "1D" | "2D" | "3D" | "Odds";
+  onViewChange: (view: "1D" | "2D" | "3D" | "Odds") => void;
 }
 
 export const MarketHeader = ({ activeView, onViewChange }: MarketHeaderProps) => {
@@ -66,6 +66,17 @@ export const MarketHeader = ({ activeView, onViewChange }: MarketHeaderProps) =>
           )}
         >
           2D <span className="text-[8px] opacity-40">⌄</span>
+        </button>
+        <button 
+          onClick={() => onViewChange("3D")}
+          className={cn(
+            "flex items-center gap-2 rounded-xl px-6 py-2.5 text-xs font-black uppercase tracking-widest transition-all",
+            activeView === "3D"
+              ? "bg-white text-black shadow-xl shadow-white/20 scale-105"
+              : "bg-white/5 text-white/30 hover:bg-white/10 border border-white/5"
+          )}
+        >
+          3D <span className="text-[8px] opacity-40">⌄</span>
         </button>
       </div>
     </div>

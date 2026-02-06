@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react"
 import { TrendingUp, LayoutGrid } from "lucide-react"
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts"
 import { cn } from "./utils"
+import JointMarket3D from "./JointMarket3D"
 
 const QUESTIONS = [
   {
@@ -93,7 +94,7 @@ const chartConfig = {
 } satisfies ChartConfig
 
 interface VisualizationsProps {
-  activeView: "1D" | "2D" | "Odds";
+  activeView: "1D" | "2D" | "3D" | "Odds";
   selections: Record<number, string | null>;
 }
 
@@ -195,8 +196,13 @@ export const Visualizations = ({ activeView, selections }: VisualizationsProps) 
     });
   }, [range, selectedMarketProbability]);
 
+  const wrapperClasses =
+    activeView === "3D"
+      ? "flex flex-col gap-12"
+      : "flex flex-col gap-12 rounded-3xl border border-white/5 bg-white/5 p-8 backdrop-blur-xl";
+
   return (
-    <div className="flex flex-col gap-12 rounded-3xl border border-white/5 bg-white/5 p-8 backdrop-blur-xl">
+    <div className={wrapperClasses}>
       {activeView === "Odds" ? (
         <div className="flex flex-col gap-8">
           {/* Selected Market Indicator */}
@@ -447,7 +453,7 @@ export const Visualizations = ({ activeView, selections }: VisualizationsProps) 
             </div>
           </div>
         </div>
-      ) : (
+      ) : activeView === "2D" ? (
         <div className="flex flex-col items-center gap-12 py-10">
           <div className="text-center space-y-2">
             <h3 className="text-lg font-black text-white tracking-tight">Joint Probability Heatmap</h3>
@@ -490,6 +496,20 @@ export const Visualizations = ({ activeView, selections }: VisualizationsProps) 
                 <span>0</span>
              </div>
           </div>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[11px] font-black uppercase tracking-[0.25em] text-white/30">
+                3D Market Matrix
+              </p>
+              <p className="text-xs font-bold text-white/50 mt-1">
+                8 joint-outcome possibilities across A, B, C.
+              </p>
+            </div>
+          </div>
+          <JointMarket3D />
         </div>
       )}
 

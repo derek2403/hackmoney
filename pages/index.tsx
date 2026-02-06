@@ -8,7 +8,7 @@ import { LiquidChrome } from "../components/LiquidChrome";
 import { MarketRules } from "../components/MarketRules";
 
 export default function Home() {
-  const [view, setView] = useState<"1D" | "2D" | "Odds">("1D");
+  const [view, setView] = useState<"1D" | "2D" | "3D" | "Odds">("1D");
   const [selections, setSelections] = useState<Record<number, string | null>>({
     1: null,
     2: null,
