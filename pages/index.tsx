@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import Image from "next/image";
 import { Cinzel } from "next/font/google";
 import gsap from "gsap";
+import DecryptedText from "../components/DecryptedText";
 
 const cinzel = Cinzel({
     subsets: ["latin"],
@@ -74,9 +75,12 @@ const CARD_POOL = [
     // Add more card variants if you have them
 ];
 
+type ViewPhase = "intro" | "transitioning" | "cards";
+
 export default function Home() {
     const cardsRef = useRef<HTMLDivElement>(null);
     const deckRef = useRef<HTMLDivElement>(null);
+    const taglineRef = useRef<HTMLDivElement>(null);
 
     // State to track currently displayed cards
     const [displayedCards, setDisplayedCards] = React.useState([
@@ -86,22 +90,75 @@ export default function Home() {
         "/cards/tech.png",
     ]);
 
+    // Phase: intro (tagline) -> transitioning (tagline out) -> cards
+    const [phase, setPhase] = React.useState<ViewPhase>("intro");
+    const cardsVisible = phase === "cards";
+
+    // Show deck card only after TRUTH decrypt animation completes
+    const [truthRevealed, setTruthRevealed] = React.useState(false);
+    const deckCardWrapperRef = useRef<HTMLDivElement>(null);
+
+    // Deck card entrance: same style as the four cards (container fade + card y/scale/back.out)
+    // Initial state is set via inline styles to avoid first-frame flash; GSAP animates from there
     useEffect(() => {
-        if (!cardsRef.current) return;
+        if (!truthRevealed || !deckCardWrapperRef.current || !deckRef.current) return;
+        const container = deckCardWrapperRef.current;
+        const cardEl = deckRef.current;
 
-        const items = cardsRef.current.querySelectorAll('.animate-item');
-        gsap.set(items, { opacity: 0, scale: 0.8, y: 30 });
+        const tl = gsap.timeline({ delay: 0.15 });
+        tl.to(container, { opacity: 1, duration: 0.4, ease: "power2.out" });
+        tl.to(
+            cardEl,
+            { opacity: 1, y: 0, scale: 1, duration: 0.7, ease: "back.out(1.05)" },
+            0.1
+        );
+    }, [truthRevealed]);
 
-        gsap.to(items, {
-            opacity: 1,
-            scale: 1,
-            y: 0,
-            duration: 1.2,
-            stagger: 0.1,
-            ease: "expo.out",
-            delay: 0.3
+    // When transitioning: animate tagline out, then switch to cards
+    useEffect(() => {
+        if (phase !== "transitioning" || !taglineRef.current) return;
+        gsap.to(taglineRef.current, {
+            opacity: 0,
+            scale: 0.98,
+            duration: 0.5,
+            ease: "power2.in",
+            onComplete: () => setPhase("cards"),
         });
-    }, []);
+    }, [phase]);
+
+    // When cards view mounts: smooth card entrance
+    useEffect(() => {
+        if (phase !== "cards" || !cardsRef.current) return;
+
+        const container = cardsRef.current;
+        const cardEls = container.querySelectorAll(".card-display");
+        gsap.set(container, { opacity: 0 });
+        gsap.set(cardEls, { opacity: 0, y: 40, scale: 0.88 });
+
+        const tl = gsap.timeline({ delay: 0.15 });
+        tl.to(container, { opacity: 1, duration: 0.4, ease: "power2.out" });
+        tl.to(
+            cardEls,
+            {
+                opacity: 1,
+                y: 0,
+                scale: 1,
+                duration: 0.7,
+                stagger: 0.12,
+                ease: "back.out(1.05)",
+            },
+            0.1
+        );
+    }, [phase]);
+
+    // Click TRUTH deck: first click starts transition to cards, later clicks deal
+    const onDeckClick = () => {
+        if (phase === "intro") {
+            setPhase("transitioning");
+        } else if (phase === "cards") {
+            dealNewCards();
+        }
+    };
 
     // Function to deal new cards with custom pixelation and flip animation
     const dealNewCards = async () => {
@@ -124,13 +181,14 @@ export default function Home() {
         const cardElements = cardsRef.current?.querySelectorAll('.card-display');
         if (!cardElements) return;
 
-        // Step 1: Fade out current cards
+        // Step 1: Smooth fade out current cards
         await new Promise<void>((resolve) => {
             gsap.to(cardElements, {
                 opacity: 0,
-                scale: 0.9,
-                duration: 0.4,
-                stagger: 0.05,
+                scale: 0.92,
+                y: 20,
+                duration: 0.5,
+                stagger: 0.06,
                 ease: "power2.in",
                 onComplete: resolve
             });
@@ -142,35 +200,18 @@ export default function Home() {
         // Step 3: Wait a moment for DOM update
         await new Promise(resolve => setTimeout(resolve, 50));
 
-        // Step 4: Animate new cards flipping from deck one by one
+        // Step 4: Smooth transition in new cards
         const newCardElements = cardsRef.current?.querySelectorAll('.card-display');
         if (newCardElements) {
-            // Get deck position
-            const deckPos = deckRef.current?.getBoundingClientRect();
-            const cardsContainer = cardsRef.current?.getBoundingClientRect();
-
-            if (deckPos && cardsContainer) {
-                const deckX = deckPos.left - cardsContainer.left;
-                const deckY = deckPos.top - cardsContainer.top;
-
-                newCardElements.forEach((el, i) => {
-                    const delay = i * 0.15;
-
-                    gsap.fromTo(el,
-                        {
-                            opacity: 0,
-                            scale: 0.95,
-                        },
-                        {
-                            opacity: 1,
-                            scale: 1,
-                            duration: 0.5,
-                            delay: delay,
-                            ease: "power2.out",
-                        }
-                    );
-                });
-            }
+            gsap.set(newCardElements, { opacity: 0, y: 30, scale: 0.9 });
+            gsap.to(newCardElements, {
+                opacity: 1,
+                y: 0,
+                scale: 1,
+                duration: 0.6,
+                stagger: 0.1,
+                ease: "back.out(1.08)",
+            });
         }
     };
 
@@ -183,79 +224,78 @@ export default function Home() {
                 <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/stardust.png")' }} />
             </div>
 
-            {/* Expanded Background Image + Gradient Merge */}
-            <div className="fixed inset-0 z-0 pointer-events-none">
-                <div className="relative w-full h-full">
-                    {/* The Star Image - Massive Scale */}
-                    <div className="absolute inset-0 translate-x-[15%] lg:translate-x-[20%] scale-[1.3] lg:scale-[1.5]">
-                        <Image
-                            src="/star.png"
-                            alt="The Davincci Geometry"
-                            fill
-                            className="object-contain opacity-70"
-                            priority
-                        />
-                    </div>
+            {/* Background Image from public */}
+            <div
+                className="fixed inset-0 z-0 pointer-events-none bg-cover bg-center bg-no-repeat"
+                style={{ backgroundImage: "url('/Background.jpg')" }}
+            />
 
-                    {/* Dark Background Overlay for the left side - Shifted left to reveal more stars */}
-                    <div className="absolute inset-y-0 left-0 w-[50%] bg-gradient-to-r from-[#0a0a0b] via-[#0a0a0b] to-transparent z-1" />
-                    <div className="absolute inset-0 bg-[#0a0a0b]/10 z-2" />
-                </div>
-            </div>
+            <main className="relative z-10 container mx-auto px-6 lg:px-12 min-h-screen flex flex-col items-center py-12">
+                <div className="flex flex-col w-full items-center gap-16 lg:gap-20 flex-1">
+                    {/* Tagline + TRUTH deck – fades out when transitioning to cards */}
+                    {phase !== "cards" && (
+                        <div
+                            ref={taglineRef}
+                            className="w-full max-w-2xl flex flex-col space-y-4 text-white tracking-tight text-center items-center mt-[calc(50vh-18rem)] mb-4"
+                        >
+                            <h1 className="animate-item text-3xl md:text-4xl lg:text-5xl leading-[1.2] font-light">
+                                The world&apos;s first combined and<br />
+                                most accurate source of<br />
+                                <DecryptedText
+                                    text="TRUTH"
+                                    animateOn="view"
+                                    revealDirection="start"
+                                    sequential
+                                    speed={200}
+                                    maxIterations={500}
+                                    className={`${cinzel.className} text-black font-black tracking-widest`}
+                                    parentClassName={`${cinzel.className} text-black font-black tracking-widest text-5xl md:text-6xl lg:text-7xl block mt-4 mb-0 uppercase`}
+                                    onComplete={() => setTruthRevealed(true)}
+                                />
+                            </h1>
+                            <div className="mt-2" />
 
-            <main className="relative z-10 container mx-auto px-6 lg:px-12 min-h-screen flex items-center">
-                <div className="flex flex-col lg:flex-row w-full items-center justify-between">
-                    {/* Left Side: Big Tagline */}
-                    <div className="w-full lg:w-1/2 flex flex-col space-y-4 py-20 lg:py-0 text-white tracking-tight">
-                        <h1 className="animate-item text-3xl md:text-4xl lg:text-5xl leading-[1.2] font-light">
-                            The world&apos;s first combined and<br />
-                            most accurate source of<br />
-                            <span className={`${cinzel.className} text-white font-black tracking-widest text-5xl md:text-6xl lg:text-7xl block mt-4 mb-2 uppercase`}>
-                                TRUTH
-                            </span>
-                        </h1>
-                        <div className="mt-8" />
-
-                        {/* Shape-shifting Enter Button */}
-                        <div className="animate-item flex">
-                            <button className={`
-                                group relative px-10 py-3 bg-white text-black font-black tracking-widest text-sm
-                                transition-all duration-500 ease-in-out
-                                [clip-path:polygon(10px_0%,calc(100%-10px)_0%,100%_50%,calc(100%-10px)_100%,10px_100%,0%_50%)]
-                                hover:[clip-path:polygon(0%_0%,100%_0%,100%_100%,100%_100%,0%_100%,0%_100%)]
-                                hover:rounded-sm
-                                ${cinzel.className}
-                            `}>
-                                ENTER
-                                <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Right Side: Shared container for Stage and Deck */}
-                    <div className="w-full lg:w-1/2 flex items-center justify-center relative translate-x-0 lg:-translate-x-8 transition-transform duration-700">
-                        {/* Central Stage (The 4 Cards) */}
-                        <div ref={cardsRef} className="animate-item relative w-full max-w-[600px] aspect-square flex items-center justify-center">
-                            <div className="relative w-full h-full">
-                                {/* Top Middle Card */}
-                                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[105%]">
-                                    <Card imageSrc={displayedCards[0]} className="card-display hover:-translate-y-2 transition-transform duration-300 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
+                            {/* TRUTH deck card – shown after TRUTH animation completes (same entrance as four cards) */}
+                            {truthRevealed && (
+                                <div
+                                    ref={deckCardWrapperRef}
+                                    className="flex justify-center"
+                                    style={{ opacity: 0 }}
+                                >
+                                    <div
+                                        ref={deckRef}
+                                        onClick={onDeckClick}
+                                        className="cursor-pointer"
+                                        style={{ opacity: 0, transform: "translateY(40px) scale(0.88)" }}
+                                    >
+                                        <Deck className="scale-90 opacity-90 hover:opacity-100 hover:scale-100 transition-all duration-500" />
+                                    </div>
                                 </div>
+                            )}
+                        </div>
+                    )}
 
-                                {/* Bottom Row: 3 Cards */}
-                                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 translate-y-[15%] flex gap-6">
-                                    <Card imageSrc={displayedCards[1]} className="card-display hover:-translate-y-2 transition-transform duration-300 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
-                                    <Card imageSrc={displayedCards[2]} className="card-display hover:-translate-y-2 transition-transform duration-300 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
-                                    <Card imageSrc={displayedCards[3]} className="card-display hover:-translate-y-2 transition-transform duration-300 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
+                    {/* Cards – only visible after clicking the TRUTH deck; replaces tagline view */}
+                    {cardsVisible && (
+                        <div className="w-full flex items-center justify-center relative">
+                            {/* Central Stage (The 4 Cards) */}
+                            <div ref={cardsRef} className="animate-item relative w-full max-w-[600px] aspect-square flex items-center justify-center">
+                                <div className="relative w-full h-full">
+                                    {/* Top Middle Card */}
+                                    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[105%]">
+                                        <Card imageSrc={displayedCards[0]} className="card-display hover:-translate-y-2 transition-transform duration-300 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
+                                    </div>
+
+                                    {/* Bottom Row: 3 Cards */}
+                                    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 translate-y-[15%] flex gap-6">
+                                        <Card imageSrc={displayedCards[1]} className="card-display hover:-translate-y-2 transition-transform duration-300 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
+                                        <Card imageSrc={displayedCards[2]} className="card-display hover:-translate-y-2 transition-transform duration-300 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
+                                        <Card imageSrc={displayedCards[3]} className="card-display hover:-translate-y-2 transition-transform duration-300 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
+                                    </div>
                                 </div>
                             </div>
                         </div>
-
-                        {/* Deck of Cards (Far Right) - Clickable */}
-                        <div ref={deckRef} onClick={dealNewCards} className="animate-item absolute right-0 lg:-right-12 top-1/2 -translate-y-[105%]">
-                            <Deck className="scale-90 opacity-80 hover:opacity-100 hover:scale-100 transition-all duration-500" />
-                        </div>
-                    </div>
+                    )}
                 </div>
             </main>
 
