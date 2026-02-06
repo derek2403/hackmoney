@@ -20,7 +20,6 @@ export default function EnsPage() {
         { id: 'profile', label: 'Profile' },
         { id: 'register', label: 'Register Name' },
         { id: 'createmarket', label: 'Create Market' },
-        { id: 'subdomains', label: 'Single Subdomain' },
     ];
 
     return (
@@ -107,33 +106,6 @@ export default function EnsPage() {
                                             <li>• <code>market-000</code> = A=No, B=No, C=No</li>
                                             <li>• <code>market-111</code> = A=Yes, B=Yes, C=Yes</li>
                                             <li>• Each subdomain auto-receives ETH and mints tokens</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeTab === 'subdomains' && (
-                                <div className="space-y-6">
-                                    <div className="p-6 bg-white rounded-xl shadow-sm border border-gray-100">
-                                        <h2 className="text-xl font-semibold mb-2">
-                                            Create Market Subdomain
-                                        </h2>
-                                        <p className="text-gray-600 mb-6">
-                                            Create ENS subdomains for prediction markets under{' '}
-                                            <strong>{PARENT_DOMAIN}</strong>
-                                        </p>
-                                        <MarketSubdomainForm parentDomain={PARENT_DOMAIN} />
-                                    </div>
-
-                                    {/* Info Box */}
-                                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                                        <h3 className="font-medium text-blue-800 mb-2">
-                                            How it works
-                                        </h3>
-                                        <ul className="text-sm text-blue-700 space-y-1">
-                                            <li>• Create subdomains like <code>trump2024.{PARENT_DOMAIN}</code></li>
-                                            <li>• Set a custom resolver to point to your market contract</li>
-                                            <li>• Users can then send funds directly to the ENS name</li>
                                         </ul>
                                     </div>
                                 </div>

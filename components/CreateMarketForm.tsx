@@ -184,15 +184,18 @@ export const CreateMarketForm: React.FC<CreateMarketFormProps> = ({
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                     Market Name
                 </label>
-                <div className="flex items-center">
+                <div className="flex items-stretch border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
                     <input
                         type="text"
                         value={marketName}
                         onChange={(e) => setMarketName(e.target.value.toLowerCase())}
-                        placeholder="e.g., election2024"
-                        className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        placeholder="e.g., trump2024"
+                        className="flex-1 px-4 py-3 border-none outline-none"
                         disabled={isProcessing}
                     />
+                    <div className="flex items-center px-4 bg-gray-100 text-gray-500 border-l border-gray-300">
+                        .{PARENT_DOMAIN}
+                    </div>
                 </div>
                 {marketName && !isValidName && (
                     <p className="mt-1 text-sm text-red-600">
@@ -201,7 +204,7 @@ export const CreateMarketForm: React.FC<CreateMarketFormProps> = ({
                 )}
                 {isValidName && (
                     <p className="mt-1 text-sm text-gray-500">
-                        Will create: {marketName}-000, {marketName}-001, ..., {marketName}-111
+                        Will create: {marketName}-000.{PARENT_DOMAIN}, ..., {marketName}-111.{PARENT_DOMAIN}
                     </p>
                 )}
             </div>
