@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createAppSessionMessage, parseAnyRPCResponse } from '@erc7824/nitrolite';
 import { ethers } from 'ethers';
+import Galaxy from '../components/Galaxy';
 
 // Base Sepolia Chain Configuration
 const BASE_SEPOLIA_CONFIG = {
@@ -773,9 +774,29 @@ export default function YellowNetworkPage() {
     }, []);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-yellow-900/20 to-slate-900 text-white">
+        <div className="relative min-h-screen text-white overflow-hidden">
+            {/* Galaxy background – full viewport, no mouse interaction */}
+            <div className="fixed inset-0 z-0 pointer-events-none" style={{ width: "100%", height: "100%" }}>
+                <Galaxy
+                    mouseRepulsion={false}
+                    mouseInteraction={false}
+                    density={0.7}
+                    glowIntensity={0.2}
+                    saturation={0.4}
+                    hueShift={140}
+                    twinkleIntensity={0.9}
+                    rotationSpeed={0.05}
+                    repulsionStrength={8}
+                    autoCenterRepulsion={0}
+                    starSpeed={0.3}
+                    speed={0.3}
+                />
+            </div>
+            {/* Dark overlay for content readability */}
+            <div className="fixed inset-0 z-0 pointer-events-none bg-gradient-to-br from-slate-900/80 via-yellow-900/30 to-slate-900/80" />
+
             {/* Header */}
-            <header className="border-b border-white/10 bg-black/30 backdrop-blur-sm">
+            <header className="relative z-10 border-b border-white/10 bg-black/30 backdrop-blur-sm">
                 <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center font-bold text-black text-lg">
@@ -815,7 +836,7 @@ export default function YellowNetworkPage() {
                 </div>
             </header>
 
-            <main className="max-w-6xl mx-auto px-6 py-8">
+            <main className="relative z-10 max-w-6xl mx-auto px-6 py-8">
                 {/* Title Section */}
                 <div className="text-center mb-10">
                     <h2 className="text-4xl font-bold mb-3 bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-500 bg-clip-text text-transparent">
@@ -1146,7 +1167,7 @@ ws.send(sessionMessage);`}</code>
             </main>
 
             {/* Footer */}
-            <footer className="border-t border-white/10 mt-12">
+            <footer className="relative z-10 border-t border-white/10 mt-12">
                 <div className="max-w-6xl mx-auto px-6 py-6 text-center text-white/40 text-sm">
                     <p>
                         Built with Yellow Network SDK (@erc7824/nitrolite) |

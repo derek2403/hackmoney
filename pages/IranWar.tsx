@@ -4,7 +4,7 @@ import { Navbar } from "../components/Navbar";
 import { MarketHeader } from "../components/MarketHeader";
 import { Visualizations } from "../components/Visualizations";
 import { TradeSidebar } from "../components/TradeSidebar";
-import { LiquidChrome } from "../components/LiquidChrome";
+import Galaxy from "../components/Galaxy";
 import { MarketRules } from "../components/MarketRules";
 
 export default function Home() {
@@ -22,17 +22,25 @@ export default function Home() {
         <meta name="description" content="Prediction market for the Iran War" />
       </Head>
 
-      {/* Hero Background */}
-      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        <LiquidChrome
-          baseColor={[0.1, 0.1, 0.1]}
+      {/* Galaxy background – full viewport, no mouse interaction */}
+      <div className="fixed inset-0 z-0 pointer-events-none" style={{ width: "100%", height: "100%" }}>
+        <Galaxy
+          mouseRepulsion={false}
+          mouseInteraction={false}
+          density={0.7}
+          glowIntensity={0.2}
+          saturation={0.4}
+          hueShift={140}
+          twinkleIntensity={0.9}
+          rotationSpeed={0.05}
+          repulsionStrength={8}
+          autoCenterRepulsion={0}
+          starSpeed={0.3}
           speed={0.3}
-          amplitude={0.3}
-          frequencyX={3}
-          frequencyY={3}
-          interactive={false}
         />
       </div>
+      {/* Dark overlay for content readability */}
+      <div className="fixed inset-0 z-0 pointer-events-none bg-black/40" />
 
       <div className="relative z-10 flex min-h-screen flex-col">
         <Navbar />

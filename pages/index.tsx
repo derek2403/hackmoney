@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Cinzel, Permanent_Marker } from "next/font/google";
 import gsap from "gsap";
 import DecryptedText from "../components/DecryptedText";
+import Galaxy from "../components/Galaxy";
 import { HyperText } from "@/components/ui/hyper-text"
 
 const cinzel = Cinzel({
@@ -281,18 +282,25 @@ export default function Home() {
 
     return (
         <div className={`${cinzel.variable} min-h-screen bg-[#0a0a0b] text-[#e0e0e0] font-serif selection:bg-amber-500/30 relative overflow-hidden`}>
-            {/* Background elements for depth */}
-            <div className="fixed inset-0 pointer-events-none z-0">
-                <div className="absolute inset-0 bg-[#0a0a0b]" />
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(45,45,55,0.2)_0%,transparent_70%)]" />
-                <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/stardust.png")' }} />
+            {/* Galaxy background – full viewport, no mouse interaction */}
+            <div className="fixed inset-0 z-0 pointer-events-none" style={{ width: "100%", height: "100%" }}>
+                <Galaxy
+                    mouseRepulsion
+                    mouseInteraction
+                    density={0.7}
+                    glowIntensity={0.2}
+                    saturation={0.4}
+                    hueShift={140}
+                    twinkleIntensity={0.9}
+                    rotationSpeed={0.05}
+                    repulsionStrength={8}
+                    autoCenterRepulsion={0}
+                    starSpeed={0.3}
+                    speed={0.3}
+                />
             </div>
-
-            {/* Background Image from public */}
-            <div
-                className="fixed inset-0 z-0 pointer-events-none bg-cover bg-center bg-no-repeat"
-                style={{ backgroundImage: "url('/Background.jpg')" }}
-            />
+            {/* Dark overlay for content readability */}
+            <div className="fixed inset-0 z-0 pointer-events-none bg-[#0a0a0b]/40" />
 
             <main className="relative z-10 container mx-auto px-6 lg:px-12 min-h-screen flex flex-col items-center py-12">
                 <div className="flex flex-col w-full items-center gap-16 lg:gap-20 flex-1">
@@ -312,8 +320,8 @@ export default function Home() {
                                     sequential
                                     speed={100}
                                     maxIterations={500}
-                                    className={`${permanentMarker.className} text-black font-black tracking-widest`}
-                                    parentClassName={`${permanentMarker.className} text-black font-black tracking-widest text-5xl md:text-6xl lg:text-7xl block mt-4 mb-0 uppercase`}
+                                    className={`${permanentMarker.className} text-white font-black tracking-widest`}
+                                    parentClassName={`${permanentMarker.className} text-white font-black tracking-widest text-5xl md:text-6xl lg:text-7xl block mt-4 mb-0 uppercase`}
                                     onComplete={() => setTruthRevealed(true)}
                                 />
                             </h1>
