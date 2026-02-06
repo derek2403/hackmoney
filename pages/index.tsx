@@ -64,8 +64,27 @@ const Deck = ({ className = "" }: { className?: string }) => (
     </div>
 );
 
+// Card pool with different card types
+const CARD_POOL = [
+    "/cards/trending.png",
+    "/cards/politics.png",
+    "/cards/crypto.png",
+    "/cards/tech.png",
+    "/cards/cover.png",
+    // Add more card variants if you have them
+];
+
 export default function Home() {
     const cardsRef = useRef<HTMLDivElement>(null);
+    const deckRef = useRef<HTMLDivElement>(null);
+
+    // State to track currently displayed cards
+    const [displayedCards, setDisplayedCards] = React.useState([
+        "/cards/trending.png",
+        "/cards/politics.png",
+        "/cards/crypto.png",
+        "/cards/tech.png",
+    ]);
 
     useEffect(() => {
         if (!cardsRef.current) return;
@@ -83,6 +102,77 @@ export default function Home() {
             delay: 0.3
         });
     }, []);
+
+    // Function to deal new cards with custom pixelation and flip animation
+    const dealNewCards = async () => {
+        // Get 4 random cards from the pool
+        const shuffled = [...CARD_POOL].sort(() => Math.random() - 0.5);
+        const newCards = shuffled.slice(0, 4);
+
+        // Deck pulse animation
+        if (deckRef.current) {
+            gsap.to(deckRef.current, {
+                scale: 0.95,
+                duration: 0.1,
+                yoyo: true,
+                repeat: 1,
+                ease: "power2.inOut"
+            });
+        }
+
+        // Get all card elements
+        const cardElements = cardsRef.current?.querySelectorAll('.card-display');
+        if (!cardElements) return;
+
+        // Step 1: Fade out current cards
+        await new Promise<void>((resolve) => {
+            gsap.to(cardElements, {
+                opacity: 0,
+                scale: 0.9,
+                duration: 0.4,
+                stagger: 0.05,
+                ease: "power2.in",
+                onComplete: resolve
+            });
+        });
+
+        // Step 2: Update state with new cards
+        setDisplayedCards(newCards);
+
+        // Step 3: Wait a moment for DOM update
+        await new Promise(resolve => setTimeout(resolve, 50));
+
+        // Step 4: Animate new cards flipping from deck one by one
+        const newCardElements = cardsRef.current?.querySelectorAll('.card-display');
+        if (newCardElements) {
+            // Get deck position
+            const deckPos = deckRef.current?.getBoundingClientRect();
+            const cardsContainer = cardsRef.current?.getBoundingClientRect();
+
+            if (deckPos && cardsContainer) {
+                const deckX = deckPos.left - cardsContainer.left;
+                const deckY = deckPos.top - cardsContainer.top;
+
+                newCardElements.forEach((el, i) => {
+                    const delay = i * 0.15;
+
+                    gsap.fromTo(el,
+                        {
+                            opacity: 0,
+                            scale: 0.95,
+                        },
+                        {
+                            opacity: 1,
+                            scale: 1,
+                            duration: 0.5,
+                            delay: delay,
+                            ease: "power2.out",
+                        }
+                    );
+                });
+            }
+        }
+    };
 
     return (
         <div className={`${cinzel.variable} min-h-screen bg-[#0a0a0b] text-[#e0e0e0] font-serif selection:bg-amber-500/30 relative overflow-hidden`}>
@@ -145,24 +235,24 @@ export default function Home() {
                     {/* Right Side: Shared container for Stage and Deck */}
                     <div className="w-full lg:w-1/2 flex items-center justify-center relative translate-x-0 lg:-translate-x-8 transition-transform duration-700">
                         {/* Central Stage (The 4 Cards) */}
-                        <div className="animate-item relative w-full max-w-[600px] aspect-square flex items-center justify-center">
+                        <div ref={cardsRef} className="animate-item relative w-full max-w-[600px] aspect-square flex items-center justify-center">
                             <div className="relative w-full h-full">
-                                {/* Top Middle Card - Trending */}
+                                {/* Top Middle Card */}
                                 <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[105%]">
-                                    <Card imageSrc="/cards/trending.png" className="hover:-translate-y-2 transition-transform duration-300 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
+                                    <Card imageSrc={displayedCards[0]} className="card-display hover:-translate-y-2 transition-transform duration-300 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
                                 </div>
 
-                                {/* Bottom Row: Politics, Crypto, Tech */}
+                                {/* Bottom Row: 3 Cards */}
                                 <div className="absolute left-1/2 top-1/2 -translate-x-1/2 translate-y-[15%] flex gap-6">
-                                    <Card imageSrc="/cards/politics.png" className="hover:-translate-y-2 transition-transform duration-300 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
-                                    <Card imageSrc="/cards/crypto.png" className="hover:-translate-y-2 transition-transform duration-300 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
-                                    <Card imageSrc="/cards/tech.png" className="hover:-translate-y-2 transition-transform duration-300 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
+                                    <Card imageSrc={displayedCards[1]} className="card-display hover:-translate-y-2 transition-transform duration-300 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
+                                    <Card imageSrc={displayedCards[2]} className="card-display hover:-translate-y-2 transition-transform duration-300 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
+                                    <Card imageSrc={displayedCards[3]} className="card-display hover:-translate-y-2 transition-transform duration-300 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
                                 </div>
                             </div>
                         </div>
 
-                        {/* Deck of Cards (Far Right) */}
-                        <div className="animate-item absolute right-0 lg:-right-12 top-1/2 -translate-y-[105%]">
+                        {/* Deck of Cards (Far Right) - Clickable */}
+                        <div ref={deckRef} onClick={dealNewCards} className="animate-item absolute right-0 lg:-right-12 top-1/2 -translate-y-[105%]">
                             <Deck className="scale-90 opacity-80 hover:opacity-100 hover:scale-100 transition-all duration-500" />
                         </div>
                     </div>
