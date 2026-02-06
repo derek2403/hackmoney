@@ -9,9 +9,12 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@erc7824/nitrolite": "^0.5.3",
     "@types/three": "^0.182.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "ethers": "^6.16.0",
+    "gsap": "^3.14.2",
     "lucide-react": "^0.563.0",
     "next": "16.1.6",
     "ogl": "^1.0.11",
