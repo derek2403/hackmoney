@@ -1,7 +1,11 @@
 import Head from "next/head";
 import React, { useState, useMemo, useEffect } from "react";
 import { Navbar } from "../components/Navbar";
-import { calculateSelectedMarketProbability } from "@/lib/selectedOdds";
+import {
+  probabilitySumForOutcomeIds,
+  selectionsToOutcomeIds,
+  selectedOutcomeIdsToSelections,
+} from "@/lib/selectedOdds";
 import { MarketHeader } from "../components/MarketHeader";
 import { Visualizations } from "../components/Visualizations";
 import { TradeSidebar } from "../components/TradeSidebar";
@@ -13,17 +17,29 @@ const VOLUME_INITIAL = 166140452;
 
 export default function Home() {
   const [view, setView] = useState<"1D" | "2D" | "3D" | "Odds">("1D");
-  const [selections, setSelections] = useState<Record<number, string | null>>({
-    1: null,
-    2: null,
-    3: null,
-  });
+  const [selectedOutcomeIds, setSelectedOutcomeIds] = useState<number[]>([]);
   const [volume, setVolume] = useState(VOLUME_INITIAL);
 
-  const avgPriceCents = useMemo(
-    () => calculateSelectedMarketProbability(selections),
-    [selections]
+  const selections = useMemo(
+    () => selectedOutcomeIdsToSelections(selectedOutcomeIds),
+    [selectedOutcomeIds]
   );
+
+  const avgPriceCents = useMemo(
+    () =>
+      selectedOutcomeIds.length > 0
+        ? probabilitySumForOutcomeIds(selectedOutcomeIds)
+        : null,
+    [selectedOutcomeIds]
+  );
+
+  const handleToggleOutcome = (outcomeId: number) => {
+    setSelectedOutcomeIds((prev) =>
+      prev.includes(outcomeId)
+        ? prev.filter((id) => id !== outcomeId)
+        : [...prev, outcomeId]
+    );
+  };
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -67,14 +83,31 @@ export default function Home() {
             {/* Main Content Area */}
             <div className="flex-1 space-y-12">
               <MarketHeader activeView={view} onViewChange={setView} />
-              <Visualizations activeView={view} selections={selections} onSelectionChange={setSelections} volume={volume} />
+              <Visualizations
+                activeView={view}
+                selections={selections}
+                selectedOutcomeIds={selectedOutcomeIds}
+                onToggleOutcome={handleToggleOutcome}
+                onSelectionChange={(s: Record<number, string | null>) => {
+                  const ids = selectionsToOutcomeIds(s);
+                  setSelectedOutcomeIds(ids.length === 8 ? [] : ids);
+                }}
+                volume={volume}
+              />
               <OrderBook avgPriceCents={avgPriceCents} volume={volume} />
               <MarketRules />
             </div>
 
             {/* Sidebar */}
             <div className="sticky top-32">
-              <TradeSidebar selections={selections} onSelectionChange={setSelections} />
+              <TradeSidebar
+                selections={selections}
+                onSelectionChange={(s) => {
+                  const ids = selectionsToOutcomeIds(s);
+                  setSelectedOutcomeIds(ids.length === 8 ? [] : ids);
+                }}
+                forTheWinPercent={avgPriceCents}
+              />
             </div>
           </div>
         </main>

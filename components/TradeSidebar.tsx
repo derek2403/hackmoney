@@ -32,9 +32,11 @@ const QUESTIONS = [
 interface TradeSidebarProps {
   selections: Record<number, string | null>;
   onSelectionChange: (selections: Record<number, string | null>) => void;
+  /** Combined "For The Win" % when multiple outcomes selected (from odds table). */
+  forTheWinPercent?: number | null;
 }
 
-export const TradeSidebar = ({ selections, onSelectionChange }: TradeSidebarProps) => {
+export const TradeSidebar = ({ selections, onSelectionChange, forTheWinPercent: forTheWinPercentProp }: TradeSidebarProps) => {
   const [activeTab, setActiveTab] = useState("Buy");
   const [orderType, setOrderType] = useState("Market");
   const [amount, setAmount] = useState("0");
@@ -43,11 +45,12 @@ export const TradeSidebar = ({ selections, onSelectionChange }: TradeSidebarProp
 
   const amountNum = parseFloat(amount) || 0;
 
-  // "For The Win" % from Selected Odds (same as left panel) → price in decimal = %/100
-  const forTheWinPercent = useMemo(
+  // "For The Win" % from Selected Odds (use prop when provided, e.g. multi-select from table)
+  const forTheWinPercentComputed = useMemo(
     () => calculateSelectedMarketProbability(selections),
     [selections]
   );
+  const forTheWinPercent = forTheWinPercentProp ?? forTheWinPercentComputed;
 
   const priceNum =
     forTheWinPercent != null

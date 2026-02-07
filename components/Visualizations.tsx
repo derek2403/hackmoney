@@ -8,7 +8,7 @@ import MarketPillSelector from "./MarketPillSelector"
 import {
   JOINT_OUTCOMES,
   doesOutcomeMatch,
-  calculateSelectedMarketProbability,
+  probabilitySumForOutcomeIds,
 } from "@/lib/selectedOdds"
 
 const QUESTIONS = [
@@ -89,11 +89,13 @@ const chartConfig = {
 interface VisualizationsProps {
   activeView: "1D" | "2D" | "3D" | "Odds";
   selections: Record<number, string | null>;
-  onSelectionChange: (selections: Record<number, string | null>) => void;
+  selectedOutcomeIds: number[];
+  onToggleOutcome: (outcomeId: number) => void;
+  onSelectionChange?: (selections: Record<number, string | null>) => void;
   volume: number;
 }
 
-export const Visualizations = ({ activeView, selections, onSelectionChange, volume }: VisualizationsProps) => {
+export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onToggleOutcome, onSelectionChange, volume }: VisualizationsProps) => {
   const [range, setRange] = useState<"1D" | "1M" | "ALL">("1M");
   const [selectedMarketIds, setSelectedMarketIds] = useState<number[]>([]);
 
@@ -106,9 +108,10 @@ export const Visualizations = ({ activeView, selections, onSelectionChange, volu
     });
   };
 
-  const selectedMarketProbability = useMemo(() => {
-    return calculateSelectedMarketProbability(selections);
-  }, [selections]);
+  const selectedMarketProbability =
+    selectedOutcomeIds.length > 0
+      ? probabilitySumForOutcomeIds(selectedOutcomeIds)
+      : null;
 
   const data = useMemo(() => {
     const noise = (val: number) => (Math.random() - 0.5) * val;
@@ -217,29 +220,35 @@ export const Visualizations = ({ activeView, selections, onSelectionChange, volu
                 <span className="text-sm font-black uppercase tracking-widest">Selected Odds</span>
               </div>
               <div className="flex items-center gap-6">
-                <div className="flex items-center gap-3 text-xs font-bold text-black/60">
-                  {QUESTIONS.map((q) => {
-                    const selection = selections[q.id];
-                    if (!selection) return null;
-                    return (
-                      <div key={q.id} className="flex items-center gap-2">
-                        <img
-                          src={q.image}
-                          alt=""
-                          className="h-6 w-6 rounded-full object-cover border border-black/10 shrink-0"
-                        />
-                        <span className="text-black/50">{q.shortLabel}</span>
-                        <span className={cn(
-                          selection === "Yes" ? "text-emerald-600" : 
-                          selection === "No" ? "text-rose-600" : 
-                          "text-black/60"
-                        )}>
-                          {selection}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
+                {selectedOutcomeIds.length === 1 ? (
+                  <div className="flex items-center gap-3 text-xs font-bold text-black/60">
+                    {QUESTIONS.map((q) => {
+                      const selection = selections[q.id];
+                      if (!selection) return null;
+                      return (
+                        <div key={q.id} className="flex items-center gap-2">
+                          <img
+                            src={q.image}
+                            alt=""
+                            className="h-6 w-6 rounded-full object-cover border border-black/10 shrink-0"
+                          />
+                          <span className="text-black/50">{q.shortLabel}</span>
+                          <span className={cn(
+                            selection === "Yes" ? "text-emerald-600" :
+                            selection === "No" ? "text-rose-600" :
+                            "text-black/60"
+                          )}>
+                            {selection}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <span className="text-xs font-bold text-black/60">
+                    {selectedOutcomeIds.length} outcomes selected
+                  </span>
+                )}
                 <div className="text-right">
                   <div className="text-2xl font-black text-black">
                     {selectedMarketProbability.toFixed(2)}%
@@ -260,14 +269,23 @@ export const Visualizations = ({ activeView, selections, onSelectionChange, volu
               </thead>
               <tbody className="divide-y divide-white/5">
                 {JOINT_OUTCOMES.map((row) => {
-                  const isSelected = doesOutcomeMatch(row, selections);
+                  const isSelected = selectedOutcomeIds.includes(row.id);
                   return (
-                    <tr 
-                      key={row.id} 
+                    <tr
+                      key={row.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => onToggleOutcome(row.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onToggleOutcome(row.id);
+                        }
+                      }}
                       className={cn(
-                        "group transition-all",
-                        isSelected 
-                          ? "bg-white text-black shadow-xl shadow-white/20" 
+                        "group transition-all cursor-pointer",
+                        isSelected
+                          ? "bg-white text-black shadow-xl shadow-white/20"
                           : "hover:bg-white/[0.02]"
                       )}
                     >
