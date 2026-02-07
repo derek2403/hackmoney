@@ -159,3 +159,66 @@ body {
   height: 100%;
   position: relative;
 }
+
+/* Hide scrollbar for category dock while keeping scroll */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Navbar Dock: inline layout and category styling */
+.dock-navbar-wrapper .dock-outer {
+  position: relative;
+  margin-left: auto;
+  margin-right: auto;
+  width: fit-content;
+  max-width: none;
+  min-width: fit-content;
+}
+.dock-navbar-wrapper .dock-panel {
+  position: relative;
+  bottom: auto;
+  left: auto;
+  transform: none;
+  background: transparent;
+  border: none;
+  padding: 0;
+  gap: 1.5rem;
+  width: fit-content;
+}
+.dock-navbar-wrapper .dock-item {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: rgb(113 113 122); /* zinc-500 */
+  min-width: auto;
+}
+.dock-navbar-wrapper .dock-item:hover {
+  color: white;
+}
+.dock-navbar-wrapper .dock-item--active {
+  color: white;
+}
+.dock-navbar-wrapper .dock-item--active::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: white;
+  border-radius: 1px;
+}
+.dock-navbar-wrapper .dock-category-text {
+  color: inherit;
+  transition: font-size 0.2s ease;
+}
+.dock-navbar-wrapper .dock-item:hover .dock-category-text {
+  font-size: 1.5rem; /* ~17px, up from text-sm 14px */
+}
+.dock-navbar-wrapper .dock-label {
+  display: none;
+}

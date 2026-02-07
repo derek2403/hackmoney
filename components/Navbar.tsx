@@ -1,6 +1,8 @@
-import React from "react";
+'use client';
+
+import React, { useMemo, useState } from "react";
 import { Search } from "lucide-react";
-import { cn } from "./utils";
+import Dock from "./Dock";
 
 const CATEGORIES = [
   "For You",
@@ -10,13 +12,29 @@ const CATEGORIES = [
   "Crypto",
   "Finance",
   "More",
-
 ];
 
 export const Navbar = () => {
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  const dockItems = useMemo(
+    () =>
+      CATEGORIES.map((category, i) => ({
+        icon: (
+          <span className="dock-category-text whitespace-nowrap text-sm font-bold">
+            {category}
+          </span>
+        ),
+        label: category,
+        onClick: () => setSelectedIndex(i),
+        className: i === selectedIndex ? "dock-item--active" : "",
+      })),
+    [selectedIndex]
+  );
+
   return (
     <div className="sticky top-0 z-50 w-full border-b border-white/5 bg-white/5 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between px-6">
+      <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between px-6 pt-4">
         <div className="flex items-center gap-8">
           <div className="flex items-center gap-2 group cursor-pointer">
             <div className="h-6 w-6 rounded-md bg-white transition-transform group-hover:scale-110" />
@@ -26,13 +44,13 @@ export const Navbar = () => {
           </div>
 
           <div className="relative group flex items-center">
-            <Search className="absolute left-3 h-4 w-4 text-zinc-500 group-focus-within:text-white transition-colors" />
+            <Search className="absolute left-2.5 h-3.5 w-3.5 text-zinc-500 group-focus-within:text-white transition-colors" />
             <input
               type="text"
               placeholder="Search markets"
-              className="h-10 w-[400px] rounded-xl bg-white/5 border border-white/5 pl-10 pr-4 text-sm text-white outline-none transition-all focus:bg-white/10 focus:border-white/20 focus:ring-4 focus:ring-white/5 placeholder:text-zinc-600"
+              className="h-8 w-[260px] rounded-lg bg-white/5 border border-white/5 pl-8 pr-3 text-xs text-white outline-none transition-all focus:bg-white/10 focus:border-white/20 focus:ring-2 focus:ring-white/5 placeholder:text-zinc-600"
             />
-            <div className="absolute right-3 flex h-5 w-5 items-center justify-center rounded border border-white/10 bg-white/5 text-[10px] text-zinc-500">
+            <div className="absolute right-2.5 flex h-4 w-4 items-center justify-center rounded border border-white/10 bg-white/5 text-[9px] text-zinc-500">
               /
             </div>
           </div>
@@ -44,20 +62,15 @@ export const Navbar = () => {
       </div>
 
       <div className="mx-auto flex h-12 max-w-[1440px] items-center px-6">
-        <div className="flex items-center gap-6 overflow-x-auto no-scrollbar py-2">
-          {CATEGORIES.map((category, i) => (
-            <button
-              key={category}
-              className={cn(
-                "whitespace-nowrap text-sm font-bold transition-all hover:text-white",
-                i === 0
-                  ? "text-white border-b-2 border-white pb-1"
-                  : "text-zinc-500"
-              )}
-            >
-              {category}
-            </button>
-          ))}
+        <div className="dock-navbar-wrapper flex items-center justify-center overflow-x-auto no-scrollbar py-2 w-full">
+          <Dock
+            items={dockItems}
+            panelHeight={30}
+            baseItemSize={52}
+            magnification={68}
+            distance={140}
+            className="dock-panel--navbar"
+          />
         </div>
       </div>
     </div>
