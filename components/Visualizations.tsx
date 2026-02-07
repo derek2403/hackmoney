@@ -51,7 +51,7 @@ const MARKET_ID_TO_OUTCOME_INDEX: Record<number, number> = { 1: 0, 2: 1, 3: 2 };
 function getHeatmapCellsFromOdds(
   marketAId: number,
   marketBId: number
-): { value: number; label: string }[] {
+): { value: number; label: string; aYes: boolean; bYes: boolean }[] {
   const aIdx = MARKET_ID_TO_OUTCOME_INDEX[marketAId] ?? 0;
   const bIdx = MARKET_ID_TO_OUTCOME_INDEX[marketBId] ?? 1;
   const sum = (aYes: boolean, bYes: boolean) =>
@@ -60,10 +60,10 @@ function getHeatmapCellsFromOdds(
     ).reduce((acc, o) => acc + o.probability, 0);
 
   return [
-    { value: sum(false, true), label: "NO/YES" },
-    { value: sum(true, true), label: "YES/YES" },
-    { value: sum(false, false), label: "NO/NO" },
-    { value: sum(true, false), label: "YES/NO" },
+    { value: sum(false, true), label: "NO/YES", aYes: false, bYes: true },
+    { value: sum(true, true), label: "YES/YES", aYes: true, bYes: true },
+    { value: sum(false, false), label: "NO/NO", aYes: false, bYes: false },
+    { value: sum(true, false), label: "YES/NO", aYes: true, bYes: false },
   ];
 }
 
@@ -550,6 +550,29 @@ export const Visualizations = ({ activeView, selections, onSelectionChange }: Vi
                           {heatmapCells.map((cell) => (
                             <div
                               key={cell.label}
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => {
+                                const thirdMarketId = [1, 2, 3].find((id) => id !== marketAId && id !== marketBId);
+                                onSelectionChange({
+                                  ...selections,
+                                  [marketAId]: cell.aYes ? "Yes" : "No",
+                                  [marketBId]: cell.bYes ? "Yes" : "No",
+                                  ...(thirdMarketId != null && { [thirdMarketId]: "Any" }),
+                                });
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  const thirdMarketId = [1, 2, 3].find((id) => id !== marketAId && id !== marketBId);
+                                  onSelectionChange({
+                                    ...selections,
+                                    [marketAId]: cell.aYes ? "Yes" : "No",
+                                    [marketBId]: cell.bYes ? "Yes" : "No",
+                                    ...(thirdMarketId != null && { [thirdMarketId]: "Any" }),
+                                  });
+                                }
+                              }}
                               className="heatmap-cell-breath flex flex-col items-center justify-center relative group cursor-pointer transition-all hover:brightness-110 rounded-xl border border-white/20 backdrop-blur-xl overflow-hidden"
                               style={{
                                 backgroundColor: `rgba(59, 130, 246, ${heatmapOpacityByOdds(cell.value)})`,
