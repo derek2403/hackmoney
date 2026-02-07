@@ -5,6 +5,11 @@ import { cn } from "./utils"
 import JointMarket3D from "./JointMarket3D"
 import ElectricBorder from "./ElectricBorder"
 import MarketPillSelector from "./MarketPillSelector"
+import {
+  JOINT_OUTCOMES,
+  doesOutcomeMatch,
+  calculateSelectedMarketProbability,
+} from "@/lib/selectedOdds"
 
 const QUESTIONS = [
   {
@@ -70,57 +75,6 @@ function getHeatmapCellsFromOdds(
 // Map probability 0–100 to opacity so heatmap matches the scale legend
 /** Opacity: lower odds → very transparent; higher odds → very obvious/solid. */
 const heatmapOpacityByOdds = (pct: number) => 0.04 + (pct / 100) * 0.88;
-
-const JOINT_OUTCOMES = [
-  { id: 1, outcomes: [false, false, false], description: "Khamenei No, US No, Israel No", probability: 6.00 },
-  { id: 2, outcomes: [false, false, true], description: "Khamenei No, US No, Israel Yes", probability: 6.00 },
-  { id: 3, outcomes: [false, true, false], description: "Khamenei No, US Yes, Israel No", probability: 9.00 },
-  { id: 4, outcomes: [false, true, true], description: "Khamenei No, US Yes, Israel Yes", probability: 9.00 },
-  { id: 5, outcomes: [true, false, false], description: "Khamenei Yes, US No, Israel No", probability: 14.00 },
-  { id: 6, outcomes: [true, false, true], description: "Khamenei Yes, US No, Israel Yes", probability: 14.00 },
-  { id: 7, outcomes: [true, true, false], description: "Khamenei Yes, US Yes, Israel No", probability: 21.00 },
-  { id: 8, outcomes: [true, true, true], description: "Khamenei Yes, US Yes, Israel Yes", probability: 21.00 },
-];
-
-// Check if an outcome matches the user's selections
-const doesOutcomeMatch = (outcome: typeof JOINT_OUTCOMES[0], selections: Record<number, string | null>): boolean => {
-  let matches = true;
-  
-  // Check each question
-  for (let qId = 1; qId <= 3; qId++) {
-    const selection = selections[qId];
-    if (selection === null || selection === "Any") continue; // "Any" or null means match all
-    
-    const outcomeValue = outcome.outcomes[qId - 1];
-    const isYes = selection === "Yes";
-    
-    if (isYes && !outcomeValue) {
-      matches = false;
-      break;
-    } else if (!isYes && outcomeValue) {
-      matches = false;
-      break;
-    }
-  }
-  
-  return matches;
-};
-
-// Calculate probability for selected market
-const calculateSelectedMarketProbability = (selections: Record<number, string | null>): number | null => {
-  const hasSelection = Object.values(selections).some(s => s !== null);
-  if (!hasSelection) return null;
-
-  let totalProbability = 0;
-
-  for (const outcome of JOINT_OUTCOMES) {
-    if (doesOutcomeMatch(outcome, selections)) {
-      totalProbability += outcome.probability;
-    }
-  }
-
-  return totalProbability;
-};
 
 const chartConfig = {
   khamenei: { label: "Khamenei", color: "#f43f5e" },

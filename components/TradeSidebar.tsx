@@ -1,24 +1,31 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { cn } from "./utils";
 import GooeyButton from "./GooeyButton";
 import CountUp from "./CountUp";
 import GradientText from "./GradientText";
+import { calculateSelectedMarketProbability } from "@/lib/selectedOdds";
 
 const QUESTIONS = [
   {
     id: 1,
     text: "Khamenei out as Supreme Leader of Iran by January 31?",
     image: "/Khamenei.jpg",
+    yesPrice: 0.48,
+    noPrice: 0.52,
   },
   {
     id: 2,
     text: "US strikes Iran by January 31?",
     image: "/US%20Iran.jpg",
+    yesPrice: 0.51,
+    noPrice: 0.49,
   },
   {
     id: 3,
     text: "Israel next strikes Iran by January 31?",
     image: "/israeliran.jpg",
+    yesPrice: 0.45,
+    noPrice: 0.55,
   },
 ];
 
@@ -35,9 +42,30 @@ export const TradeSidebar = ({ selections, onSelectionChange }: TradeSidebarProp
   const [shares, setShares] = useState("0");
 
   const amountNum = parseFloat(amount) || 0;
-  const priceNum = parseFloat(limitPrice) || 0;
+
+  // "For The Win" % from Selected Odds (same as left panel) → price in decimal = %/100
+  const forTheWinPercent = useMemo(
+    () => calculateSelectedMarketProbability(selections),
+    [selections]
+  );
+
+  const priceNum =
+    forTheWinPercent != null
+      ? forTheWinPercent / 100
+      : (() => {
+          const selectedEntry = QUESTIONS.map((q) => ({ id: q.id, option: selections[q.id] })).find(
+            (e) => e.option != null
+          );
+          if (!selectedEntry) return parseFloat(limitPrice) || 0.5;
+          const q = QUESTIONS.find((x) => x.id === selectedEntry.id);
+          if (!q) return parseFloat(limitPrice) || 0.5;
+          if (selectedEntry.option === "Yes") return q.yesPrice;
+          if (selectedEntry.option === "No") return q.noPrice;
+          return (q.yesPrice + q.noPrice) / 2;
+        })();
+
   const odds = priceNum > 0 ? 1 / priceNum : 0;
-  const toWin = amountNum * odds;
+  const toWin = Math.round(amountNum * odds * 100) / 100;
 
   const handleSelect = (qId: number, option: string) => {
     const newSelections = { ...selections, [qId]: option };
@@ -197,7 +225,7 @@ export const TradeSidebar = ({ selections, onSelectionChange }: TradeSidebarProp
                 To win <img src="/money.gif" alt="" className="inline-block h-7 w-7 object-contain" aria-hidden />
               </span>
               <p className="flex items-center gap-1.5 text-[11px] font-bold text-white/30 pl-2">
-                Avg. Price {(priceNum * 100).toFixed(0)}¢
+                Avg. Price {forTheWinPercent != null ? Math.round(forTheWinPercent) : Math.round(priceNum * 100)}¢
                 <button type="button" className="rounded-full text-white/40 hover:text-white/70 shrink-0" aria-label="Info">
                   <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" /></svg>
                 </button>
@@ -210,7 +238,7 @@ export const TradeSidebar = ({ selections, onSelectionChange }: TradeSidebarProp
                   showBorder={false}
                   className="text-right text-5xl font-black tabular-nums leading-none min-w-[5rem]"
                 >
-                  $<CountUp key={toWin} to={toWin} from={0} duration={0.5} startWhen={true} />
+                  $<CountUp key={toWin} to={toWin} from={0} duration={0.5 / 8} startWhen={true} />
                 </GradientText>
               </div>
             </div>
