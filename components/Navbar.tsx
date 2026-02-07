@@ -37,7 +37,7 @@ export const Navbar = () => {
       <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between px-6 pt-4">
         <div className="flex items-center gap-8">
           <div className="flex items-center gap-2 group cursor-pointer">
-            <div className="h-6 w-6 rounded-md bg-white transition-transform group-hover:scale-110" />
+            <img src="/Logo.png" alt="OnlyTruth" className="h-6 w-6 object-contain transition-transform group-hover:scale-110" />
             <span className="text-xl font-bold tracking-tight text-white">
               OnlyTruth
             </span>
