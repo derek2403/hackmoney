@@ -3,6 +3,8 @@ import { TrendingUp, LayoutGrid } from "lucide-react"
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts"
 import { cn } from "./utils"
 import JointMarket3D from "./JointMarket3D"
+import ElectricBorder from "./ElectricBorder"
+import MarketPillSelector from "./MarketPillSelector"
 
 const QUESTIONS = [
   {
@@ -34,6 +36,40 @@ const OUTCOMES = [
   { label: "US strikes Iran by January 31?", prob: "60%", color: "bg-yellow-500" },
   { label: "Israel next strikes Iran by January 31?", prob: "50%", color: "bg-emerald-500" },
 ];
+
+// Pills for 2D market selection (same order as QUESTIONS)
+const MARKET_PILL_ITEMS = [
+  { id: 1, label: "Khamenei out" },
+  { id: 2, label: "US strikes Iran" },
+  { id: 3, label: "Israel strikes" },
+];
+
+// Market id (1,2,3) -> index in JOINT_OUTCOMES.outcomes (Khamenei=0, US=1, Israel=2)
+const MARKET_ID_TO_OUTCOME_INDEX: Record<number, number> = { 1: 0, 2: 1, 3: 2 };
+
+/** Compute 2D heatmap cell values from JOINT_OUTCOMES for two markets. Order: No/Yes, Yes/Yes, No/No, Yes/No. */
+function getHeatmapCellsFromOdds(
+  marketAId: number,
+  marketBId: number
+): { value: number; label: string }[] {
+  const aIdx = MARKET_ID_TO_OUTCOME_INDEX[marketAId] ?? 0;
+  const bIdx = MARKET_ID_TO_OUTCOME_INDEX[marketBId] ?? 1;
+  const sum = (aYes: boolean, bYes: boolean) =>
+    JOINT_OUTCOMES.filter(
+      (o) => o.outcomes[aIdx] === aYes && o.outcomes[bIdx] === bYes
+    ).reduce((acc, o) => acc + o.probability, 0);
+
+  return [
+    { value: sum(false, true), label: "NO/YES" },
+    { value: sum(true, true), label: "YES/YES" },
+    { value: sum(false, false), label: "NO/NO" },
+    { value: sum(true, false), label: "YES/NO" },
+  ];
+}
+
+// Map probability 0–100 to opacity so heatmap matches the scale legend
+/** Opacity: lower odds → very transparent; higher odds → very obvious/solid. */
+const heatmapOpacityByOdds = (pct: number) => 0.04 + (pct / 100) * 0.88;
 
 const JOINT_OUTCOMES = [
   { id: 1, outcomes: [false, false, false], description: "Khamenei No, US No, Israel No", probability: 6.00 },
@@ -101,6 +137,16 @@ interface VisualizationsProps {
 
 export const Visualizations = ({ activeView, selections, onSelectionChange }: VisualizationsProps) => {
   const [range, setRange] = useState<"1D" | "1M" | "ALL">("ALL");
+  const [selectedMarketIds, setSelectedMarketIds] = useState<number[]>([]);
+
+  const handleMarketSelect = (id: number) => {
+    setSelectedMarketIds((prev) => {
+      const idx = prev.indexOf(id);
+      if (idx !== -1) return prev.filter((_, i) => i !== idx);
+      if (prev.length < 2) return [...prev, id];
+      return [prev[0], id];
+    });
+  };
 
   const selectedMarketProbability = useMemo(() => {
     return calculateSelectedMarketProbability(selections);
@@ -455,47 +501,87 @@ export const Visualizations = ({ activeView, selections, onSelectionChange }: Vi
           </div>
         </div>
       ) : activeView === "2D" ? (
-        <div className="flex flex-col items-center gap-12 py-10">
-          <div className="text-center space-y-2">
-            <h3 className="text-lg font-black text-white tracking-tight">Joint Probability Heatmap</h3>
-            <p className="text-xs font-bold text-white/30 uppercase tracking-widest">Khamenei out vs US strikes Iran</p>
+        <div className="flex flex-col items-center gap-6 pt-2 pb-10">
+          <div className="flex flex-col items-center gap-4">
+            <p className="text-lg font-black text-white tracking-tight">Select two markets to view the 2D graph</p>
+            <MarketPillSelector
+              items={MARKET_PILL_ITEMS}
+              selectedIds={selectedMarketIds}
+              onSelect={handleMarketSelect}
+              multiSelect
+              className="market-pill-selector"
+              baseColor="#0a0a0a"
+              pillColor="#ffffff"
+              pillTextColor="#000000"
+              hoveredPillTextColor="#ffffff"
+            />
           </div>
 
-          <div className="relative flex flex-col items-center ml-10">
-             <div className="absolute -top-12 text-[11px] font-black text-white uppercase tracking-[0.3em] flex items-center gap-3">
-               Khamenei Out <span className="text-white/20">⇅ ⇋</span>
-             </div>
-             
-             <div className="grid h-[360px] w-[360px] grid-cols-2 grid-rows-2 gap-[3px] rounded-3xl overflow-hidden bg-white/5 border-4 border-white/5 shadow-2xl">
-                <div className="bg-blue-500/20 hover:bg-blue-500/30 transition-colors flex flex-col items-center justify-center relative group cursor-pointer">
-                    <span className="text-3xl font-black text-white group-hover:scale-110 transition-transform">19.4%</span>
-                    <span className="text-[10px] font-black text-white/30 absolute bottom-6 tracking-widest uppercase">YES/YES</span>
-                </div>
-                <div className="bg-blue-300/5 hover:bg-blue-300/10 transition-colors flex flex-col items-center justify-center relative group cursor-pointer">
-                    <span className="text-3xl font-black text-white/60 group-hover:scale-110 transition-transform">16.3%</span>
-                    <span className="text-[10px] font-black text-white/20 absolute bottom-6 tracking-widest uppercase">YES/NO</span>
-                </div>
-                <div className="bg-blue-600/60 hover:bg-blue-600/70 transition-colors flex flex-col items-center justify-center relative shadow-inner group cursor-pointer">
-                    <span className="text-4xl font-black text-white group-hover:scale-110 transition-transform">40.9%</span>
-                    <span className="text-[10px] font-black text-blue-200 absolute bottom-6 tracking-widest uppercase">NO/YES</span>
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
-                </div>
-                <div className="bg-blue-400/30 hover:bg-blue-400/40 transition-colors flex flex-col items-center justify-center relative group cursor-pointer">
-                    <span className="text-3xl font-black text-white group-hover:scale-110 transition-transform">23.5%</span>
-                    <span className="text-[10px] font-black text-white/30 absolute bottom-6 tracking-widest uppercase">NO/NO</span>
-                </div>
-             </div>
-
-             <div className="absolute -left-20 top-1/2 -translate-y-1/2 -rotate-90 text-[11px] font-black text-white uppercase tracking-[0.3em] flex items-center gap-3">
-               US Strikes Iran <span className="rotate-90 text-white/20">⇅</span>
-             </div>
-
-             {/* Color Scale */}
-             <div className="absolute -right-16 top-0 bottom-0 flex flex-col items-center justify-between py-4 text-[11px] font-black text-white/20">
-                <span>100</span>
-                <div className="w-6 flex-1 my-4 rounded-full bg-gradient-to-t from-blue-900/10 via-blue-500/50 to-blue-400 border border-white/10" />
-                <span>0</span>
-             </div>
+          <div className="relative flex flex-col items-center">
+            {selectedMarketIds.length === 2 ? (
+              (() => {
+                const marketAId = selectedMarketIds[0];
+                const marketBId = selectedMarketIds[1];
+                const xLabel = MARKET_PILL_ITEMS.find((m) => m.id === marketAId)?.label ?? "";
+                const yLabel = MARKET_PILL_ITEMS.find((m) => m.id === marketBId)?.label ?? "";
+                const heatmapCells = getHeatmapCellsFromOdds(marketAId, marketBId);
+                return (
+                  <div className="flex items-stretch gap-3">
+                    {/* Y axis (left): label rotated + Yes/No */}
+                    <div className="flex flex-col items-center justify-between shrink-0 py-2" style={{ width: 32, height: 380 }}>
+                      <span className="text-[10px] font-black text-white/40">Yes</span>
+                      <span
+                        className="text-[10px] font-black text-white/60 uppercase tracking-widest whitespace-nowrap"
+                        style={{ transform: "rotate(-90deg)", transformOrigin: "center" }}
+                      >
+                        {yLabel}
+                      </span>
+                      <span className="text-[10px] font-black text-white/40">No</span>
+                    </div>
+                    {/* Chart + X axis */}
+                    <div className="flex flex-col items-center gap-2">
+                      <ElectricBorder
+                        color="#7df9ff"
+                        speed={0.4}
+                        chaos={0.15}
+                        style={{ borderRadius: 16 }}
+                      >
+                        <div className="grid h-[380px] w-[380px] grid-cols-2 grid-rows-2 gap-2.5 rounded-2xl p-1 bg-transparent shadow-2xl">
+                          {heatmapCells.map((cell) => (
+                            <div
+                              key={cell.label}
+                              className="heatmap-cell-breath flex flex-col items-center justify-center relative group cursor-pointer transition-all hover:brightness-110 rounded-xl border border-white/20 backdrop-blur-xl overflow-hidden"
+                              style={{
+                                backgroundColor: `rgba(59, 130, 246, ${heatmapOpacityByOdds(cell.value)})`,
+                                boxShadow: "inset 0 1px 0 0 rgba(255,255,255,0.15), 0 4px 24px -4px rgba(0,0,0,0.2)",
+                              }}
+                            >
+                              <span className={cn(
+                                "font-black text-white group-hover:scale-110 transition-transform",
+                                cell.value >= 35 ? "text-4xl" : "text-3xl"
+                              )}>
+                                {cell.value.toFixed(1)}%
+                              </span>
+                              <span className="text-[10px] font-black text-white/70 absolute bottom-6 tracking-widest uppercase">
+                                {cell.label}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </ElectricBorder>
+                      {/* X axis (below): No | label | Yes */}
+                      <div className="flex items-center justify-between w-full mt-1" style={{ width: 380 }}>
+                        <span className="text-[10px] font-black text-white/40">No</span>
+                        <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">{xLabel}</span>
+                        <span className="text-[10px] font-black text-white/40">Yes</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()
+            ) : (
+              <p className="text-sm font-bold text-white/40 py-8">Select two markets above to see the joint probability chart.</p>
+            )}
           </div>
         </div>
       ) : (

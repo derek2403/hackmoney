@@ -153,6 +153,19 @@ body {
   }
 }
 
+@keyframes breath {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.52);
+  }
+}
+
+.heatmap-cell-breath {
+  animation: breath 3.5s ease-in-out infinite;
+}
+
 /* Galaxy background component */
 .galaxy-container {
   width: 100%;
@@ -221,4 +234,13 @@ body {
 }
 .dock-navbar-wrapper .dock-label {
   display: none;
+}
+
+/* Market pill selector: self-contained pill bar (no PillNav dependency) */
+.market-pill-selector {
+  position: relative;
+}
+.market-pill-selector .market-pill-btn:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
 }
