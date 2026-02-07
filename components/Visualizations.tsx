@@ -15,17 +15,20 @@ const QUESTIONS = [
   {
     id: 1,
     text: "Khamenei out as Supreme Leader of Iran by January 31?",
-    image: "👳‍♂️",
+    image: "/Khamenei.jpg",
+    shortLabel: "Khamenei",
   },
   {
     id: 2,
     text: "US strikes Iran by January 31?",
-    image: "🇺🇸",
+    image: "/US%20Iran.jpg",
+    shortLabel: "US",
   },
   {
     id: 3,
     text: "Israel next strikes Iran by January 31?",
-    image: "🇮🇱",
+    image: "/israeliran.jpg",
+    shortLabel: "IL",
   },
 ];
 
@@ -91,7 +94,7 @@ interface VisualizationsProps {
 }
 
 export const Visualizations = ({ activeView, selections, onSelectionChange, volume }: VisualizationsProps) => {
-  const [range, setRange] = useState<"1D" | "1M" | "ALL">("ALL");
+  const [range, setRange] = useState<"1D" | "1M" | "ALL">("1M");
   const [selectedMarketIds, setSelectedMarketIds] = useState<number[]>([]);
 
   const handleMarketSelect = (id: number) => {
@@ -215,12 +218,17 @@ export const Visualizations = ({ activeView, selections, onSelectionChange, volu
               </div>
               <div className="flex items-center gap-6">
                 <div className="flex items-center gap-3 text-xs font-bold text-black/60">
-                  {QUESTIONS.map((q, idx) => {
+                  {QUESTIONS.map((q) => {
                     const selection = selections[q.id];
                     if (!selection) return null;
                     return (
                       <div key={q.id} className="flex items-center gap-2">
-                        <span>{q.image}</span>
+                        <img
+                          src={q.image}
+                          alt=""
+                          className="h-6 w-6 rounded-full object-cover border border-black/10 shrink-0"
+                        />
+                        <span className="text-black/50">{q.shortLabel}</span>
                         <span className={cn(
                           selection === "Yes" ? "text-emerald-600" : 
                           selection === "No" ? "text-rose-600" : 
