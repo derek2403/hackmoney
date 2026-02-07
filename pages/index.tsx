@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import Image from "next/image";
+import { useRouter } from "next/router";
 import { Cinzel, Permanent_Marker } from "next/font/google";
 import gsap from "gsap";
 import DecryptedText from "../components/DecryptedText";
@@ -46,11 +47,6 @@ const Card = ({ className = "", imageSrc }: { className?: string; imageSrc?: str
 
 const Deck = ({ className = "" }: { className?: string }) => (
     <div className={`relative w-48 h-72 ${className} group/deck`}>
-        {/* Glowing effect layers - MAXIMUM VISIBILITY */}
-        <div className="absolute inset-0 -z-10 rounded-lg bg-gradient-to-br from-amber-300/70 via-yellow-200/70 to-orange-300/70 blur-3xl opacity-90 group-hover/deck:opacity-100 transition-opacity duration-500 animate-pulse-glow" />
-        <div className="absolute inset-0 -z-10 rounded-lg bg-gradient-to-br from-amber-400/60 via-yellow-300/60 to-orange-400/60 blur-4xl opacity-95 group-hover/deck:opacity-100 transition-opacity duration-500 animate-pulse-glow-slow" />
-        <div className="absolute inset-0 -z-10 rounded-lg bg-amber-300/50 blur-[120px] opacity-90 animate-pulse-glow-slow" />
-
         {/* Generate a thick stack effect using multiple layers with blur */}
         {[...Array(12)].map((_, i) => (
             <div
@@ -64,10 +60,10 @@ const Deck = ({ className = "" }: { className?: string }) => (
                 }}
             />
         ))}
-        {/* Main top card with cover image and enhanced glow shadow */}
+        {/* Main top card with cover image */}
         <Card
             imageSrc="/cards/cover.png"
-            className="shadow-[0_25px_50px_-12px_rgba(0,0,0,0.85),0_0_60px_rgba(251,191,36,0.6),0_0_90px_rgba(251,191,36,0.3)] hover:shadow-[0_30px_60px_-12px_rgba(0,0,0,0.9),0_0_100px_rgba(251,191,36,0.8),0_0_140px_rgba(251,191,36,0.4)] hover:-translate-y-3 hover:scale-105 transition-all duration-500 cursor-pointer relative z-20"
+            className="shadow-[0_25px_50px_-12px_rgba(0,0,0,0.85)] hover:shadow-[0_30px_60px_-12px_rgba(0,0,0,0.9)] hover:-translate-y-3 hover:scale-105 transition-all duration-500 cursor-pointer relative z-20"
         />
     </div>
 );
@@ -85,6 +81,7 @@ const CARD_POOL = [
 type ViewPhase = "intro" | "transitioning" | "cards";
 
 export default function Home() {
+    const router = useRouter();
     const cardsRef = useRef<HTMLDivElement>(null);
     const deckRef = useRef<HTMLDivElement>(null);
     const taglineRef = useRef<HTMLDivElement>(null);
@@ -107,6 +104,11 @@ export default function Home() {
     const threeCardsRowRef = useRef<HTMLDivElement>(null);
 
     const THREE_CARDS = ["/cards/tradewar.png", "/cards/iranwar.png", "/cards/uselection.png"];
+    const IRAN_WAR_MARKETS = [
+        { image: "/US%20Iran.jpg", alt: "US Iran", name: "US strikes Iran by January 31?", odds: "60%" },
+        { image: "/Khamenei.jpg", alt: "Khamenei", name: "Khamenei out as Supreme Leader of Iran by January 31?", odds: "70%" },
+        { image: "/israeliran.jpg", alt: "Israel Iran", name: "Israel next strikes Iran by January 31?", odds: "50%" },
+    ];
 
     // Layout: "four" = 1 top + 3 bottom; "three" = single row of 3 cards on top
     const [layoutMode, setLayoutMode] = React.useState<"four" | "three">("four");
@@ -281,7 +283,7 @@ export default function Home() {
     };
 
     return (
-        <div className={`${cinzel.variable} min-h-screen bg-[#0a0a0b] text-[#e0e0e0] font-serif selection:bg-amber-500/30 relative overflow-hidden`}>
+        <div className={`${cinzel.variable} min-h-screen bg-[#0a0a0b] text-[#e0e0e0] font-serif selection:bg-purple-600/30 relative overflow-hidden`}>
             {/* Galaxy background – full viewport, no mouse interaction */}
             <div className="fixed inset-0 z-0 pointer-events-none" style={{ width: "100%", height: "100%" }}>
                 <Galaxy
@@ -349,7 +351,7 @@ export default function Home() {
 
                     {/* Cards – only visible after clicking the TRUTH deck; replaces tagline view */}
                     {cardsVisible && (
-                        <div className="w-full flex items-center justify-center relative">
+                        <div className={`w-full relative ${layoutMode === "three" ? "flex-1 flex flex-col items-center justify-center -translate-y-40" : "flex items-center justify-center"}`}>
                             {layoutMode === "four" && (
                                 <>
                                     {/* Layout: 1 top + 3 bottom */}
@@ -361,9 +363,9 @@ export default function Home() {
                                                 tabIndex={0}
                                                 onClick={() => setSelectedCardIndex((i) => (i === 0 ? null : 0))}
                                                 onKeyDown={(e) => e.key === "Enter" && setSelectedCardIndex((i) => (i === 0 ? null : 0))}
-                                                className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[105%] cursor-pointer rounded-lg transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0b] ${selectedCardIndex === 0 ? "ring-2 ring-amber-400 ring-offset-2 ring-offset-[#0a0a0b] scale-105 z-10 shadow-[0_0_30px_rgba(251,191,36,0.4)]" : ""}`}
+                                                className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[105%] cursor-pointer rounded-lg transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-purple-600 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0b] ${selectedCardIndex === 0 ? "ring-2 ring-purple-600 ring-offset-2 ring-offset-[#0a0a0b] scale-105 z-10" : ""}`}
                                             >
-                                                <Card imageSrc={displayedCards[0]} className="card-display hover:-translate-y-6 transition-transform duration-300 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
+                                                <Card imageSrc={displayedCards[0]} className="card-display animate-breathing hover:-translate-y-6 transition-transform duration-300 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
                                             </div>
                                             <div ref={bottomRowRef} className="absolute left-1/2 top-1/2 -translate-x-1/2 translate-y-[15%] flex gap-6">
                                                 {[1, 2, 3].map((idx) => (
@@ -384,9 +386,9 @@ export default function Home() {
                                                                 else setSelectedCardIndex((i) => (i === idx ? null : idx));
                                                             }
                                                         }}
-                                                        className={`cursor-pointer rounded-lg transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0b] ${selectedCardIndex === idx ? "ring-2 ring-amber-400 ring-offset-2 ring-offset-[#0a0a0b] scale-105 z-10 shadow-[0_0_30px_rgba(251,191,36,0.4)] -translate-y-6" : "hover:-translate-y-6"}`}
+                                                        className={`cursor-pointer rounded-lg transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-purple-600 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0b] ${selectedCardIndex === idx ? "ring-2 ring-purple-600 ring-offset-2 ring-offset-[#0a0a0b] scale-105 z-10 -translate-y-6" : "hover:-translate-y-6"}`}
                                                     >
-                                                        <Card imageSrc={displayedCards[idx]} className="card-display transition-transform duration-300 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
+                                                        <Card imageSrc={displayedCards[idx]} className="card-display animate-breathing transition-transform duration-300 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
                                                     </div>
                                                 ))}
                                             </div>
@@ -400,14 +402,36 @@ export default function Home() {
                                     {[0, 1, 2].map((idx) => (
                                         <div
                                             key={idx}
-                                            role="button"
-                                            tabIndex={0}
-                                            onClick={() => setSelectedCardIndex((i) => (i === idx ? null : idx))}
-                                            onKeyDown={(e) => e.key === "Enter" && setSelectedCardIndex((i) => (i === idx ? null : idx))}
-                                            className={`cursor-pointer rounded-lg transition-all duration-300 outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0b] ${selectedCardIndex === idx ? "ring-2 ring-amber-400 ring-offset-2 ring-offset-[#0a0a0b] scale-105 z-10 shadow-[0_0_30px_rgba(251,191,36,0.4)] -translate-y-6" : "hover:-translate-y-6"}`}
-                                            style={animateNewBottomRow ? { opacity: 0, transform: "translateY(40px) scale(0.88)" } : undefined}
+                                            className={`relative ${idx === 1 ? "group/middle" : ""}`}
                                         >
-                                            <Card imageSrc={displayedCards[idx]} className="card-display transition-transform duration-300 shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
+                                            <div
+                                                role="button"
+                                                tabIndex={0}
+                                                onClick={() => { if (idx === 1) router.push("/IranWar"); else setSelectedCardIndex((i) => (i === idx ? null : idx)); }}
+                                                onKeyDown={(e) => { if (e.key === "Enter") { if (idx === 1) router.push("/IranWar"); else setSelectedCardIndex((i) => (i === idx ? null : idx)); } }}
+                                                className={`group/card relative overflow-hidden rounded-lg cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-purple-600 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0a0b] transition-transform duration-300 ease-out ${selectedCardIndex === idx ? "ring-2 ring-purple-600 ring-offset-2 ring-offset-[#0a0a0b] scale-105 z-10 -translate-y-6" : "hover:-translate-y-6"}`}
+                                                style={animateNewBottomRow ? { opacity: 0, transform: "translateY(40px) scale(0.88)" } : undefined}
+                                            >
+                                                <Card imageSrc={displayedCards[idx]} className="card-display animate-breathing transition-transform duration-300 ease-out shadow-[0_35px_70px_-15px_rgba(0,0,0,0.9)] hover:shadow-[0_40px_80px_-15px_rgba(0,0,0,0.95)]" />
+                                                {/* Glassmorphism hover overlay + CTA */}
+                                                <div className="absolute inset-0 rounded-lg pointer-events-none opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 flex items-center justify-center bg-white/5 backdrop-blur-md border border-white/20">
+                                                    <span className="text-sm font-bold text-white/95 drop-shadow-md px-3 text-center">Click to enter market</span>
+                                                </div>
+                                            </div>
+                                            {/* Middle card (Iran War) hover: show three markets with image, name, odds */}
+                                            {idx === 1 && (
+                                                <div className="absolute left-1/2 -translate-x-1/2 top-full mt-6 flex gap-8 opacity-0 pointer-events-none group-hover/middle:opacity-100 group-hover/middle:pointer-events-auto transition-opacity duration-300 z-20">
+                                                    {IRAN_WAR_MARKETS.map((m) => (
+                                                        <a key={m.alt} href={m.image} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center w-44 shrink-0 group/img animate-breathing">
+                                                            <div className="rounded-lg overflow-hidden border-2 border-white/20 shadow-xl group-hover/img:border-purple-500/50 transition-colors w-44 h-56">
+                                                                <Image src={m.image} alt={m.alt} width={176} height={224} className="w-full h-full object-cover" />
+                                                            </div>
+                                                            <p className="mt-2 text-xs font-semibold text-white/90 leading-tight w-44 line-clamp-3 text-center">{m.name}</p>
+                                                            <p className="mt-0.5 text-sm font-bold text-purple-400 text-center">Odds: {m.odds}</p>
+                                                        </a>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
@@ -431,19 +455,12 @@ const GlobalStyles = () => (
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-10px); }
         }
-        @keyframes pulse-glow {
-            0%, 100% { opacity: 0.7; transform: scale(1); }
-            50% { opacity: 1; transform: scale(1.1); }
+        @keyframes breath {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
         }
-        @keyframes pulse-glow-slow {
-            0%, 100% { opacity: 0.6; transform: scale(1); }
-            50% { opacity: 0.95; transform: scale(1.12); }
-        }
-        .animate-pulse-glow {
-            animation: pulse-glow 2s ease-in-out infinite;
-        }
-        .animate-pulse-glow-slow {
-            animation: pulse-glow-slow 3s ease-in-out infinite;
+        .animate-breathing {
+            animation: breath 2.5s ease-in-out infinite;
         }
         body {
             background: #0a0a0b;
