@@ -3,7 +3,9 @@ import Image from "next/image";
 import { useRouter } from "next/router";
 import { Cinzel, Permanent_Marker } from "next/font/google";
 import gsap from "gsap";
+import CountUp from "../components/CountUp";
 import DecryptedText from "../components/DecryptedText";
+import FuzzyText from "../components/FuzzyText";
 import Galaxy from "../components/Galaxy";
 import { HyperText } from "@/components/ui/hyper-text"
 
@@ -105,9 +107,9 @@ export default function Home() {
 
     const THREE_CARDS = ["/cards/tradewar.png", "/cards/iranwar.png", "/cards/uselection.png"];
     const IRAN_WAR_MARKETS = [
-        { image: "/US%20Iran.jpg", alt: "US Iran", name: "US strikes Iran by January 31?", odds: "60%" },
-        { image: "/Khamenei.jpg", alt: "Khamenei", name: "Khamenei out as Supreme Leader of Iran by January 31?", odds: "70%" },
-        { image: "/israeliran.jpg", alt: "Israel Iran", name: "Israel next strikes Iran by January 31?", odds: "50%" },
+        { image: "/US%20Iran.jpg", alt: "US Iran", name: "US strikes Iran by January 31?", odds: 60 },
+        { image: "/Khamenei.jpg", alt: "Khamenei", name: "Khamenei out as Supreme Leader of Iran by January 31?", odds: 70 },
+        { image: "/israeliran.jpg", alt: "Israel Iran", name: "Israel next strikes Iran by January 31?", odds: 50 },
     ];
 
     // Layout: "four" = 1 top + 3 bottom; "three" = single row of 3 cards on top
@@ -313,8 +315,12 @@ export default function Home() {
                             className="w-full max-w-2xl flex flex-col space-y-4 text-white tracking-tight text-center items-center mt-[calc(50vh-18rem)] mb-4"
                         >
                             <h1 className="animate-item text-3xl md:text-4xl lg:text-5xl leading-[1.2] font-light">
-                                The world&apos;s first combined and<br />
-                                most accurate source of<br />
+                                <FuzzyText baseIntensity={0.05} hoverIntensity={0.5} enableHover fontSize="clamp(1.5rem, 5vw, 2.75rem)" fontWeight={300} className="block mx-auto text-center">
+                                    The world&apos;s first combined and
+                                </FuzzyText>
+                                <FuzzyText baseIntensity={0.05} hoverIntensity={0.5} enableHover fontSize="clamp(1.5rem, 5vw, 2.75rem)" fontWeight={300} className="block mx-auto text-center">
+                                    most accurate source of
+                                </FuzzyText>
                                 <DecryptedText
                                     text="TRUTH"
                                     animateOn="view"
@@ -426,8 +432,10 @@ export default function Home() {
                                                             <div className="rounded-lg overflow-hidden border-2 border-white/20 shadow-xl group-hover/img:border-purple-500/50 transition-colors w-44 h-56">
                                                                 <Image src={m.image} alt={m.alt} width={176} height={224} className="w-full h-full object-cover" />
                                                             </div>
-                                                            <p className="mt-2 text-xs font-semibold text-white/90 leading-tight w-44 line-clamp-3 text-center">{m.name}</p>
-                                                            <p className="mt-0.5 text-sm font-bold text-purple-400 text-center">Odds: {m.odds}</p>
+                                                            <p className="mt-2 text-sm font-semibold text-white/90 leading-tight w-44 line-clamp-3 text-center">{m.name}</p>
+                                                            <p className="mt-1 text-lg font-bold text-purple-400 text-center flex items-center justify-center gap-0.5">
+                                                                Odds: <CountUp from={0} to={m.odds} direction="up" duration={1} startWhen className="count-up-text" />%
+                                                            </p>
                                                         </a>
                                                     ))}
                                                 </div>
