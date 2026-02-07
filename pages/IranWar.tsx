@@ -18,7 +18,7 @@ export default function Home() {
   return (
     <div className="relative min-h-screen bg-black text-white selection:bg-blue-500/30 selection:text-white overflow-x-hidden">
       <Head>
-        <title>Iran War | Phỏcast</title>
+        <title>Iran War | OnlyTruth</title>
         <meta name="description" content="Prediction market for the Iran War" />
       </Head>
 
@@ -63,7 +63,7 @@ export default function Home() {
 
         <footer className="mt-24 border-t border-white/5 bg-white/5 backdrop-blur-xl py-12">
           <div className="mx-auto max-w-[1440px] px-6 flex justify-between items-center text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-            <span>© 2026 Phỏcast</span>
+            <span>© 2026 OnlyTruth</span>
             <div className="flex gap-6">
               <a href="#" className="hover:text-white transition-colors">Twitter</a>
               <a href="#" className="hover:text-white transition-colors">Discord</a>

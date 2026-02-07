@@ -39,7 +39,7 @@ export const Navbar = () => {
           <div className="flex items-center gap-2 group cursor-pointer">
             <div className="h-6 w-6 rounded-md bg-white transition-transform group-hover:scale-110" />
             <span className="text-xl font-bold tracking-tight text-white">
-              Phỏcast
+              OnlyTruth
             </span>
           </div>
 
