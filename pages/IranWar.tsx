@@ -12,6 +12,7 @@ import { TradeSidebar } from "../components/TradeSidebar";
 import Galaxy from "../components/Galaxy";
 import { OrderBook } from "../components/OrderBook";
 import { MarketRules } from "../components/MarketRules";
+import { SidebarFeed } from "../components/SidebarFeed";
 
 const VOLUME_INITIAL = 166140452;
 
@@ -99,7 +100,7 @@ export default function Home() {
             </div>
 
             {/* Sidebar */}
-            <div className="sticky top-32">
+            <div className="sticky top-32 flex flex-col items-start">
               <TradeSidebar
                 selections={selections}
                 onSelectionChange={(s) => {
@@ -108,6 +109,7 @@ export default function Home() {
                 }}
                 forTheWinPercent={avgPriceCents}
               />
+              <SidebarFeed />
             </div>
           </div>
         </main>

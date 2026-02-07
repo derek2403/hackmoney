@@ -249,7 +249,7 @@ export const TradeSidebar = ({ selections, onSelectionChange, forTheWinPercent: 
               </div>
               <div className="flex items-center gap-1 min-w-0 justify-end pr-1 items-center">
                 <GradientText
-                  colors={["#B19EEF", "#26d932", "#ffffff"]}
+                  colors={["#ffffff", "#e4e4e7", "#a1a1aa"]}
                   animationSpeed={1.5}
                   showBorder={false}
                   className="text-right text-5xl font-black tabular-nums leading-none min-w-[5rem]"
