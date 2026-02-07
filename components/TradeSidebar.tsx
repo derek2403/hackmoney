@@ -228,33 +228,35 @@ export const TradeSidebar = ({ selections, onSelectionChange }: TradeSidebarProp
           </div>
         )}
 
-        <div className="border-t border-white/5 pt-3">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex flex-col gap-0.5 shrink-0">
-              <span className="text-sm font-black tracking-widest text-white/40 uppercase flex items-center gap-2">
-                To win <img src="/money.gif" alt="" className="inline-block h-7 w-7 object-contain" aria-hidden />
-              </span>
-              {orderType === "Market" && (
-                <p className="flex items-center gap-1.5 text-[11px] font-bold text-white/30 pl-2">
-                  Avg. Price {avgPriceCents}¢
-                  <button type="button" className="rounded-full text-white/40 hover:text-white/70 shrink-0" aria-label="Info">
-                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" /></svg>
-                  </button>
-                </p>
-              )}
-            </div>
-            <div className="flex items-center gap-1 min-w-0 justify-end pr-1 items-center">
-              <GradientText
-                colors={["#B19EEF", "#26d932", "#ffffff"]}
-                animationSpeed={1.5}
-                showBorder={false}
-                className="text-right text-5xl font-black tabular-nums leading-none min-w-[5rem]"
-              >
-                $<CountUp key={toWin} to={toWin} from={0} duration={0.5 / 8} startWhen={true} />
-              </GradientText>
+        {((orderType === "Market" && amountNum > 0) || (orderType === "Limit" && limitPriceNum > 0 && sharesNum > 0)) && (
+          <div className="border-t border-white/5 pt-3">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex flex-col gap-0.5 shrink-0">
+                <span className="text-sm font-black tracking-widest text-white/40 uppercase flex items-center gap-2">
+                  To win <img src="/money.gif" alt="" className="inline-block h-7 w-7 object-contain" aria-hidden />
+                </span>
+                {orderType === "Market" && (
+                  <p className="flex items-center gap-1.5 text-[11px] font-bold text-white/30 pl-2">
+                    Avg. Price {avgPriceCents}¢
+                    <button type="button" className="rounded-full text-white/40 hover:text-white/70 shrink-0" aria-label="Info">
+                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" /></svg>
+                    </button>
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-1 min-w-0 justify-end pr-1 items-center">
+                <GradientText
+                  colors={["#B19EEF", "#26d932", "#ffffff"]}
+                  animationSpeed={1.5}
+                  showBorder={false}
+                  className="text-right text-5xl font-black tabular-nums leading-none min-w-[5rem]"
+                >
+                  $<CountUp key={toWin} to={toWin} from={0} duration={0.5 / 8} startWhen={true} />
+                </GradientText>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         <div className="pt-4">
           <GooeyButton 
