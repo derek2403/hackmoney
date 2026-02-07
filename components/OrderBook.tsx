@@ -1,30 +1,124 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { cn } from "./utils";
 
-const MOCK_ASKS = [
-  { price: 0.08, shares: 1108.4, total: 520.43 },
-  { price: 0.07, shares: 892.1, total: 380.2 },
-  { price: 0.06, shares: 654.3, total: 245.1 },
-  { price: 0.05, shares: 420.0, total: 168.0 },
-  { price: 0.04, shares: 310.5, total: 99.36 },
-  { price: 0.03, shares: 180.2, total: 43.25 },
-];
+type BookRow = { price: number; shares: number; total: number };
 
-const MOCK_BIDS = [
-  { price: 0.02, shares: 5460.01, total: 109.2 },
-  { price: 0.01, shares: 2100.5, total: 21.01 },
-];
+const DEFAULT_MID_CENTS = 50;
+const perturb = (value: number, pct: number) =>
+  Math.max(0, value * (1 + (Math.random() - 0.5) * pct));
+const round2 = (n: number) => Math.round(n * 100) / 100;
 
-const MAX_DEPTH = Math.max(
-  ...MOCK_ASKS.map((a) => a.total),
-  ...MOCK_BIDS.map((b) => b.total)
-);
+function buildBookFromMid(midCents: number): { asks: BookRow[]; bids: BookRow[] } {
+  const baseShares = (min: number, max: number) => 100 + Math.floor(Math.random() * (max - min));
+  const asks: BookRow[] = [];
+  for (let i = 1; i <= 6; i++) {
+    const cents = midCents + i;
+    const price = cents / 100;
+    const shares = baseShares(80, 1200);
+    asks.push({ price, shares, total: round2(shares * price) });
+  }
+  asks.sort((a, b) => b.price - a.price);
+  const bids: BookRow[] = [];
+  for (let i = 1; i <= 5; i++) {
+    const cents = Math.max(1, midCents - i);
+    const price = cents / 100;
+    const shares = baseShares(100, 5000);
+    bids.push({ price, shares, total: round2(shares * price) });
+  }
+  bids.sort((a, b) => b.price - a.price);
+  return { asks, bids };
+}
 
-export const OrderBook = () => {
-  const [tradeDirection, setTradeDirection] = useState<"up" | "down">("up");
+interface OrderBookProps {
+  avgPriceCents?: number | null;
+}
+
+export const OrderBook = ({ avgPriceCents }: OrderBookProps) => {
+  const midCents = avgPriceCents ?? DEFAULT_MID_CENTS;
   const [isExpanded, setIsExpanded] = useState(true);
+  const [asks, setAsks] = useState<BookRow[]>(() => buildBookFromMid(midCents).asks);
+  const [bids, setBids] = useState<BookRow[]>(() => buildBookFromMid(midCents).bids);
+  const [lastPrice, setLastPrice] = useState(midCents);
+  const [volume, setVolume] = useState(166140452);
+  const [lastTouched, setLastTouched] = useState<"ask" | "bid" | null>(null);
+
+  useEffect(() => {
+    const { asks: newAsks, bids: newBids } = buildBookFromMid(midCents);
+    setAsks(newAsks);
+    setBids(newBids);
+    setLastPrice(midCents);
+  }, [midCents]);
+
+  const simulateTrade = useCallback(() => {
+    setAsks((prev) => {
+      const next = prev.map((r) => ({ ...r }));
+      const i = Math.floor(Math.random() * next.length);
+      const row = next[i];
+      const fill = row.shares * (0.02 + Math.random() * 0.08);
+      row.shares = round2(Math.max(1, row.shares - fill));
+      row.total = round2(row.shares * row.price * 100) / 100;
+      return next;
+    });
+    setLastTouched("ask");
+    setTimeout(() => setLastTouched(null), 400);
+  }, []);
+
+  const simulateBidTrade = useCallback(() => {
+    setBids((prev) => {
+      const next = prev.map((r) => ({ ...r }));
+      const i = Math.floor(Math.random() * next.length);
+      const row = next[i];
+      const fill = row.shares * (0.02 + Math.random() * 0.06);
+      row.shares = round2(Math.max(1, row.shares - fill));
+      row.total = round2(row.shares * row.price * 100) / 100;
+      return next;
+    });
+    setLastTouched("bid");
+    setTimeout(() => setLastTouched(null), 400);
+  }, []);
+
+  const simulateNewOrder = useCallback(() => {
+    const side = Math.random() > 0.5 ? "ask" : "bid";
+    if (side === "ask") {
+      setAsks((prev) => {
+        const next = prev.map((r) => ({ ...r }));
+        const i = Math.floor(Math.random() * next.length);
+        next[i].shares = round2(perturb(next[i].shares, 0.15));
+        next[i].total = round2(next[i].shares * next[i].price * 100) / 100;
+        return next;
+      });
+      setLastTouched("ask");
+    } else {
+      setBids((prev) => {
+        const next = prev.map((r) => ({ ...r }));
+        const i = Math.floor(Math.random() * next.length);
+        next[i].shares = round2(perturb(next[i].shares, 0.12));
+        next[i].total = round2(next[i].shares * next[i].price * 100) / 100;
+        return next;
+      });
+      setLastTouched("bid");
+    }
+    setTimeout(() => setLastTouched(null), 400);
+  }, []);
+
+  useEffect(() => {
+    if (!isExpanded) return;
+    const actions = [simulateTrade, simulateBidTrade, simulateNewOrder];
+    const id = setInterval(() => {
+      actions[Math.floor(Math.random() * actions.length)]!();
+      setLastPrice((p) => (Math.random() > 0.6 ? p : p === 2 ? 3 : 2));
+      setVolume((v) => v + Math.floor(Math.random() * 8000 + 2000));
+    }, 1800 + Math.random() * 1400);
+    return () => clearInterval(id);
+  }, [isExpanded, simulateTrade, simulateBidTrade, simulateNewOrder]);
+
+  const maxDepth = Math.max(
+    ...asks.map((a) => a.total),
+    ...bids.map((b) => b.total),
+    1
+  );
 
   return (
     <div className="max-w-4xl rounded-3xl border border-white/5 bg-white/5 p-1 backdrop-blur-xl">
@@ -38,8 +132,8 @@ export const OrderBook = () => {
         )}
       >
         <h2 className="text-lg font-bold text-white">Order Book</h2>
-        <span className="flex items-center gap-1.5 text-sm text-white/50">
-          <span>$166,140,452 vol.</span>
+        <span className="flex items-center gap-1.5 text-sm text-white/50 tabular-nums">
+          <span>${volume.toLocaleString()} vol.</span>
           <svg
             className={cn("w-4 h-4 transition-transform", isExpanded && "rotate-180")}
             fill="none"
@@ -54,46 +148,6 @@ export const OrderBook = () => {
 
       {isExpanded && (
         <>
-      {/* Trade tabs + controls */}
-      <div className="border-b border-white/5 px-6 py-3">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-6">
-            {(["up", "down"] as const).map((dir) => (
-              <button
-                key={dir}
-                onClick={() => setTradeDirection(dir)}
-                className={cn(
-                  "text-sm font-bold transition-colors",
-                  tradeDirection === dir
-                    ? "text-white"
-                    : "text-white/40 hover:text-white/60"
-                )}
-              >
-                Trade {dir === "up" ? "Up" : "Down"}
-              </button>
-            ))}
-            <span className="text-[10px] font-black uppercase tracking-widest text-white/40">
-              TRADE {tradeDirection === "up" ? "UP" : "DOWN"}
-            </span>
-            <span className="text-white/20">|</span>
-            <svg className="w-4 h-4 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </div>
-          <div className="flex items-center gap-3">
-            <a href="#" className="flex items-center gap-1.5 text-sm font-medium text-amber-400 hover:text-amber-300 transition-colors">
-              <span className="text-amber-400">$</span>
-              Maker Rebate
-            </a>
-            <button className="p-1.5 rounded-lg text-white/40 hover:text-white/70 hover:bg-white/5 transition-colors" aria-label="Refresh">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
-
       {/* Table header */}
       <div className="grid grid-cols-[1fr_auto_auto] gap-4 px-6 pt-4 pb-2 text-[10px] font-black uppercase tracking-widest text-white/40">
         <div className="pl-8">Price</div>
@@ -102,21 +156,26 @@ export const OrderBook = () => {
       </div>
 
       {/* Asks */}
-      <div className="relative px-6">
+      <div
+        className={cn(
+          "relative px-6 transition-colors duration-300",
+          lastTouched === "ask" && "bg-rose-500/5 rounded-lg"
+        )}
+      >
         <div className="flex items-center py-1.5">
           <span className="px-2 py-0.5 rounded text-[10px] font-bold text-white bg-rose-500/90">Asks</span>
         </div>
         <div className="space-y-0">
-          {MOCK_ASKS.map((row) => (
+          {asks.map((row) => (
             <div
               key={row.price}
               className="relative grid grid-cols-[1fr_auto_auto] gap-4 py-1.5 items-center text-sm group hover:bg-white/5 rounded"
             >
               <div
-                className="absolute left-0 top-0 bottom-0 rounded-r bg-rose-500/20 max-w-full"
-                style={{ width: `${(row.total / MAX_DEPTH) * 100}%` }}
+                className="absolute left-0 top-0 bottom-0 rounded-r bg-rose-500/20 max-w-full transition-[width] duration-300"
+                style={{ width: `${(row.total / maxDepth) * 100}%` }}
               />
-              <div className="relative pl-8 font-semibold text-rose-400">{row.price.toFixed(0)}¢</div>
+              <div className="relative pl-8 font-semibold text-rose-400">{Math.round(row.price * 100)}¢</div>
               <div className="relative text-right w-20 text-white/70 tabular-nums">{row.shares.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
               <div className="relative text-right w-24 text-white/70 tabular-nums">${row.total.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
             </div>
@@ -124,28 +183,33 @@ export const OrderBook = () => {
         </div>
       </div>
 
-      {/* Divider + Last / Spread */}
+      {/* Divider + Last / Spread (Last = avg/mid; spread = best ask − best bid) */}
       <div className="flex items-center justify-between px-6 py-2 border-y border-white/5 text-xs text-white/50">
-        <span>Last: 3¢</span>
-        <span>Spread: 1¢</span>
+        <span>Last: {lastPrice}¢</span>
+        <span>Spread: {asks.length && bids.length ? Math.round((asks[asks.length - 1]!.price - bids[0]!.price) * 100) : 1}¢</span>
       </div>
 
       {/* Bids */}
-      <div className="relative px-6 pb-4">
+      <div
+        className={cn(
+          "relative px-6 pb-4 transition-colors duration-300",
+          lastTouched === "bid" && "bg-emerald-500/5 rounded-lg"
+        )}
+      >
         <div className="flex items-center py-1.5">
           <span className="px-2 py-0.5 rounded text-[10px] font-bold text-white bg-emerald-500/90">Bids</span>
         </div>
         <div className="space-y-0">
-          {MOCK_BIDS.map((row) => (
+          {bids.map((row) => (
             <div
               key={row.price}
               className="relative grid grid-cols-[1fr_auto_auto] gap-4 py-1.5 items-center text-sm group hover:bg-white/5 rounded"
             >
               <div
-                className="absolute left-0 top-0 bottom-0 rounded-r bg-emerald-500/20 max-w-full"
-                style={{ width: `${(row.total / MAX_DEPTH) * 100}%` }}
+                className="absolute left-0 top-0 bottom-0 rounded-r bg-emerald-500/20 max-w-full transition-[width] duration-300"
+                style={{ width: `${(row.total / maxDepth) * 100}%` }}
               />
-              <div className="relative pl-8 font-semibold text-emerald-400">{row.price.toFixed(0)}¢</div>
+              <div className="relative pl-8 font-semibold text-emerald-400">{Math.round(row.price * 100)}¢</div>
               <div className="relative text-right w-20 text-white/70 tabular-nums">{row.shares.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
               <div className="relative text-right w-24 text-white/70 tabular-nums">${row.total.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
             </div>

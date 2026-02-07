@@ -1,6 +1,7 @@
 import Head from "next/head";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Navbar } from "../components/Navbar";
+import { calculateSelectedMarketProbability } from "@/lib/selectedOdds";
 import { MarketHeader } from "../components/MarketHeader";
 import { Visualizations } from "../components/Visualizations";
 import { TradeSidebar } from "../components/TradeSidebar";
@@ -15,6 +16,11 @@ export default function Home() {
     2: null,
     3: null,
   });
+
+  const avgPriceCents = useMemo(
+    () => calculateSelectedMarketProbability(selections),
+    [selections]
+  );
 
   return (
     <div className="relative min-h-screen bg-black text-white selection:bg-blue-500/30 selection:text-white overflow-x-hidden">
@@ -52,7 +58,7 @@ export default function Home() {
             <div className="flex-1 space-y-12">
               <MarketHeader activeView={view} onViewChange={setView} />
               <Visualizations activeView={view} selections={selections} onSelectionChange={setSelections} />
-              <OrderBook />
+              <OrderBook avgPriceCents={avgPriceCents} />
               <MarketRules />
             </div>
 
