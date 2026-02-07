@@ -244,9 +244,9 @@ export const Visualizations = ({ activeView, selections, onSelectionChange }: Vi
   }, [range, selectedMarketProbability]);
 
   const wrapperClasses =
-    activeView === "3D"
-      ? "flex flex-col gap-12"
-      : "flex flex-col gap-12 rounded-3xl border border-white/5 bg-white/5 p-8 backdrop-blur-xl";
+    activeView === "Odds"
+      ? "flex flex-col gap-12 rounded-3xl border border-white/5 bg-white/5 p-8 backdrop-blur-xl"
+      : "flex flex-col gap-12";
 
   return (
     <div className={wrapperClasses}>
