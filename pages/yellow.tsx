@@ -2,8 +2,8 @@
 // All chapters (1-5) implemented in a single page for testing
 
 import { useState, useEffect, useCallback } from 'react';
-import { createWalletClient, custom, type Address, type WalletClient } from 'viem';
-import { mainnet } from 'viem/chains';
+import { createWalletClient, createPublicClient, custom, http, type Address, type WalletClient, type PublicClient } from 'viem';
+import { sepolia } from 'viem/chains';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
 import {
     createAuthRequestMessage,
@@ -12,15 +12,34 @@ import {
     createEIP712AuthMessageSigner,
     createECDSAMessageSigner,
     createGetLedgerBalancesMessage,
+    createGetConfigMessage,
+    createGetAssetsMessageV2,
     createTransferMessage,
+    createCreateChannelMessage,
+    createResizeChannelMessage,
+    createCloseChannelMessage,
+    createAppSessionMessage,
+    createCloseAppSessionMessage,
+    createGetAppSessionsMessageV2,
     parseAnyRPCResponse,
     RPCMethod,
+    NitroliteClient,
+    WalletStateSigner,
+    RPCProtocolVersion,
     type AuthChallengeResponse,
     type AuthRequestParams,
     type GetLedgerBalancesResponse,
     type BalanceUpdateResponse,
     type TransferResponse,
 } from '@erc7824/nitrolite';
+
+// ==================== SEPOLIA CONTRACT ADDRESSES ====================
+const SEPOLIA_CUSTODY_ADDRESS = '0x019B65A265EB3363822f2752141b3dF16131b262' as const;
+const SEPOLIA_ADJUDICATOR_ADDRESS = '0x7c7ccbc98469190849BCC6c926307794fDfB11F2' as const;
+// Correct ytest.usd token address from GetAssets API (different from Circle USDC!)
+const YTEST_USD_TOKEN = '0xDB9F293e3898c9E5536A3be1b0C56c89d2b32DEb' as const;
+const ETH_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
+const SEPOLIA_CHAIN_ID = 11155111;
 
 // ==================== SESSION KEY UTILITIES ====================
 interface SessionKey {
@@ -230,6 +249,23 @@ export default function YellowWorkshop() {
     const [isTransferring, setIsTransferring] = useState(false);
     const [transferStatus, setTransferStatus] = useState<string | null>(null);
 
+    // Chapter 6: Channel management state
+    const [publicClient, setPublicClient] = useState<PublicClient | null>(null);
+    const [nitroliteClient, setNitroliteClient] = useState<NitroliteClient | null>(null);
+    const [channelId, setChannelId] = useState<string | null>(null);
+    const [channelStatus, setChannelStatus] = useState<'none' | 'creating' | 'open' | 'funding' | 'funded' | 'closing' | 'closed'>('none');
+    const [channelBalance, setChannelBalance] = useState<string>('0');
+    const [isChannelLoading, setIsChannelLoading] = useState(false);
+    // Use the correct ytest.usd token address from GetAssets API
+    const [serverToken, setServerToken] = useState<`0x${string}`>(YTEST_USD_TOKEN);
+
+    // Chapter 7: App Session state (instant off-chain payments)
+    const [appSessionId, setAppSessionId] = useState<string | null>(null);
+    const [appSessionStatus, setAppSessionStatus] = useState<'none' | 'creating' | 'active' | 'closing' | 'closed'>('none');
+    const [appSessionPartner, setAppSessionPartner] = useState<string>('');
+    const [isAppSessionLoading, setIsAppSessionLoading] = useState(false);
+    const [payerBalance, setPayerBalance] = useState<string>('0');
+    const [payeeBalance, setPayeeBalance] = useState<string>('0');
     // ==================== CHAPTER 1: WALLET CONNECTION ====================
     const connectWallet = async () => {
         if (typeof window === 'undefined' || !window.ethereum) {
@@ -238,19 +274,69 @@ export default function YellowWorkshop() {
         }
 
         try {
+            // First check if we're on Sepolia, if not, request switch
+            const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+            const sepoliaChainId = '0xaa36a7'; // 11155111 in hex
+
+            if (chainId !== sepoliaChainId) {
+                try {
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: sepoliaChainId }],
+                    });
+                } catch (switchError: any) {
+                    // Chain not added, try to add it
+                    if (switchError.code === 4902) {
+                        await window.ethereum.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [{
+                                chainId: sepoliaChainId,
+                                chainName: 'Sepolia',
+                                nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+                                rpcUrls: ['https://sepolia.drpc.org'],
+                                blockExplorerUrls: ['https://sepolia.etherscan.io'],
+                            }],
+                        });
+                    } else {
+                        alert('Please switch to Sepolia network to use channel features');
+                        throw switchError;
+                    }
+                }
+            }
             const tempClient = createWalletClient({
-                chain: mainnet,
+                chain: sepolia,
                 transport: custom(window.ethereum),
             });
             const [address] = await tempClient.requestAddresses();
 
             const client = createWalletClient({
                 account: address,
-                chain: mainnet,
+                chain: sepolia,
                 transport: custom(window.ethereum),
             });
 
+            // Create public client for reading chain state
+            const pubClient = createPublicClient({
+                chain: sepolia,
+                transport: http('https://1rpc.io/sepolia'),
+            });
+
+            // Initialize NitroliteClient for on-chain operations
+            const nitroClient = new NitroliteClient({
+                publicClient: pubClient,
+                walletClient: client,
+                stateSigner: new WalletStateSigner(client),
+                addresses: {
+                    custody: SEPOLIA_CUSTODY_ADDRESS,
+                    adjudicator: SEPOLIA_ADJUDICATOR_ADDRESS,
+                },
+                chainId: sepolia.id,
+                challengeDuration: BigInt(3600),
+            });
+
             setWalletClient(client);
+            setPublicClient(pubClient);
+            setNitroliteClient(nitroClient);
             setAccount(address);
         } catch (error) {
             console.error('Failed to connect wallet:', error);
@@ -310,7 +396,7 @@ export default function YellowWorkshop() {
                 scope: AUTH_SCOPE,
                 application: APP_NAME,
                 allowances: [
-                    { asset: 'ytest.usd', amount: '100' },
+                    { asset: 'ytest.usd', amount: '1000000' },
                 ],
             };
 
@@ -364,7 +450,7 @@ export default function YellowWorkshop() {
                     session_key: sessionKey.address,
                     expires_at: BigInt(sessionExpireTimestamp),
                     allowances: [
-                        { asset: 'ytest.usd', amount: '100' },
+                        { asset: 'ytest.usd', amount: '1000000' },
                     ],
                 };
 
@@ -385,6 +471,69 @@ export default function YellowWorkshop() {
                 console.log('Authentication successful!');
                 setIsAuthenticated(true);
                 if (response.params.jwtToken) storeJWT(response.params.jwtToken);
+
+                // Fetch server config to get supported tokens
+                const currentSessionKey = sessionKey;
+                if (currentSessionKey) {
+                    try {
+                        const sessionSigner = createECDSAMessageSigner(currentSessionKey.privateKey);
+                        const configMsg = await createGetConfigMessage(sessionSigner);
+                        webSocketService.send(configMsg);
+                        console.log('Fetching server config...');
+                    } catch (e) {
+                        console.log('Config fetch failed');
+                    }
+                }
+            }
+
+            // Handle config response - get supported token
+            if (response.method === RPCMethod.GetConfig) {
+                const config = response.params as any;
+                console.log('Server config received (JSON):', JSON.stringify(config, null, 2));
+
+                let supportedToken: string | undefined;
+
+                // 1. Try top-level supported_tokens mapping
+                if (config?.supported_tokens?.[SEPOLIA_CHAIN_ID]) {
+                    supportedToken = config.supported_tokens[SEPOLIA_CHAIN_ID][0];
+                }
+
+                // 2. Try nested networks array
+                if (!supportedToken && config?.networks) {
+                    const sepoliaConfig = config.networks.find((n: any) => n.chainId === SEPOLIA_CHAIN_ID);
+                    if (sepoliaConfig) {
+                        console.log('Sepolia network config found:', sepoliaConfig);
+                        // Try tokens or assets fields
+                        supportedToken = sepoliaConfig.tokens?.[0] || sepoliaConfig.assets?.[0]?.address;
+                    }
+                }
+
+                if (supportedToken) {
+                    const tokenToUse = supportedToken.toLowerCase() as `0x${string}`;
+                    console.log('✓ Setting server token (lowercase):', tokenToUse);
+                    setServerToken(tokenToUse);
+                } else {
+                    console.warn('⚠️ No supported token found in config - calling GetAssets...');
+                    // Call GetAssets to discover supported tokens
+                    const assetsMsg = createGetAssetsMessageV2(SEPOLIA_CHAIN_ID);
+                    webSocketService.send(assetsMsg);
+                }
+            }
+
+            // Handle GetAssets response - discover supported tokens for channel creation
+            if (response.method === RPCMethod.GetAssets) {
+                const assets = response.params as any;
+                console.log('📦 Supported Assets:', JSON.stringify(assets, null, 2));
+
+                // Find a supported token and use it
+                if (assets && Array.isArray(assets) && assets.length > 0) {
+                    const firstAsset = assets[0];
+                    const tokenAddress = firstAsset.address || firstAsset.token;
+                    if (tokenAddress) {
+                        console.log('✓ Found supported token from GetAssets:', tokenAddress);
+                        setServerToken(tokenAddress as `0x${string}`);
+                    }
+                }
             }
 
             // Handle balance responses
@@ -497,7 +646,588 @@ export default function YellowWorkshop() {
         return balances?.['ytest.usd'] ?? '0.00';
     };
 
-    // ==================== RENDER ====================
+    // ==================== CHAPTER 6: CHANNEL MANAGEMENT ====================
+
+    // Create a new on-chain channel
+    const handleCreateChannel = useCallback(async () => {
+        if (!sessionKey || !nitroliteClient || !account) {
+            alert('Please connect wallet and authenticate first');
+            return;
+        }
+
+        setIsChannelLoading(true);
+        setChannelStatus('creating');
+
+        try {
+            const sessionSigner = createECDSAMessageSigner(sessionKey.privateKey);
+
+            // Request channel creation via WebSocket
+            // Token must be hex address from GetAssets API
+            const createChannelMsg = await createCreateChannelMessage(
+                sessionSigner,
+                {
+                    chain_id: SEPOLIA_CHAIN_ID,
+                    token: serverToken, // Hex address: 0xDB9F293e3898c9E5536A3be1b0C56c89d2b32DEb
+                }
+            );
+
+            console.log('Sending create channel request...');
+
+            // Set up listener for response
+            const handleResponse = async (data: unknown) => {
+                const response = parseAnyRPCResponse(JSON.stringify(data));
+
+                if (response.method === RPCMethod.CreateChannel) {
+                    console.log('Channel creation response:', response);
+                    const params = response.params as any;
+
+                    // Response uses camelCase: channelId, serverSignature, state.stateData
+                    if (params.channelId || params.channel_id) {
+                        const chId = params.channelId || params.channel_id;
+                        const serverSig = params.serverSignature || params.server_signature;
+                        const state = params.state;
+                        const channel = params.channel;
+
+                        console.log('✓ Channel prepared:', chId);
+
+                        // Transform state for on-chain submission
+                        const unsignedInitialState = {
+                            intent: state.intent,
+                            version: BigInt(state.version),
+                            data: state.stateData || state.state_data || '0x',
+                            allocations: state.allocations.map((a: any) => ({
+                                destination: a.destination,
+                                token: a.token,
+                                amount: BigInt(a.amount),
+                            })),
+                        };
+
+                        try {
+                            console.log('Submitting channel to blockchain...');
+                            const createResult = await nitroliteClient.createChannel({
+                                channel,
+                                unsignedInitialState,
+                                serverSignature: serverSig,
+                            });
+
+                            const txHash = typeof createResult === 'string' ? createResult : createResult.txHash;
+                            console.log('Channel TX submitted:', txHash);
+
+                            // IMPORTANT: Wait for transaction to be mined before allowing resize
+                            console.log('⏳ Waiting for transaction confirmation...');
+                            const receipt = await publicClient?.waitForTransactionReceipt({
+                                hash: txHash as `0x${string}`,
+                                confirmations: 1,
+                            });
+                            console.log('✓ Channel confirmed on-chain! Block:', receipt?.blockNumber);
+
+                            setChannelId(chId);
+                            setChannelStatus('open');
+                            alert(`Channel created and confirmed! TX: ${txHash.slice(0, 10)}... You can now fund it.`);
+                        } catch (chainError) {
+                            console.error('On-chain submission failed:', chainError);
+                            alert('Failed to submit channel to blockchain. Check console for details.');
+                            setChannelStatus('none');
+                        }
+                    } else if (params.error) {
+                        console.error('Channel creation error:', params.error);
+                        alert(`Error: ${params.error}`);
+                        setChannelStatus('none');
+                    }
+
+                    setIsChannelLoading(false);
+                    webSocketService.removeMessageListener(handleResponse);
+                }
+            };
+
+            webSocketService.addMessageListener(handleResponse);
+            webSocketService.send(createChannelMsg);
+        } catch (error) {
+            console.error('Failed to create channel:', error);
+            setIsChannelLoading(false);
+            setChannelStatus('none');
+            alert('Failed to create channel');
+        }
+    }, [sessionKey, nitroliteClient, account, serverToken]);
+
+    // Fund channel from Unified Balance (resize)
+    const handleResizeChannel = useCallback(async (amount: bigint = 20n) => {
+        if (!sessionKey || !nitroliteClient || !channelId) {
+            alert('Please create a channel first');
+            return;
+        }
+
+        setIsChannelLoading(true);
+        setChannelStatus('funding');
+
+        try {
+            const sessionSigner = createECDSAMessageSigner(sessionKey.privateKey);
+
+            const resizeMsg = await createResizeChannelMessage(
+                sessionSigner,
+                {
+                    channel_id: channelId as `0x${string}`,
+                    allocate_amount: amount, // From Unified Balance
+                    funds_destination: account as Address,
+                }
+            );
+
+            console.log(`Resizing channel with ${amount} tokens...`);
+
+            const handleResponse = async (data: unknown) => {
+                const response = parseAnyRPCResponse(JSON.stringify(data));
+
+                if (response.method === RPCMethod.ResizeChannel) {
+                    console.log('Resize response:', response);
+                    const params = response.params as any;
+
+                    // Response uses camelCase: channelId, serverSignature, state.stateData
+                    const chId = params.channelId || params.channel_id;
+                    const serverSig = params.serverSignature || params.server_signature;
+                    const state = params.state;
+
+                    if (chId && state) {
+                        const resizeState = {
+                            intent: state.intent,
+                            version: BigInt(state.version),
+                            data: state.stateData || state.state_data || '0x',
+                            allocations: state.allocations.map((a: any) => ({
+                                destination: a.destination,
+                                token: a.token,
+                                amount: BigInt(a.amount),
+                            })),
+                            channelId: chId,
+                            serverSignature: serverSig,
+                        };
+
+                        try {
+                            // CRITICAL: Fetch proofStates from on-chain channel data
+                            // The contract requires current state as proof for resize
+                            console.log('Fetching on-chain channel data for proofs...');
+                            let proofStates: any[] = [];
+                            try {
+                                const onChainData = await nitroliteClient.getChannelData(chId as `0x${string}`);
+                                console.log('On-chain channel status:', onChainData.status);
+                                if (onChainData.lastValidState) {
+                                    proofStates = [onChainData.lastValidState];
+                                    console.log('✓ Got proof state from on-chain data');
+                                }
+                            } catch (e) {
+                                console.warn('Could not fetch on-chain data, proceeding without proofs:', e);
+                            }
+
+                            console.log('Submitting resize to blockchain...');
+                            const { txHash } = await nitroliteClient.resizeChannel({
+                                resizeState,
+                                proofStates,
+                            });
+                            console.log('Resize TX submitted:', txHash);
+
+                            // Wait for transaction to be mined (with timeout)
+                            console.log('⏳ Waiting for resize confirmation...');
+                            try {
+                                if (publicClient) {
+                                    const receipt = await publicClient.waitForTransactionReceipt({
+                                        hash: txHash as `0x${string}`,
+                                        confirmations: 1,
+                                        timeout: 60_000, // 60 second timeout
+                                    });
+                                    console.log('✓ Channel resized and confirmed! Block:', receipt?.blockNumber);
+                                }
+                            } catch (waitError) {
+                                console.warn('Receipt wait timed out, but TX was submitted:', waitError);
+                            }
+
+                            // Update UI state regardless (TX was submitted successfully)
+                            setChannelBalance(amount.toString());
+                            setChannelStatus('funded');
+                            setIsChannelLoading(false);
+                            alert(`Channel funded with ${amount} tokens! TX: ${txHash.slice(0, 10)}...`);
+                        } catch (chainError) {
+                            console.error('Resize on-chain failed:', chainError);
+                            alert('Failed to resize channel on blockchain. Check console.');
+                            setChannelStatus('open');
+                        }
+                    } else if (params.error) {
+                        console.error('Resize error:', params.error);
+                        alert(`Resize error: ${params.error}`);
+                        setChannelStatus('open');
+                    }
+
+                    setIsChannelLoading(false);
+                    webSocketService.removeMessageListener(handleResponse);
+                }
+            };
+
+            webSocketService.addMessageListener(handleResponse);
+            webSocketService.send(resizeMsg);
+        } catch (error) {
+            console.error('Failed to resize channel:', error);
+            setIsChannelLoading(false);
+            setChannelStatus('open');
+            alert('Failed to resize channel');
+        }
+    }, [sessionKey, nitroliteClient, channelId, account]);
+
+    // Close channel and settle on-chain
+    const handleCloseChannel = useCallback(async () => {
+        if (!sessionKey || !nitroliteClient || !channelId || !account) {
+            alert('No channel to close');
+            return;
+        }
+
+        setIsChannelLoading(true);
+        setChannelStatus('closing');
+
+        try {
+            const sessionSigner = createECDSAMessageSigner(sessionKey.privateKey);
+
+            const closeMsg = await createCloseChannelMessage(
+                sessionSigner,
+                channelId as `0x${string}`,
+                account
+            );
+
+            console.log('Closing channel...');
+
+            const handleResponse = async (data: unknown) => {
+                const response = parseAnyRPCResponse(JSON.stringify(data));
+
+                if (response.method === RPCMethod.CloseChannel) {
+                    console.log('Close response:', response);
+                    const params = response.params as any;
+
+                    // Response uses camelCase: channelId, serverSignature, state.stateData
+                    const chId = params.channelId || params.channel_id;
+                    const serverSig = params.serverSignature || params.server_signature;
+                    const state = params.state;
+
+                    if (chId && state) {
+                        const finalState = {
+                            intent: state.intent,
+                            version: BigInt(state.version),
+                            data: state.stateData || state.state_data || '0x',
+                            allocations: state.allocations.map((a: any) => ({
+                                destination: a.destination,
+                                token: a.token,
+                                amount: BigInt(a.amount),
+                            })),
+                            channelId: chId,
+                            serverSignature: serverSig,
+                        };
+
+                        try {
+                            console.log('Submitting close to blockchain...');
+                            const txHash = await nitroliteClient.closeChannel({
+                                finalState,
+                                stateData: state.stateData || state.state_data || '0x',
+                            });
+                            console.log('Close TX submitted:', txHash);
+
+                            // Wait for transaction to be mined (with timeout)
+                            console.log('⏳ Waiting for close confirmation...');
+                            try {
+                                if (publicClient) {
+                                    const receipt = await publicClient.waitForTransactionReceipt({
+                                        hash: String(txHash) as `0x${string}`,
+                                        confirmations: 1,
+                                        timeout: 60_000, // 60 second timeout
+                                    });
+                                    console.log('✓ Channel closed and confirmed! Block:', receipt?.blockNumber);
+                                }
+                            } catch (waitError) {
+                                console.warn('Receipt wait timed out, but TX was submitted:', waitError);
+                            }
+
+                            // Update UI state regardless (TX was submitted successfully)
+                            setChannelStatus('closed');
+                            setIsChannelLoading(false);
+                            alert(`Channel closed! TX: ${String(txHash).slice(0, 10)}... You can now withdraw.`);
+                        } catch (chainError) {
+                            console.error('Close on-chain failed:', chainError);
+                            alert('Failed to close channel on blockchain. Check console.');
+                            setChannelStatus('funded');
+                        }
+                    } else if (params.error) {
+                        console.error('Close error:', params.error);
+                        alert(`Close error: ${params.error}`);
+                        setChannelStatus('funded');
+                    }
+
+                    setIsChannelLoading(false);
+                    webSocketService.removeMessageListener(handleResponse);
+                }
+            };
+
+            webSocketService.addMessageListener(handleResponse);
+            webSocketService.send(closeMsg);
+        } catch (error) {
+            console.error('Failed to close channel:', error);
+            setIsChannelLoading(false);
+            setChannelStatus('funded');
+            alert('Failed to close channel');
+        }
+    }, [sessionKey, nitroliteClient, channelId, account]);
+
+    // Withdraw funds from Custody contract to wallet
+    const handleWithdraw = useCallback(async () => {
+        if (!nitroliteClient || !publicClient || channelStatus !== 'closed') {
+            alert('Please close the channel first');
+            return;
+        }
+
+        setIsChannelLoading(true);
+
+        try {
+            // Poll for withdrawable balance (may take time for close TX to settle)
+            let withdrawableBalance = 0n;
+            let retries = 0;
+            const maxRetries = 10; // 30 seconds max
+
+            console.log('Checking on-chain balance for withdrawal...');
+
+            while (retries < maxRetries) {
+                const result = await publicClient.readContract({
+                    address: SEPOLIA_CUSTODY_ADDRESS,
+                    abi: [{
+                        type: 'function',
+                        name: 'getAccountsBalances',
+                        inputs: [
+                            { name: 'users', type: 'address[]' },
+                            { name: 'tokens', type: 'address[]' }
+                        ],
+                        outputs: [{ type: 'uint256[]' }],
+                        stateMutability: 'view'
+                    }] as const,
+                    functionName: 'getAccountsBalances',
+                    args: [[account as Address], [YTEST_USD_TOKEN]],
+                }) as bigint[];
+
+                withdrawableBalance = result[0];
+                console.log(`On-chain custody balance: ${withdrawableBalance} (attempt ${retries + 1}/${maxRetries})`);
+
+                if (withdrawableBalance > 0n) {
+                    break;
+                }
+
+                // Wait and retry
+                console.log('⏳ Waiting for close TX to settle...');
+                await new Promise(r => setTimeout(r, 3000));
+                retries++;
+            }
+
+            if (withdrawableBalance > 0n) {
+                console.log(`Withdrawing ${withdrawableBalance} tokens...`);
+                const withdrawalTx = await nitroliteClient.withdrawal(YTEST_USD_TOKEN, withdrawableBalance);
+                console.log('✓ Funds withdrawn:', withdrawalTx);
+
+                setChannelId(null);
+                setChannelStatus('none');
+                setChannelBalance('0');
+                alert(`Funds withdrawn! TX: ${String(withdrawalTx).slice(0, 10)}...`);
+            } else {
+                alert('No funds available yet. The close TX may still be pending. Please wait and try again.');
+            }
+        } catch (error) {
+            console.error('Failed to withdraw:', error);
+            alert('Failed to withdraw. Close TX may still be pending - please wait a minute and try again.');
+        } finally {
+            setIsChannelLoading(false);
+        }
+    }, [nitroliteClient, publicClient, channelStatus, account]);
+
+    // Deposit funds to Unified Balance (ledger)
+    // NOTE: On-chain deposits require the actual token contract address (hex)
+    const handleDeposit = useCallback(async (amount: bigint = BigInt(10000000000000000)) => { // 0.01 ETH
+        if (!nitroliteClient || !account) {
+            alert('Please connect wallet first');
+            return;
+        }
+
+        setIsChannelLoading(true);
+        try {
+            // For on-chain deposit, we need the actual token contract address
+            // YTEST_USD_TOKEN is the ERC-20 contract address on Sepolia
+            console.log(`Depositing ${amount} of ytest.usd to Unified Balance...`);
+            const txHash = await nitroliteClient.deposit(YTEST_USD_TOKEN, amount);
+            console.log('✓ Deposit completed:', txHash);
+            alert(`Deposit successful! TX: ${String(txHash).slice(0, 10)}... (Wait a moment for balance update)`);
+        } catch (error) {
+            console.error('Failed to deposit:', error);
+            alert('Failed to deposit funds. Make sure you have approved the token first.');
+        } finally {
+            setIsChannelLoading(false);
+        }
+    }, [nitroliteClient, account]);
+
+    // ==================== CHAPTER 7: APP SESSION (INSTANT PAYMENTS) ====================
+    // Create an App Session for instant off-chain payments (no blockchain TX needed!)
+    const handleCreateAppSession = useCallback(async () => {
+        if (!sessionKey || !account) {
+            alert('Please authenticate first');
+            return;
+        }
+        if (!appSessionPartner || !appSessionPartner.startsWith('0x')) {
+            alert('Please enter a valid partner address (0x...)');
+            return;
+        }
+
+        setIsAppSessionLoading(true);
+        setAppSessionStatus('creating');
+
+        try {
+            const messageSigner = createECDSAMessageSigner(sessionKey.privateKey);
+
+            // Define the app session - a 2-party payment channel
+            const appDefinition = {
+                application: APP_NAME,
+                protocol: RPCProtocolVersion.NitroRPC_0_4,
+                participants: [account, appSessionPartner] as `0x${string}`[],
+                weights: [100, 0], // Only creator needs to sign
+                quorum: 100, // Creator's weight meets quorum alone
+                challenge: 0, // No challenge period for instant finality
+                nonce: Date.now(),
+            };
+
+            // Initial allocations - split from your ledger balance
+            const allocations = [
+                { participant: account, asset: 'ytest.usd', amount: '100' },
+                { participant: appSessionPartner as Address, asset: 'ytest.usd', amount: '0' },
+            ];
+
+            const handleResponse = async (data: unknown) => {
+                const response = parseAnyRPCResponse(JSON.stringify(data));
+                console.log('App Session response:', response);
+
+                if (response.method === RPCMethod.CreateAppSession) {
+                    const params = response.params as any;
+
+                    if (params.appSessionId || params.app_session_id) {
+                        const sessionId = params.appSessionId || params.app_session_id;
+                        console.log('✓ App Session created:', sessionId);
+                        setAppSessionId(sessionId);
+                        setAppSessionStatus('active');
+                        setPayerBalance('100');
+                        setPayeeBalance('0');
+                        alert(`App Session created! ID: ${sessionId.slice(0, 10)}...`);
+                    } else if (params.error) {
+                        console.error('App Session error:', params.error);
+                        alert(`Failed to create App Session: ${params.error}`);
+                        setAppSessionStatus('none');
+                    }
+
+                    setIsAppSessionLoading(false);
+                    webSocketService.removeMessageListener(handleResponse);
+                }
+            };
+
+            webSocketService.addMessageListener(handleResponse);
+
+            console.log('Creating App Session with:', { appDefinition, allocations });
+            const appSessionMsg = await createAppSessionMessage(messageSigner, {
+                definition: appDefinition,
+                allocations,
+            });
+            webSocketService.send(appSessionMsg);
+
+        } catch (error) {
+            console.error('Failed to create App Session:', error);
+            alert('Failed to create App Session. Check console.');
+            setAppSessionStatus('none');
+            setIsAppSessionLoading(false);
+        }
+    }, [sessionKey, account, appSessionPartner]);
+
+    // Send instant payment within the App Session (NO blockchain TX!)
+    const handleInstantPayment = useCallback(async (amount: string = '10') => {
+        if (!sessionKey || !appSessionId) {
+            alert('Please create an App Session first');
+            return;
+        }
+
+        try {
+            const messageSigner = createECDSAMessageSigner(sessionKey.privateKey);
+
+            // Create transfer message - this is INSTANT, no blockchain needed!
+            const transferMsg = await createTransferMessage(messageSigner, {
+                destination: appSessionPartner as Address,
+                allocations: [{ asset: 'ytest.usd', amount }],
+            });
+
+            console.log('Sending instant payment:', amount, 'ytest.usd');
+            webSocketService.send(transferMsg);
+
+            // Update payer/payee balances locally
+            setPayerBalance(prev => (parseFloat(prev) - parseFloat(amount)).toString());
+            setPayeeBalance(prev => (parseFloat(prev) + parseFloat(amount)).toString());
+
+            alert(`Sent ${amount} ytest.usd instantly! (No gas fees)`);
+
+        } catch (error) {
+            console.error('Failed to send payment:', error);
+            alert('Payment failed. Check console.');
+        }
+    }, [sessionKey, appSessionId, appSessionPartner]);
+
+    // Close the App Session
+    const handleCloseAppSession = useCallback(async () => {
+        if (!sessionKey || !appSessionId || !account) {
+            alert('No active App Session');
+            return;
+        }
+
+        setIsAppSessionLoading(true);
+        setAppSessionStatus('closing');
+
+        try {
+            const messageSigner = createECDSAMessageSigner(sessionKey.privateKey);
+
+            const handleResponse = async (data: unknown) => {
+                const response = parseAnyRPCResponse(JSON.stringify(data));
+                console.log('Close App Session response:', response);
+
+                if (response.method === RPCMethod.CloseAppSession) {
+                    const params = response.params as any;
+
+                    if (params.success || !params.error) {
+                        console.log('✓ App Session closed');
+                        setAppSessionId(null);
+                        setAppSessionStatus('closed');
+                        setPayerBalance('0');
+                        setPayeeBalance('0');
+                        setAppSessionPartner('');
+                        alert('App Session closed! Funds returned to ledger.');
+                    } else if (params.error) {
+                        console.error('Close error:', params.error);
+                        alert(`Failed to close: ${params.error}`);
+                        setAppSessionStatus('active');
+                    }
+
+                    setIsAppSessionLoading(false);
+                    webSocketService.removeMessageListener(handleResponse);
+                }
+            };
+
+            webSocketService.addMessageListener(handleResponse);
+
+            // Final allocations when closing - return all to owner
+            const closeMsg = await createCloseAppSessionMessage(messageSigner, {
+                app_session_id: appSessionId as `0x${string}`,
+                allocations: [
+                    { participant: account, asset: 'ytest.usd', amount: '100' },
+                    { participant: appSessionPartner as Address, asset: 'ytest.usd', amount: '0' },
+                ],
+            });
+            webSocketService.send(closeMsg);
+
+        } catch (error) {
+            console.error('Failed to close App Session:', error);
+            alert('Failed to close App Session. Check console.');
+            setAppSessionStatus('active');
+            setIsAppSessionLoading(false);
+        }
+    }, [sessionKey, appSessionId, account, appSessionPartner]);
+
     return (
         <div className="min-h-screen bg-zinc-950 text-white">
             {/* Header */}
@@ -567,13 +1297,258 @@ export default function YellowWorkshop() {
                 <div className="mb-8 p-4 rounded-lg bg-zinc-900 border border-zinc-800">
                     <h2 className="text-lg font-semibold mb-2">Workshop Demo</h2>
                     <p className="text-zinc-400 text-sm">
-                        This page demonstrates the Yellow Network state channel workflow. Connect your wallet
-                        to authenticate with the Clearnode, then use the &quot;Support&quot; buttons to send instant,
-                        gasless USDC transfers.
+                        Connect your wallet and sign once with EIP-712 to authenticate. After that, all App Session
+                        operations (create, send, close) use your session key automatically — no more MetaMask popups!
+                        Use the &quot;Support&quot; buttons to send instant, gasless transfers.
                     </p>
                 </div>
 
-                {/* Posts Grid */}
+                {/* App Session Payments - EIP-712 Sign Once, Then All Automatic */}
+                {isAuthenticated && (
+                    <div className="mb-8 p-6 rounded-xl bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-purple-500/30">
+                        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                            <span className="text-purple-400">⚡</span> App Session Payments
+                        </h2>
+
+                        <div className="mb-4 p-3 rounded-lg bg-zinc-900/50 text-sm text-zinc-400">
+                            <strong className="text-green-400">Signed once with EIP-712</strong> during authentication.
+                            All operations below use your <strong className="text-white">session key automatically</strong> —
+                            no MetaMask popups, no gas fees, instant off-chain payments!
+                        </div>
+
+                        {/* App Session Status */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                            <div className="p-4 rounded-lg bg-zinc-900/50 border border-zinc-700">
+                                <div className="text-sm text-zinc-400 mb-1">Session Status</div>
+                                <div className={`font-semibold ${appSessionStatus === 'active' ? 'text-green-400' :
+                                    appSessionStatus === 'creating' ? 'text-yellow-400' :
+                                        appSessionStatus === 'none' ? 'text-zinc-500' : 'text-orange-400'
+                                    }`}>
+                                    {appSessionStatus === 'none' ? 'No Session' :
+                                        appSessionStatus === 'creating' ? 'Creating...' :
+                                            appSessionStatus === 'active' ? 'Active' :
+                                                appSessionStatus === 'closing' ? 'Closing...' : 'Closed'}
+                                </div>
+                            </div>
+
+                            <div className="p-4 rounded-lg bg-zinc-900/50 border border-zinc-700">
+                                <div className="text-sm text-zinc-400 mb-1">Session ID</div>
+                                <div className="font-mono text-sm truncate">
+                                    {appSessionId ? `${appSessionId.slice(0, 10)}...${appSessionId.slice(-8)}` : '—'}
+                                </div>
+                            </div>
+
+                            <div className="p-4 rounded-lg bg-zinc-900/50 border border-purple-500/30">
+                                <div className="text-sm text-zinc-400 mb-1">Payer (You)</div>
+                                <div className="font-semibold text-purple-400">{payerBalance} <span className="text-xs text-zinc-500">ytest.usd</span></div>
+                            </div>
+
+                            <div className="p-4 rounded-lg bg-zinc-900/50 border border-pink-500/30">
+                                <div className="text-sm text-zinc-400 mb-1">Payee{appSessionPartner ? ` (${appSessionPartner.slice(0, 6)}...)` : ''}</div>
+                                <div className="font-semibold text-pink-400">{payeeBalance} <span className="text-xs text-zinc-500">ytest.usd</span></div>
+                            </div>
+                        </div>
+
+                        {/* Partner Address Input */}
+                        {appSessionStatus === 'none' && (
+                            <div className="mb-6">
+                                <label className="block text-xs text-zinc-500 mb-2 uppercase tracking-wide font-bold">
+                                    Partner Address (who you want to pay)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={appSessionPartner}
+                                    onChange={(e) => setAppSessionPartner(e.target.value)}
+                                    placeholder="0x... (partner wallet address)"
+                                    className="w-full px-4 py-2 bg-zinc-800 border border-zinc-600 rounded-lg font-mono text-sm"
+                                />
+                            </div>
+                        )}
+
+                        {/* Action Buttons - All use session key (no MetaMask!) */}
+                        <div className="flex flex-wrap gap-3">
+                            <button
+                                onClick={handleCreateAppSession}
+                                disabled={isAppSessionLoading || appSessionStatus !== 'none'}
+                                className="px-4 py-2 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-purple-500 hover:bg-purple-400 text-black shadow-lg shadow-purple-500/20"
+                            >
+                                {appSessionStatus === 'creating' ? 'Creating...' : '1. Create Session'}
+                            </button>
+
+                            <button
+                                onClick={() => handleInstantPayment('10')}
+                                disabled={isAppSessionLoading || appSessionStatus !== 'active'}
+                                className="px-4 py-2 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-pink-500 hover:bg-pink-400 text-black shadow-lg shadow-pink-500/20"
+                            >
+                                2. Send 10 yUSD (Instant!)
+                            </button>
+
+                            <button
+                                onClick={handleCloseAppSession}
+                                disabled={isAppSessionLoading || appSessionStatus !== 'active'}
+                                className="px-4 py-2 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-orange-500 hover:bg-orange-400 text-black shadow-lg shadow-orange-500/20"
+                            >
+                                {appSessionStatus === 'closing' ? 'Closing...' : '3. Close Session'}
+                            </button>
+                        </div>
+
+                        <div className="mt-4 text-xs text-zinc-500">
+                            All 3 steps above use your EIP-712 authorized session key — no additional wallet signatures needed!
+                        </div>
+                    </div>
+                )}
+
+                {/* On-Chain Channel Management (Advanced - requires gas) */}
+                {isAuthenticated && (
+                    <details className="mb-8 group">
+                    <summary className="cursor-pointer list-none p-4 rounded-xl bg-zinc-900 border border-zinc-700 text-zinc-400 hover:text-white transition-colors font-semibold flex items-center justify-between">
+                        <span>Advanced: On-Chain Channel Management</span>
+                        <span className="text-xs text-zinc-600 group-open:hidden">Click to expand</span>
+                    </summary>
+                    <div className="mt-2 p-6 rounded-xl bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30">
+                        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                            <span className="text-yellow-400">🔗</span> State Channel Management
+                        </h2>
+
+                        {/* Channel Status */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                            <div className="p-4 rounded-lg bg-zinc-900/50 border border-zinc-700">
+                                <div className="text-sm text-zinc-400 mb-1">Status</div>
+                                <div className={`font-semibold ${channelStatus === 'funded' ? 'text-green-400' :
+                                    channelStatus === 'open' ? 'text-yellow-400' :
+                                        channelStatus === 'closed' ? 'text-blue-400' :
+                                            channelStatus === 'none' ? 'text-zinc-500' : 'text-orange-400'
+                                    }`}>
+                                    {channelStatus === 'none' ? 'No Channel' :
+                                        channelStatus === 'creating' ? 'Creating...' :
+                                            channelStatus === 'open' ? 'Open (Not Funded)' :
+                                                channelStatus === 'funding' ? 'Funding...' :
+                                                    channelStatus === 'funded' ? 'Funded ✓' :
+                                                        channelStatus === 'closing' ? 'Closing...' : 'Closed'}
+                                </div>
+                            </div>
+
+                            <div className="p-4 rounded-lg bg-zinc-900/50 border border-zinc-700">
+                                <div className="text-sm text-zinc-400 mb-1">Channel ID</div>
+                                <div className="font-mono text-sm truncate">
+                                    {channelId ? `${channelId.slice(0, 10)}...${channelId.slice(-8)}` : '—'}
+                                </div>
+                                {/* Manual channel ID entry for recovering lost channels */}
+                                {!channelId && (
+                                    <div className="mt-2">
+                                        <input
+                                            type="text"
+                                            placeholder="Paste existing channel ID (0x...)"
+                                            className="w-full px-2 py-1 text-xs font-mono bg-zinc-800 border border-zinc-600 rounded"
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    const input = e.currentTarget.value.trim();
+                                                    if (input.startsWith('0x') && input.length === 66) {
+                                                        setChannelId(input);
+                                                        setChannelStatus('funded');
+                                                        setIsChannelLoading(false); // Reset loading state
+                                                        alert('Channel ID restored! You can now close it.');
+                                                    } else {
+                                                        alert('Invalid channel ID. Must be 0x + 64 hex chars.');
+                                                    }
+                                                }
+                                            }}
+                                        />
+                                        <div className="text-xs text-zinc-500 mt-1">Press Enter to restore</div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="p-4 rounded-lg bg-zinc-900/50 border border-zinc-700">
+                                <div className="text-sm text-zinc-400 mb-1">Channel Balance</div>
+                                <div className="font-semibold">{channelBalance} ytest.usd</div>
+                            </div>
+                        </div>
+
+                        {/* Token Selector & Deposit */}
+                        <div className="flex flex-col md:flex-row gap-4 mb-6 p-4 rounded-lg bg-zinc-900/30 border border-zinc-800">
+                            <div className="flex-1">
+                                <label className="block text-xs text-zinc-500 mb-2 uppercase tracking-wide font-bold">Asset to Use</label>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => setServerToken(ETH_ADDRESS)}
+                                        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${serverToken === ETH_ADDRESS
+                                            ? 'bg-yellow-500 text-black'
+                                            : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                                            }`}
+                                    >
+                                        Native ETH
+                                    </button>
+                                    <button
+                                        onClick={() => setServerToken(YTEST_USD_TOKEN)}
+                                        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${serverToken === YTEST_USD_TOKEN
+                                            ? 'bg-yellow-500 text-black'
+                                            : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                                            }`}
+                                    >
+                                        ytest.usd
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="flex-1 border-l border-zinc-800 pl-0 md:pl-4">
+                                <label className="block text-xs text-zinc-500 mb-2 uppercase tracking-wide font-bold">Step 0: Fund Ledger</label>
+                                <button
+                                    onClick={() => handleDeposit(BigInt(10000000000000000))} // 0.01 ETH
+                                    disabled={isChannelLoading}
+                                    className="w-full px-4 py-1.5 rounded-md text-sm font-bold bg-zinc-100 hover:bg-white text-black transition-all disabled:opacity-50"
+                                >
+                                    {isChannelLoading ? 'Processing...' : `Deposit 0.01 ${serverToken === ETH_ADDRESS ? 'ETH' : 'yUSD'}`}
+                                </button>
+                                <p className="text-[10px] text-zinc-500 mt-1">Moves funds from Wallet → Unified Balance</p>
+                            </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex flex-wrap gap-3">
+                            <button
+                                onClick={handleCreateChannel}
+                                disabled={isChannelLoading || channelStatus !== 'none'}
+                                className="px-4 py-2 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-yellow-500 hover:bg-yellow-400 text-black shadow-lg shadow-yellow-500/20"
+                            >
+                                {channelStatus === 'creating' ? 'Creating...' : '1. Create Channel'}
+                            </button>
+
+                            <button
+                                onClick={() => handleResizeChannel(BigInt(20))}
+                                disabled={isChannelLoading || channelStatus !== 'open'}
+                                className="px-4 py-2 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-green-500 hover:bg-green-400 text-black shadow-lg shadow-green-500/20"
+                            >
+                                {channelStatus === 'funding' ? 'Funding...' : '2. Fund (20 units)'}
+                            </button>
+
+                            <button
+                                onClick={handleCloseChannel}
+                                disabled={isChannelLoading || (channelStatus !== 'open' && channelStatus !== 'funded')}
+                                className="px-4 py-2 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-orange-500 hover:bg-orange-400 text-black shadow-lg shadow-orange-500/20"
+                            >
+                                {channelStatus === 'closing' ? 'Closing...' : '3. Close Channel'}
+                            </button>
+
+                            <button
+                                onClick={handleWithdraw}
+                                disabled={isChannelLoading || channelStatus !== 'closed'}
+                                className="px-4 py-2 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-blue-500 hover:bg-blue-400 text-black shadow-lg shadow-blue-500/20"
+                            >
+                                4. Withdraw to Wallet
+                            </button>
+                        </div>
+
+                        {/* Info */}
+                        <div className="mt-4 text-xs text-zinc-500">
+                            On-chain channel operations require Sepolia ETH for gas. View your channel on{' '}
+                            <a href="https://apps.yellow.com" target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:underline">
+                                apps.yellow.com
+                            </a>
+                        </div>
+                    </div>
+                    </details>
+                )}
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {mockPosts.map((post, index) => (
                         <article
