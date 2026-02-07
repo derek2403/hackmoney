@@ -244,3 +244,21 @@ body {
   outline: 2px solid rgba(255, 255, 255, 0.5);
   outline-offset: 2px;
 }
+
+/* GradientText: allow inline use in flex (e.g. TradeSidebar to-win amount), no box background */
+.animated-gradient-text.text-right {
+  margin: 0;
+  cursor: default;
+  max-width: none;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  overflow: visible !important;
+  padding: 0 !important;
+  border: none !important;
+  outline: none !important;
+}
+.animated-gradient-text.text-right .text-content {
+  font-variant-numeric: tabular-nums;
+}

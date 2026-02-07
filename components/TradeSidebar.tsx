@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { cn } from "./utils";
 import GooeyButton from "./GooeyButton";
+import CountUp from "./CountUp";
+import GradientText from "./GradientText";
 
 const QUESTIONS = [
   {
@@ -32,9 +34,19 @@ export const TradeSidebar = ({ selections, onSelectionChange }: TradeSidebarProp
   const [limitPrice, setLimitPrice] = useState("0.50");
   const [shares, setShares] = useState("0");
 
+  const amountNum = parseFloat(amount) || 0;
+  const priceNum = parseFloat(limitPrice) || 0;
+  const odds = priceNum > 0 ? 1 / priceNum : 0;
+  const toWin = amountNum * odds;
+
   const handleSelect = (qId: number, option: string) => {
     const newSelections = { ...selections, [qId]: option };
     onSelectionChange(newSelections);
+  };
+
+  const addAmount = (delta: number) => {
+    const next = Math.max(0, amountNum + delta);
+    setAmount(next % 1 === 0 ? String(next) : next.toFixed(2));
   };
 
   return (
@@ -118,18 +130,29 @@ export const TradeSidebar = ({ selections, onSelectionChange }: TradeSidebarProp
         ))}
       </div>
 
-      <div className="space-y-4 pt-4 border-t border-white/5">
+      <div className="space-y-3 pt-4 border-t border-white/5">
         {orderType === "Market" ? (
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-black tracking-widest text-white/40 uppercase">Amount</span>
-            <div className="flex items-baseline gap-1">
-              <span className="text-3xl font-bold text-white/10">$</span>
-              <input
-                type="text"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="w-24 bg-transparent text-5xl font-black text-white/20 outline-none focus:text-white transition-colors text-right"
-              />
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex flex-col gap-0.5 shrink-0">
+                <span className="text-sm font-black tracking-widest text-white/40 uppercase">Amount</span>
+                <p className="text-[11px] font-bold text-white/30 pl-2">Balance $0.00</p>
+              </div>
+              <div className="flex items-baseline gap-1 min-w-0 justify-end pr-1">
+                <span className="text-3xl font-bold text-white/10 shrink-0">$</span>
+                <input
+                  type="text"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="w-24 min-w-[5rem] bg-transparent text-5xl font-black text-white/20 outline-none focus:text-white transition-colors text-right"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-3 text-white/30 pt-0.5">
+              <button type="button" onClick={() => addAmount(1)} className="px-2 py-1 text-[11px] font-bold hover:text-white transition-colors">+$1</button>
+              <button type="button" onClick={() => addAmount(20)} className="px-2 py-1 text-[11px] font-bold hover:text-white transition-colors">+$20</button>
+              <button type="button" onClick={() => addAmount(100)} className="px-2 py-1 text-[11px] font-bold hover:text-white transition-colors">+$100</button>
+              <button type="button" onClick={() => setAmount("0")} className="px-2 py-1 text-[11px] font-bold hover:text-white transition-colors">Max</button>
             </div>
           </div>
         ) : (
@@ -167,19 +190,34 @@ export const TradeSidebar = ({ selections, onSelectionChange }: TradeSidebarProp
         )}
 
         {orderType === "Market" && (
-          <div className="flex justify-end gap-2 text-white/30">
-            {["+$1", "+$20", "+$100", "Max"].map((btn) => (
-              <button
-                key={btn}
-                className="px-2 py-1 text-[11px] font-bold hover:text-white transition-colors"
-              >
-                {btn}
-              </button>
-            ))}
+          <div className="border-t border-white/5 pt-3">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex flex-col gap-0.5 shrink-0">
+              <span className="text-sm font-black tracking-widest text-white/40 uppercase flex items-center gap-2">
+                To win <img src="/money.gif" alt="" className="inline-block h-7 w-7 object-contain" aria-hidden />
+              </span>
+              <p className="flex items-center gap-1.5 text-[11px] font-bold text-white/30 pl-2">
+                Avg. Price {(priceNum * 100).toFixed(0)}¢
+                <button type="button" className="rounded-full text-white/40 hover:text-white/70 shrink-0" aria-label="Info">
+                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" /></svg>
+                </button>
+              </p>
+              </div>
+              <div className="flex items-center gap-1 min-w-0 justify-end pr-1 items-center">
+                <GradientText
+                  colors={["#B19EEF", "#26d932", "#ffffff"]}
+                  animationSpeed={1.5}
+                  showBorder={false}
+                  className="text-right text-5xl font-black tabular-nums leading-none min-w-[5rem]"
+                >
+                  $<CountUp key={toWin} to={toWin} from={0} duration={0.5} startWhen={true} />
+                </GradientText>
+              </div>
+            </div>
           </div>
         )}
 
-        <div className="pt-2">
+        <div className="pt-4">
           <GooeyButton 
             label={`${activeTab} ${orderType}`}
             onClick={() => console.log(`Executing ${activeTab} ${orderType} order`)}
