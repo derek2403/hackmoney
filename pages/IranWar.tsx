@@ -1,5 +1,5 @@
 import Head from "next/head";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Navbar } from "../components/Navbar";
 import { calculateSelectedMarketProbability } from "@/lib/selectedOdds";
 import { MarketHeader } from "../components/MarketHeader";
@@ -9,6 +9,8 @@ import Galaxy from "../components/Galaxy";
 import { OrderBook } from "../components/OrderBook";
 import { MarketRules } from "../components/MarketRules";
 
+const VOLUME_INITIAL = 166140452;
+
 export default function Home() {
   const [view, setView] = useState<"1D" | "2D" | "3D" | "Odds">("1D");
   const [selections, setSelections] = useState<Record<number, string | null>>({
@@ -16,11 +18,19 @@ export default function Home() {
     2: null,
     3: null,
   });
+  const [volume, setVolume] = useState(VOLUME_INITIAL);
 
   const avgPriceCents = useMemo(
     () => calculateSelectedMarketProbability(selections),
     [selections]
   );
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setVolume((v) => v + Math.floor(Math.random() * 8000 + 2000));
+    }, 1800 + Math.random() * 1400);
+    return () => clearInterval(id);
+  }, []);
 
   return (
     <div className="relative min-h-screen bg-black text-white selection:bg-blue-500/30 selection:text-white overflow-x-hidden">
@@ -57,8 +67,8 @@ export default function Home() {
             {/* Main Content Area */}
             <div className="flex-1 space-y-12">
               <MarketHeader activeView={view} onViewChange={setView} />
-              <Visualizations activeView={view} selections={selections} onSelectionChange={setSelections} />
-              <OrderBook avgPriceCents={avgPriceCents} />
+              <Visualizations activeView={view} selections={selections} onSelectionChange={setSelections} volume={volume} />
+              <OrderBook avgPriceCents={avgPriceCents} volume={volume} />
               <MarketRules />
             </div>
 

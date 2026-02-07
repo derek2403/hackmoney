@@ -10,13 +10,13 @@ const perturb = (value: number, pct: number) =>
   Math.max(0, value * (1 + (Math.random() - 0.5) * pct));
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
+/** Deterministic so server and client match (avoids hydration error). */
 function buildBookFromMid(midCents: number): { asks: BookRow[]; bids: BookRow[] } {
-  const baseShares = (min: number, max: number) => 100 + Math.floor(Math.random() * (max - min));
   const asks: BookRow[] = [];
   for (let i = 1; i <= 6; i++) {
     const cents = midCents + i;
     const price = cents / 100;
-    const shares = baseShares(80, 1200);
+    const shares = 1000 - (i - 1) * 120;
     asks.push({ price, shares, total: round2(shares * price) });
   }
   asks.sort((a, b) => b.price - a.price);
@@ -24,7 +24,7 @@ function buildBookFromMid(midCents: number): { asks: BookRow[]; bids: BookRow[] 
   for (let i = 1; i <= 5; i++) {
     const cents = Math.max(1, midCents - i);
     const price = cents / 100;
-    const shares = baseShares(100, 5000);
+    const shares = 4500 - (i - 1) * 800;
     bids.push({ price, shares, total: round2(shares * price) });
   }
   bids.sort((a, b) => b.price - a.price);
@@ -33,15 +33,15 @@ function buildBookFromMid(midCents: number): { asks: BookRow[]; bids: BookRow[] 
 
 interface OrderBookProps {
   avgPriceCents?: number | null;
+  volume?: number;
 }
 
-export const OrderBook = ({ avgPriceCents }: OrderBookProps) => {
+export const OrderBook = ({ avgPriceCents, volume = 166140452 }: OrderBookProps) => {
   const midCents = avgPriceCents ?? DEFAULT_MID_CENTS;
   const [isExpanded, setIsExpanded] = useState(true);
   const [asks, setAsks] = useState<BookRow[]>(() => buildBookFromMid(midCents).asks);
   const [bids, setBids] = useState<BookRow[]>(() => buildBookFromMid(midCents).bids);
   const [lastPrice, setLastPrice] = useState(midCents);
-  const [volume, setVolume] = useState(166140452);
   const [lastTouched, setLastTouched] = useState<"ask" | "bid" | null>(null);
 
   useEffect(() => {
@@ -109,7 +109,6 @@ export const OrderBook = ({ avgPriceCents }: OrderBookProps) => {
     const id = setInterval(() => {
       actions[Math.floor(Math.random() * actions.length)]!();
       setLastPrice((p) => (Math.random() > 0.6 ? p : p === 2 ? 3 : 2));
-      setVolume((v) => v + Math.floor(Math.random() * 8000 + 2000));
     }, 1800 + Math.random() * 1400);
     return () => clearInterval(id);
   }, [isExpanded, simulateTrade, simulateBidTrade, simulateNewOrder]);

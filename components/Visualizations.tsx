@@ -87,9 +87,10 @@ interface VisualizationsProps {
   activeView: "1D" | "2D" | "3D" | "Odds";
   selections: Record<number, string | null>;
   onSelectionChange: (selections: Record<number, string | null>) => void;
+  volume: number;
 }
 
-export const Visualizations = ({ activeView, selections, onSelectionChange }: VisualizationsProps) => {
+export const Visualizations = ({ activeView, selections, onSelectionChange, volume }: VisualizationsProps) => {
   const [range, setRange] = useState<"1D" | "1M" | "ALL">("ALL");
   const [selectedMarketIds, setSelectedMarketIds] = useState<number[]>([]);
 
@@ -434,7 +435,7 @@ export const Visualizations = ({ activeView, selections, onSelectionChange }: Vi
 
           <div className="mt-12 flex justify-between items-center border-t border-white/5 pt-8">
             <div className="flex flex-col gap-1">
-              <span className="text-[14px] font-black text-white">$166,140,452 vol</span>
+              <span className="text-[14px] font-black text-white tabular-nums">${volume.toLocaleString()} vol</span>
             </div>
             
             <div className="flex items-center gap-4 text-[11px] font-black text-white/30 tracking-widest uppercase">
@@ -565,7 +566,7 @@ export const Visualizations = ({ activeView, selections, onSelectionChange }: Vi
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div className="flex flex-col gap-1">
-              <span className="text-[14px] font-black text-white">$166,140,452 vol</span>
+              <span className="text-[14px] font-black text-white tabular-nums">${volume.toLocaleString()} vol</span>
             </div>
           </div>
           <JointMarket3D selections={selections} onSelectionChange={onSelectionChange} />
