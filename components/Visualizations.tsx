@@ -31,7 +31,7 @@ import {
 
 const OUTCOMES = [
   { label: "Khamenei out as Supreme Leader of Iran by January 31?", prob: "70%", color: "bg-rose-500" },
-  { label: "US strikes Iran by January 31?", prob: "60%", color: "bg-orange-500" },
+  { label: "US strikes Iran by January 31?", prob: "60%", color: "bg-yellow-500" },
   { label: "Israel next strikes Iran by January 31?", prob: "50%", color: "bg-emerald-500" },
 ];
 
@@ -88,7 +88,7 @@ const calculateSelectedMarketProbability = (selections: Record<number, string | 
 
 const chartConfig = {
   khamenei: { label: "Khamenei", color: "#f43f5e" },
-  us_strikes: { label: "US", color: "#f97316" },
+  us_strikes: { label: "US", color: "#eab308" },
   israel_strikes: { label: "Israel", color: "#10b981" },
   selected_market: { label: "Selected Market", color: "#3b82f6" },
 } satisfies ChartConfig
@@ -355,7 +355,7 @@ export const Visualizations = ({ activeView, selections, onSelectionChange }: Vi
                 <Line
                   dataKey="us_strikes"
                   type="monotone"
-                  stroke="#f97316"
+                  stroke="#eab308"
                   strokeWidth={3}
                   dot={false}
                   animationDuration={0}
@@ -520,6 +520,12 @@ export const Visualizations = ({ activeView, selections, onSelectionChange }: Vi
               </p>
             </div>
           ))}
+          <div className="flex items-center gap-3 group cursor-pointer">
+            <div className="h-3 w-3 rounded-full shadow-lg transition-transform group-hover:scale-125 bg-blue-500" />
+            <p className="text-sm font-bold text-white/50 group-hover:text-white transition-colors">
+              User Selected Odds <span className="text-white ml-2">{selectedMarketProbability != null ? `${selectedMarketProbability.toFixed(1)}%` : "—"}</span>
+            </p>
+          </div>
         </div>
       </div>
 
