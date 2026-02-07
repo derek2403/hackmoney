@@ -5,15 +5,16 @@ import { cn } from "./utils";
 interface MarketHeaderProps {
   activeView: "1D" | "2D" | "3D" | "Odds";
   onViewChange: (view: "1D" | "2D" | "3D" | "Odds") => void;
+  marketImage?: string;
 }
 
-export const MarketHeader = ({ activeView, onViewChange }: MarketHeaderProps) => {
+export const MarketHeader = ({ activeView, onViewChange, marketImage = "/Khamenei.jpg" }: MarketHeaderProps) => {
   return (
     <div className="flex flex-col gap-8 rounded-3xl border border-white/5 bg-white/5 p-8 backdrop-blur-xl">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-6">
-          <div className="h-16 w-16 overflow-hidden rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-3xl shadow-2xl">
-            🇮🇷
+          <div className="h-16 w-16 overflow-hidden rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shadow-2xl">
+            <img src={marketImage} alt="Market" className="h-full w-full object-cover" />
           </div>
           <div className="space-y-1">
             <div className="flex items-center gap-2 group cursor-pointer">

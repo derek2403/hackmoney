@@ -6,17 +6,17 @@ const QUESTIONS = [
   {
     id: 1,
     text: "Khamenei out as Supreme Leader of Iran by January 31?",
-    image: "👳‍♂️",
+    image: "/Khamenei.jpg",
   },
   {
     id: 2,
     text: "US strikes Iran by January 31?",
-    image: "🇺🇸",
+    image: "/US%20Iran.jpg",
   },
   {
     id: 3,
     text: "Israel next strikes Iran by January 31?",
-    image: "🇮🇱",
+    image: "/israeliran.jpg",
   },
 ];
 
@@ -87,8 +87,8 @@ export const TradeSidebar = ({ selections, onSelectionChange }: TradeSidebarProp
         {QUESTIONS.map((q) => (
           <div key={q.id} className="space-y-3">
             <div className="flex items-start gap-3">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-lg border border-white/5">
-                {q.image}
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 border border-white/5 overflow-hidden">
+                <img src={q.image} alt="" className="h-full w-full object-cover" />
               </div>
               <p className="text-[13px] font-bold leading-tight text-white/70">
                 {q.text}
