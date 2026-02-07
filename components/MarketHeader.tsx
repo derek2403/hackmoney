@@ -1,5 +1,7 @@
-import React from "react";
-import { Link2, Bookmark } from "lucide-react";
+"use client";
+
+import React, { useState } from "react";
+import { Bookmark } from "lucide-react";
 import { cn } from "./utils";
 
 interface MarketHeaderProps {
@@ -9,6 +11,8 @@ interface MarketHeaderProps {
 }
 
 export const MarketHeader = ({ activeView, onViewChange, marketImage = "/Khamenei.jpg" }: MarketHeaderProps) => {
+  const [isBookmarked, setIsBookmarked] = useState(false);
+
   return (
     <div className="flex flex-col gap-8 rounded-3xl border border-white/5 bg-white/5 p-8 backdrop-blur-xl">
       <div className="flex items-center justify-between">
@@ -27,8 +31,18 @@ export const MarketHeader = ({ activeView, onViewChange, marketImage = "/Khamene
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button className="p-3 rounded-xl bg-white/5 border border-white/5 text-white/40 hover:text-white hover:bg-white/10 transition-all active:scale-95 shadow-lg">
-            <Bookmark className="h-5 w-5" />
+          <button
+            type="button"
+            onClick={() => setIsBookmarked((prev) => !prev)}
+            aria-label={isBookmarked ? "Remove bookmark" : "Bookmark"}
+            className={cn(
+              "p-3 rounded-xl border border-white/5 transition-all active:scale-95 shadow-lg",
+              isBookmarked
+                ? "bg-white/15 text-white border-white/20"
+                : "bg-white/5 text-white/40 hover:text-white hover:bg-white/10"
+            )}
+          >
+            <Bookmark className="h-5 w-5" fill={isBookmarked ? "currentColor" : "none"} />
           </button>
         </div>
       </div>
