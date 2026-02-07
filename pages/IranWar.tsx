@@ -5,6 +5,7 @@ import { MarketHeader } from "../components/MarketHeader";
 import { Visualizations } from "../components/Visualizations";
 import { TradeSidebar } from "../components/TradeSidebar";
 import Galaxy from "../components/Galaxy";
+import { OrderBook } from "../components/OrderBook";
 import { MarketRules } from "../components/MarketRules";
 
 export default function Home() {
@@ -51,6 +52,7 @@ export default function Home() {
             <div className="flex-1 space-y-12">
               <MarketHeader activeView={view} onViewChange={setView} />
               <Visualizations activeView={view} selections={selections} onSelectionChange={setSelections} />
+              <OrderBook />
               <MarketRules />
             </div>
 
