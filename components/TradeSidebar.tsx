@@ -2,7 +2,6 @@ import React, { useState, useMemo, useCallback } from "react";
 import { cn } from "./utils";
 import GooeyButton from "./GooeyButton";
 import CountUp from "./CountUp";
-import GradientText from "./GradientText";
 import { calculateSelectedMarketProbability } from "@/lib/selectedOdds";
 import { buyShares, sellShares, placeOrder } from "@/lib/yellow/market/marketClient";
 import type { MarginalPrice } from "@/lib/yellow/market/types";
@@ -253,7 +252,7 @@ export const TradeSidebar = ({
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={cn(
-                "text-lg font-bold transition-all hover:scale-105 active:scale-95 pb-1",
+                "text-xl font-bold transition-all hover:scale-105 active:scale-95 pb-1",
                 activeTab === tab
                   ? "text-white border-b-2 border-white"
                   : "text-white/20 hover:text-white/40 border-b-2 border-transparent"
@@ -268,7 +267,7 @@ export const TradeSidebar = ({
           <button
             type="button"
             onClick={() => setOrderTypeOpen((v) => !v)}
-            className="flex items-center gap-1.5 text-sm font-bold text-white/40 hover:text-white transition-all cursor-pointer"
+            className="flex items-center gap-1.5 text-base font-bold text-white/40 hover:text-white transition-all cursor-pointer"
           >
             {orderType}
             <svg className={cn("w-3.5 h-3.5 transition-transform", orderTypeOpen && "rotate-180")} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
@@ -299,7 +298,7 @@ export const TradeSidebar = ({
         {QUESTIONS.map((q) => (
           <div key={q.id} className="space-y-3">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 border border-white/5 overflow-hidden">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/10 border border-white/5 overflow-hidden">
                 <img src={q.image} alt="" className="h-full w-full object-cover" />
               </div>
               <p className="text-sm font-bold leading-snug text-white/70">
@@ -314,7 +313,7 @@ export const TradeSidebar = ({
                     key={option}
                     onClick={() => handleSelect(q.id, option)}
                     className={cn(
-                      "rounded-xl py-2.5 text-xs font-bold transition-all border border-transparent",
+                      "rounded-xl py-2.5 text-sm font-bold transition-all border border-transparent",
                       selections[q.id] === option
                         ? option === "Yes"
                           ? "bg-emerald-500 shadow-lg shadow-emerald-500/20 text-white"
@@ -342,23 +341,23 @@ export const TradeSidebar = ({
             <div className="flex items-center justify-between gap-4">
               <div className="flex flex-col gap-0.5 shrink-0">
                 <span className="text-sm font-black tracking-widest text-white/40 uppercase">Amount</span>
-                <p className="text-[11px] font-bold"><span className="text-emerald-400">Balance</span> <span className="text-white">${userBalance.toFixed(2)}</span></p>
+                <p className="text-xs font-bold"><span className="text-white/40">Balance</span> <span className="text-white">${userBalance.toFixed(2)}</span></p>
               </div>
-              <div className="flex items-baseline gap-1 min-w-0 justify-end pr-1">
-                <span className="text-3xl font-bold text-white/10 shrink-0">$</span>
+              <div className="flex-1 min-w-0 flex items-baseline gap-1 justify-end pr-1 overflow-hidden">
+                <span className="text-3xl font-bold text-white shrink-0">$</span>
                 <input
                   type="text"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="w-24 min-w-[5rem] bg-transparent text-5xl font-black text-white/20 outline-none focus:text-white transition-colors text-right"
+                  className="min-w-0 w-0 flex-1 bg-transparent text-5xl font-black text-white/20 outline-none focus:text-white transition-colors text-right"
                 />
               </div>
             </div>
             <div className="flex items-center justify-end gap-3 text-white/30 pt-0.5">
-              <button type="button" onClick={() => addAmount(1)} className="px-2 py-1 text-[11px] font-bold hover:text-white transition-colors">+$1</button>
-              <button type="button" onClick={() => addAmount(20)} className="px-2 py-1 text-[11px] font-bold hover:text-white transition-colors">+$20</button>
-              <button type="button" onClick={() => addAmount(100)} className="px-2 py-1 text-[11px] font-bold hover:text-white transition-colors">+$100</button>
-              <button type="button" onClick={() => setAmount("0")} className="px-2 py-1 text-[11px] font-bold hover:text-white transition-colors">Max</button>
+              <button type="button" onClick={() => addAmount(1)} className="px-2 py-1 text-sm font-bold hover:text-white transition-colors">+$1</button>
+              <button type="button" onClick={() => addAmount(20)} className="px-2 py-1 text-sm font-bold hover:text-white transition-colors">+$20</button>
+              <button type="button" onClick={() => addAmount(100)} className="px-2 py-1 text-sm font-bold hover:text-white transition-colors">+$100</button>
+              <button type="button" onClick={() => setAmount("0")} className="px-2 py-1 text-sm font-bold hover:text-white transition-colors">Max</button>
             </div>
           </div>
         ) : (
@@ -403,23 +402,18 @@ export const TradeSidebar = ({
                   To win
                 </span>
                 {orderType === "Market" && (
-                  <p className="flex items-center gap-1.5 text-[11px] font-bold">
-                    <span className="text-emerald-400">Avg. Price</span> <span className="text-white">{avgPriceCents}¢</span>
+                  <p className="flex items-center gap-1.5 text-xs font-bold">
+                    <span className="text-white/40">Avg. Price</span> <span className="text-white">{avgPriceCents}¢</span>
                     <button type="button" className="rounded-full text-white/40 hover:text-white/70 shrink-0" aria-label="Info">
                       <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" /></svg>
                     </button>
                   </p>
                 )}
               </div>
-              <div className="flex items-center gap-1 min-w-0 justify-end pr-1 items-center">
-                <GradientText
-                  colors={["#ffffff", "#e4e4e7", "#a1a1aa"]}
-                  animationSpeed={1.5}
-                  showBorder={false}
-                  className="text-right text-5xl font-black tabular-nums leading-none min-w-[5rem]"
-                >
+              <div className="flex items-center gap-1 min-w-0 justify-end pr-1">
+                <span className="text-right text-5xl font-black tabular-nums leading-none min-w-[5rem] text-emerald-400">
                   $<CountUp key={toWin} to={toWin} from={0} duration={0.5 / 8} startWhen={true} />
-                </GradientText>
+                </span>
               </div>
             </div>
           </div>
@@ -443,7 +437,7 @@ export const TradeSidebar = ({
           </p>
         )}
 
-        <p className="text-center text-[10px] font-bold text-white/20">
+        <p className="text-center text-sm font-bold text-white/20">
           By trading, you agree to the <span className="underline cursor-pointer hover:text-white transition-colors">Terms of Use</span>.
         </p>
       </div>

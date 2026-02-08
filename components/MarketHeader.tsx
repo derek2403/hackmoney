@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Bookmark, Link2, ChevronDown, Check, RefreshCw, Info } from "lucide-react";
+import { Bookmark, Link2, ChevronDown, Check, RefreshCw, Info, PanelRightClose, PanelRightOpen } from "lucide-react";
 import { cn } from "./utils";
 
 const VIEW_TABS = ["1D", "2D", "3D", "World Table"] as const;
@@ -45,6 +45,8 @@ interface MarketHeaderProps {
   selectedCorner?: string;
   onCornerChange?: (corner: string) => void;
   onRefreshOrderBook?: () => void;
+  orderBookCollapsed?: boolean;
+  onToggleOrderBook?: () => void;
 }
 
 const CORNER_LABELS = ["000", "001", "010", "011", "100", "101", "110", "111"];
@@ -53,7 +55,7 @@ const CORNER_DISPLAY: Record<string, string> = {
   "100": "YNN", "101": "YNY", "110": "YYN", "111": "YYY",
 };
 
-export const MarketHeader = ({ activeView, onViewChange, marketImage = "/Khamenei.jpg", marginals = [70, 65, 65], selectedMarket = 0, onMarketChange, selected2DMarkets = [], onSelected2DMarketsChange, selectedCorner = "000", onCornerChange, onRefreshOrderBook }: MarketHeaderProps) => {
+export const MarketHeader = ({ activeView, onViewChange, marketImage = "/Khamenei.jpg", marginals = [70, 65, 65], selectedMarket = 0, onMarketChange, selected2DMarkets = [], onSelected2DMarketsChange, selectedCorner = "000", onCornerChange, onRefreshOrderBook, orderBookCollapsed = false, onToggleOrderBook }: MarketHeaderProps) => {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [titleDropdownOpen, setTitleDropdownOpen] = useState(false);
@@ -113,8 +115,8 @@ export const MarketHeader = ({ activeView, onViewChange, marketImage = "/Khamene
                           key={m.id}
                           className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-all"
                         >
-                          <img src={m.image} alt="" className="h-8 w-8 rounded-lg object-cover shrink-0" />
-                          <span className="text-xs font-bold text-white/70 leading-tight">{m.label}</span>
+                          <img src={m.image} alt="" className="h-12 w-12 rounded-lg object-cover shrink-0" />
+                          <span className="text-sm font-bold text-white/70 leading-tight">{m.label}</span>
                         </div>
                       ))}
                     </div>
@@ -151,30 +153,30 @@ export const MarketHeader = ({ activeView, onViewChange, marketImage = "/Khamene
         <div className="flex items-center gap-2">
           <button
             type="button"
-            className="p-1.5 rounded-lg border border-white/10 bg-white/5 text-white/50 hover:text-white hover:bg-white/10 transition-all active:scale-95"
+            className="p-2 rounded-lg border border-white/10 bg-white/5 text-white/50 hover:text-white hover:bg-white/10 transition-all active:scale-95"
             aria-label="Share"
           >
-            <Link2 className="h-4 w-4" />
+            <Link2 className="h-5 w-5" />
           </button>
           <button
             type="button"
             onClick={() => setIsBookmarked((prev) => !prev)}
             aria-label={isBookmarked ? "Remove bookmark" : "Bookmark"}
             className={cn(
-              "p-1.5 rounded-lg border transition-all active:scale-95",
+              "p-2 rounded-lg border transition-all active:scale-95",
               isBookmarked
                 ? "bg-white/15 text-white border-white/20"
                 : "border-white/10 bg-white/5 text-white/50 hover:text-white hover:bg-white/10"
             )}
           >
-            <Bookmark className="h-4 w-4" fill={isBookmarked ? "currentColor" : "none"} />
+            <Bookmark className="h-5 w-5" fill={isBookmarked ? "currentColor" : "none"} />
           </button>
           <button
             type="button"
-            className="p-1.5 rounded-lg border border-white/10 bg-white/5 text-white/50 hover:text-white hover:bg-white/10 transition-all active:scale-95"
+            className="p-2 rounded-lg border border-white/10 bg-white/5 text-white/50 hover:text-white hover:bg-white/10 transition-all active:scale-95"
             aria-label="Info"
           >
-            <Info className="h-4 w-4" />
+            <Info className="h-5 w-5" />
           </button>
         </div>
       </div>
@@ -187,7 +189,7 @@ export const MarketHeader = ({ activeView, onViewChange, marketImage = "/Khamene
         {/* Left: market selector + view tabs stacked */}
         <div className="flex-1 flex flex-col border-r border-white/[0.06] px-8">
           {/* Row 1: Market legend */}
-          <div className="flex items-center gap-5 py-3 border-b border-white/[0.06]">
+          <div className="flex items-center justify-around py-3 border-b border-white/[0.06]">
             {MARKETS.map((m, i) => (
               <button
                 key={m.label}
@@ -279,37 +281,58 @@ export const MarketHeader = ({ activeView, onViewChange, marketImage = "/Khamene
             )}
           </div>
         </div>
-        {/* Right: Order Book label + corner selector */}
-        <div className="w-95 shrink-0 flex flex-col justify-center gap-2 px-4 py-3">
-          <span className="text-sm font-bold text-white">Order Book</span>
-          <div className="flex items-center gap-1 flex-nowrap">
-            {CORNER_LABELS.map((label) => (
-              <button
-                key={label}
-                onClick={() => onCornerChange?.(label)}
-                className={cn(
-                  "px-2 py-1 rounded text-[10px] font-bold transition-all whitespace-nowrap",
-                  selectedCorner === label
-                    ? "bg-white/15 text-white border border-white/20"
-                    : "bg-white/5 text-white/30 hover:bg-white/10 hover:text-white/50 border border-transparent"
-                )}
-              >
-                {CORNER_DISPLAY[label]}
-              </button>
-            ))}
+        {/* Right: Order Book label + corner selector (or collapse toggle) */}
+        {orderBookCollapsed ? (
+          <div className="shrink-0 flex items-center justify-center px-2 py-3">
             <button
-              onClick={() => {
-                setRefreshSpinning(true);
-                onRefreshOrderBook?.();
-                setTimeout(() => setRefreshSpinning(false), 600);
-              }}
-              className="ml-auto p-1.5 rounded text-white/30 hover:text-white hover:bg-white/10 transition-all"
-              title="Refresh order book"
+              onClick={onToggleOrderBook}
+              className="p-2 rounded-lg border border-white/10 bg-white/5 text-white/50 hover:text-white hover:bg-white/10 transition-all"
+              title="Show Order Book"
             >
-              <RefreshCw className={cn("h-3.5 w-3.5 transition-transform", refreshSpinning && "animate-spin")} />
+              <PanelRightOpen className="h-4 w-4" />
             </button>
           </div>
-        </div>
+        ) : (
+          <div className="w-95 shrink-0 flex flex-col justify-center gap-2 px-4 py-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold text-white">Order Book</span>
+              <button
+                onClick={onToggleOrderBook}
+                className="p-1.5 rounded-lg border border-white/10 bg-white/5 text-white/50 hover:text-white hover:bg-white/10 transition-all"
+                title="Hide Order Book"
+              >
+                <PanelRightClose className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <div className="flex items-center gap-1 flex-nowrap">
+              {CORNER_LABELS.map((label) => (
+                <button
+                  key={label}
+                  onClick={() => onCornerChange?.(label)}
+                  className={cn(
+                    "px-2 py-1 rounded text-[10px] font-bold transition-all whitespace-nowrap",
+                    selectedCorner === label
+                      ? "bg-white/15 text-white border border-white/20"
+                      : "bg-white/5 text-white/30 hover:bg-white/10 hover:text-white/50 border border-transparent"
+                  )}
+                >
+                  {CORNER_DISPLAY[label]}
+                </button>
+              ))}
+              <button
+                onClick={() => {
+                  setRefreshSpinning(true);
+                  onRefreshOrderBook?.();
+                  setTimeout(() => setRefreshSpinning(false), 600);
+                }}
+                className="ml-auto p-1.5 rounded text-white/30 hover:text-white hover:bg-white/10 transition-all"
+                title="Refresh order book"
+              >
+                <RefreshCw className={cn("h-3.5 w-3.5 transition-transform", refreshSpinning && "animate-spin")} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Divider line */}

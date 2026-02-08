@@ -183,7 +183,7 @@ export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onT
         }
 
         return {
-          label: `Day ${i + 1}`,
+          label: (() => { const d = new Date(); d.setDate(d.getDate() - 29 + i); return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); })(),
           khamenei: isLast ? khaYes : Number(((khaYes - 10) + (t * 10) + noise(2)).toFixed(1)),
           us_strikes: isLast ? usYes : Number(((usYes - 10) + (t * 10) + noise(2)).toFixed(1)),
           israel_strikes: isLast ? isrYes : Number(((isrYes - 10) + (t * 10) + noise(2)).toFixed(1)),
@@ -231,58 +231,13 @@ export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onT
     <div className={wrapperClasses}>
       {activeView === "Odds" ? (
         <div className="flex flex-col gap-8">
-          {/* Selected Market Indicator */}
-          {selectedMarketProbability !== null && (
-            <div className="flex items-center justify-between rounded-xl bg-white text-black shadow-xl shadow-white/20 px-6 py-4">
-              <div className="flex items-center gap-4">
-                <span className="text-sm font-black uppercase tracking-widest">Selected Odds</span>
-              </div>
-              <div className="flex items-center gap-6">
-                {selectedOutcomeIds.length === 1 ? (
-                  <div className="flex items-center gap-3 text-xs font-bold text-black/60">
-                    {QUESTIONS.map((q) => {
-                      const selection = selections[q.id];
-                      if (!selection) return null;
-                      return (
-                        <div key={q.id} className="flex items-center gap-2">
-                          <img
-                            src={q.image}
-                            alt=""
-                            className="h-6 w-6 rounded-full object-cover border border-black/10 shrink-0"
-                          />
-                          <span className="text-black/50">{q.shortLabel}</span>
-                          <span className={cn(
-                            selection === "Yes" ? "text-emerald-600" :
-                            selection === "No" ? "text-rose-600" :
-                            "text-black/60"
-                          )}>
-                            {selection}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <span className="text-xs font-bold text-black/60">
-                    {selectedOutcomeIds.length} outcomes selected
-                  </span>
-                )}
-                <div className="text-right">
-                  <div className="text-2xl font-black text-black">
-                    {selectedMarketProbability.toFixed(2)}%
-                  </div>
-                  <div className="text-[10px] font-bold text-black/40 uppercase tracking-widest">For The Win</div>
-                </div>
-              </div>
-            </div>
-          )}
           <div className="overflow-hidden rounded-2xl border border-white/5 bg-white/[0.02]">
-            <table className="w-full text-left">
+            <table className="w-full text-left table-fixed">
               <thead>
                 <tr className="border-b border-white/5 text-[10px] font-black uppercase tracking-[0.2em] text-white/20">
-                  <th className="px-6 py-4">Yes Selection</th>
+                  <th className="px-6 py-4 w-[120px]">World</th>
                   <th className="px-6 py-4">Market</th>
-                  <th className="px-6 py-4 text-right">Odds</th>
+                  <th className="px-6 py-4 text-right w-[100px]">Odds</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -357,6 +312,24 @@ export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onT
               <span>Empty means No</span>
             </div>
           </div>
+
+          {/* Selected Market Indicator */}
+          {selectedMarketProbability !== null && (
+            <div className="flex items-center justify-between rounded-xl bg-white text-black shadow-xl shadow-white/20 px-6 py-4 min-h-[72px]">
+              <div className="flex flex-col gap-0.5 shrink-0">
+                <span className="text-sm font-black uppercase tracking-widest">Selected Odds</span>
+                <span className="text-xs font-bold text-black/50">
+                  {selectedOutcomeIds.length} {selectedOutcomeIds.length === 1 ? "outcome" : "outcomes"} selected
+                </span>
+              </div>
+              <div className="text-right shrink-0">
+                <div className="text-2xl font-black text-black">
+                  {selectedMarketProbability.toFixed(2)}%
+                </div>
+                <div className="text-[10px] font-bold text-black/40 uppercase tracking-widest">For The Win</div>
+              </div>
+            </div>
+          )}
         </div>
       ) : activeView === "1D" ? (
         <div className="w-full flex-1 flex flex-col min-h-0">

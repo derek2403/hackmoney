@@ -9,29 +9,30 @@
   width: 100%;
   padding: 1.25rem;
   border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.05); /* Match bg-white/5 */
-  color: rgba(255, 255, 255, 0.3); /* Match text-white/30 */
+  background: #3b82f6;
+  color: #ffffff;
   font-weight: 900;
   font-size: 1.125rem;
   text-transform: uppercase;
-  border: 1px solid rgba(255, 255, 255, 0.05); /* Match border-white/5 */
+  border: 1px solid #3b82f6;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   z-index: 5;
   letter-spacing: 0.1em;
+  box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.2), 0 4px 6px -4px rgba(59, 130, 246, 0.2);
 }
 
 .gooey-button:hover {
-  background: rgba(255, 255, 255, 0.1); /* Match hover:bg-white/10 */
-  color: rgba(255, 255, 255, 0.5);
+  background: #2563eb;
+  color: #ffffff;
 }
 
 .gooey-button.active {
-  background: #BAC4C8;
-  color: #18181b;
-  border-color: #BAC4C8;
-  box-shadow: 0 0 20px rgba(186, 196, 200, 0.4);
+  background: #3b82f6;
+  color: #ffffff;
+  border-color: #3b82f6;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
 }
 
 .gooey-button:active {
@@ -66,7 +67,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: #BAC4C8;
+  background: #3b82f6;
   transform: scale(0);
   opacity: 0;
   z-index: -1;
@@ -111,7 +112,7 @@
 }
 
 .gooey-button-container .point {
-  background: #BAC4C8;
+  background: #3b82f6;
   opacity: 1;
   animation: point-grow calc(var(--time)) ease 1 -100ms;
 }
