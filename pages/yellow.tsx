@@ -1,7 +1,7 @@
 // Yellow Network Workshop - Complete Web3 dApp Demo
 // All chapters (1-5) implemented in a single page for testing
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { createWalletClient, createPublicClient, custom, http, type Address, type WalletClient, type PublicClient } from 'viem';
 import { sepolia } from 'viem/chains';
 import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
@@ -270,6 +270,8 @@ export default function YellowWorkshop() {
     const [appSessionVersion, setAppSessionVersion] = useState<number>(1);
     const [payerBalance, setPayerBalance] = useState<string>('0');
     const [payeeBalance, setPayeeBalance] = useState<string>('0');
+    const [appSessionLedgerBalances, setAppSessionLedgerBalances] = useState<Record<string, string> | null>(null);
+    const [isLoadingAppSessionBalances, setIsLoadingAppSessionBalances] = useState(false);
     // ==================== CHAPTER 1: WALLET CONNECTION ====================
     const connectWallet = async () => {
         if (typeof window === 'undefined' || !window.ethereum) {
@@ -454,6 +456,37 @@ export default function YellowWorkshop() {
         }
     }, [isAuthenticated, sessionKey, account]);
 
+    // ==================== FETCH APP SESSION BALANCES ====================
+    // Track whether the next GetLedgerBalances response is for an app session
+    const pendingAppSessionBalanceReq = useRef(false);
+
+    const fetchAppSessionBalances = useCallback(async () => {
+        if (!sessionKey || !appSessionId) return;
+
+        setIsLoadingAppSessionBalances(true);
+        try {
+            const sessionSigner = createECDSAMessageSigner(sessionKey.privateKey);
+            pendingAppSessionBalanceReq.current = true;
+            const payload = await createGetLedgerBalancesMessage(sessionSigner, appSessionId);
+            console.log('Fetching app session ledger balances for:', appSessionId);
+            webSocketService.send(payload);
+        } catch (error) {
+            console.error('Failed to fetch app session balances:', error);
+            setIsLoadingAppSessionBalances(false);
+            pendingAppSessionBalanceReq.current = false;
+        }
+    }, [sessionKey, appSessionId]);
+
+    // Auto-fetch app session balances when a session becomes active
+    useEffect(() => {
+        if (appSessionStatus === 'active' && appSessionId && isAuthenticated && sessionKey) {
+            fetchAppSessionBalances();
+        }
+        if (appSessionStatus === 'none' || appSessionStatus === 'closed') {
+            setAppSessionLedgerBalances(null);
+        }
+    }, [appSessionStatus, appSessionId, isAuthenticated, sessionKey, fetchAppSessionBalances]);
+
     // ==================== MESSAGE HANDLER ====================
     useEffect(() => {
         const handleMessage = async (data: unknown) => {
@@ -568,17 +601,33 @@ export default function YellowWorkshop() {
                 const balanceResponse = response as GetLedgerBalancesResponse;
                 const ledgerBalances = balanceResponse.params.ledgerBalances;
 
-                console.log('Received balance response:', ledgerBalances);
+                // Route to app session balances or user balances
+                if (pendingAppSessionBalanceReq.current) {
+                    pendingAppSessionBalanceReq.current = false;
+                    console.log('Received app session balance response:', ledgerBalances);
 
-                if (ledgerBalances && ledgerBalances.length > 0) {
-                    const balancesMap = Object.fromEntries(
-                        ledgerBalances.map((balance) => [balance.asset, balance.amount])
-                    );
-                    setBalances(balancesMap);
+                    if (ledgerBalances && ledgerBalances.length > 0) {
+                        const balancesMap = Object.fromEntries(
+                            ledgerBalances.map((balance) => [balance.asset, balance.amount])
+                        );
+                        setAppSessionLedgerBalances(balancesMap);
+                    } else {
+                        setAppSessionLedgerBalances({});
+                    }
+                    setIsLoadingAppSessionBalances(false);
                 } else {
-                    setBalances({});
+                    console.log('Received balance response:', ledgerBalances);
+
+                    if (ledgerBalances && ledgerBalances.length > 0) {
+                        const balancesMap = Object.fromEntries(
+                            ledgerBalances.map((balance) => [balance.asset, balance.amount])
+                        );
+                        setBalances(balancesMap);
+                    } else {
+                        setBalances({});
+                    }
+                    setIsLoadingBalances(false);
                 }
-                setIsLoadingBalances(false);
             }
 
             // Handle live balance updates
@@ -604,17 +653,27 @@ export default function YellowWorkshop() {
 
             // Handle errors
             if (response.method === RPCMethod.Error) {
-                console.error('RPC Error:', response.params);
+                const errorMsg = (response.params as any)?.error || 'Unknown error';
+                console.error('RPC Error:', errorMsg);
 
-                if (isTransferring) {
+                if (pendingAppSessionBalanceReq.current) {
+                    // App session balance query failed - don't nuke auth
+                    pendingAppSessionBalanceReq.current = false;
+                    setIsLoadingAppSessionBalances(false);
+                    console.warn('App session balance query failed:', errorMsg);
+                } else if (isTransferring) {
                     setIsTransferring(false);
                     setTransferStatus(null);
-                    alert(`Transfer failed: ${response.params.error}`);
-                } else {
+                    alert(`Transfer failed: ${errorMsg}`);
+                } else if (errorMsg.includes('auth') || errorMsg.includes('expired') || errorMsg.includes('jwt')) {
+                    // Only nuke auth state for auth-related errors
                     removeJWT();
                     removeSessionKey();
-                    alert(`Error: ${response.params.error}`);
+                    alert(`Auth error: ${errorMsg}`);
                     setIsAuthAttempted(false);
+                } else {
+                    // Non-auth errors: log but don't destroy session
+                    alert(`Error: ${errorMsg}`);
                 }
             }
         };
@@ -1300,10 +1359,13 @@ export default function YellowWorkshop() {
             console.log('Sending app state update:', amount, 'ytest.usd, version:', nextVersion);
             webSocketService.send(submitMsg);
 
-            // Update local state
+            // Update local state optimistically
             setPayerBalance(newPayerBalance);
             setPayeeBalance(newPayeeBalance);
             setAppSessionVersion(nextVersion);
+
+            // Refresh server-reported balances after a short delay
+            setTimeout(() => fetchAppSessionBalances(), 500);
 
             alert(`Sent ${amount} ytest.usd instantly! (No gas fees)`);
 
@@ -1311,7 +1373,102 @@ export default function YellowWorkshop() {
             console.error('Failed to send payment:', error);
             alert('Payment failed. Check console.');
         }
-    }, [sessionKey, appSessionId, appSessionPartner, account, payerBalance, payeeBalance, appSessionVersion]);
+    }, [sessionKey, appSessionId, appSessionPartner, account, payerBalance, payeeBalance, appSessionVersion, fetchAppSessionBalances]);
+
+    // Deposit funds from Ledger into the active App Session
+    const [appDepositAmount, setAppDepositAmount] = useState<string>('50');
+    const handleAppSessionDeposit = useCallback(async () => {
+        if (!sessionKey || !appSessionId || !account) {
+            alert('Please create an App Session first');
+            return;
+        }
+        const depositAmt = parseFloat(appDepositAmount);
+        if (isNaN(depositAmt) || depositAmt <= 0) {
+            alert('Enter a valid amount');
+            return;
+        }
+
+        try {
+            const messageSigner = createECDSAMessageSigner(sessionKey.privateKey);
+
+            // New payer allocation = current + deposit amount (payee unchanged)
+            const newPayerBalance = (parseFloat(payerBalance) + depositAmt).toString();
+            const nextVersion = appSessionVersion + 1;
+
+            const submitMsg = await createSubmitAppStateMessage<typeof RPCProtocolVersion.NitroRPC_0_4>(messageSigner, {
+                app_session_id: appSessionId as `0x${string}`,
+                intent: RPCAppStateIntent.Deposit,
+                version: nextVersion,
+                allocations: [
+                    { participant: account, asset: 'ytest.usd', amount: newPayerBalance },
+                    { participant: appSessionPartner as Address, asset: 'ytest.usd', amount: payeeBalance },
+                ],
+            });
+
+            console.log(`Depositing ${depositAmt} ytest.usd from ledger into app session, version:`, nextVersion);
+            webSocketService.send(submitMsg);
+
+            // Update local state optimistically
+            setPayerBalance(newPayerBalance);
+            setAppSessionVersion(nextVersion);
+
+            setTimeout(() => fetchAppSessionBalances(), 500);
+
+            alert(`Deposited ${depositAmt} ytest.usd into app session from ledger!`);
+        } catch (error) {
+            console.error('Failed to deposit into app session:', error);
+            alert('Deposit into app session failed. Check console.');
+        }
+    }, [sessionKey, appSessionId, appSessionPartner, account, payerBalance, payeeBalance, appSessionVersion, appDepositAmount, fetchAppSessionBalances]);
+
+    // Withdraw funds from App Session back to Ledger
+    const handleAppSessionWithdraw = useCallback(async () => {
+        if (!sessionKey || !appSessionId || !account) {
+            alert('Please create an App Session first');
+            return;
+        }
+        const withdrawAmt = parseFloat(appDepositAmount); // reuse the same input
+        if (isNaN(withdrawAmt) || withdrawAmt <= 0) {
+            alert('Enter a valid amount');
+            return;
+        }
+        if (withdrawAmt > parseFloat(payerBalance)) {
+            alert(`Cannot withdraw more than your session balance (${payerBalance})`);
+            return;
+        }
+
+        try {
+            const messageSigner = createECDSAMessageSigner(sessionKey.privateKey);
+
+            // New payer allocation = current - withdraw amount (payee unchanged)
+            const newPayerBalance = (parseFloat(payerBalance) - withdrawAmt).toString();
+            const nextVersion = appSessionVersion + 1;
+
+            const submitMsg = await createSubmitAppStateMessage<typeof RPCProtocolVersion.NitroRPC_0_4>(messageSigner, {
+                app_session_id: appSessionId as `0x${string}`,
+                intent: RPCAppStateIntent.Withdraw,
+                version: nextVersion,
+                allocations: [
+                    { participant: account, asset: 'ytest.usd', amount: newPayerBalance },
+                    { participant: appSessionPartner as Address, asset: 'ytest.usd', amount: payeeBalance },
+                ],
+            });
+
+            console.log(`Withdrawing ${withdrawAmt} ytest.usd from app session to ledger, version:`, nextVersion);
+            webSocketService.send(submitMsg);
+
+            // Update local state optimistically
+            setPayerBalance(newPayerBalance);
+            setAppSessionVersion(nextVersion);
+
+            setTimeout(() => fetchAppSessionBalances(), 500);
+
+            alert(`Withdrew ${withdrawAmt} ytest.usd from app session to ledger!`);
+        } catch (error) {
+            console.error('Failed to withdraw from app session:', error);
+            alert('Withdraw from app session failed. Check console.');
+        }
+    }, [sessionKey, appSessionId, appSessionPartner, account, payerBalance, payeeBalance, appSessionVersion, appDepositAmount, fetchAppSessionBalances]);
 
     // Close the App Session
     const handleCloseAppSession = useCallback(async () => {
@@ -1325,6 +1482,31 @@ export default function YellowWorkshop() {
 
         try {
             const messageSigner = createECDSAMessageSigner(sessionKey.privateKey);
+            let currentPayerBal = payerBalance;
+            let currentVersion = appSessionVersion;
+
+            // If payer still has balance, withdraw it all back to ledger first
+            if (parseFloat(currentPayerBal) > 0) {
+                console.log(`Withdrawing remaining ${currentPayerBal} ytest.usd to ledger before closing...`);
+                currentVersion += 1;
+
+                const withdrawMsg = await createSubmitAppStateMessage<typeof RPCProtocolVersion.NitroRPC_0_4>(messageSigner, {
+                    app_session_id: appSessionId as `0x${string}`,
+                    intent: RPCAppStateIntent.Withdraw,
+                    version: currentVersion,
+                    allocations: [
+                        { participant: account, asset: 'ytest.usd', amount: '0' },
+                        { participant: appSessionPartner as Address, asset: 'ytest.usd', amount: payeeBalance },
+                    ],
+                });
+                webSocketService.send(withdrawMsg);
+                currentPayerBal = '0';
+                setPayerBalance('0');
+                setAppSessionVersion(currentVersion);
+
+                // Brief wait for the withdraw to process
+                await new Promise(r => setTimeout(r, 1000));
+            }
 
             const handleResponse = async (data: unknown) => {
                 const response = parseAnyRPCResponse(JSON.stringify(data));
@@ -1341,6 +1523,7 @@ export default function YellowWorkshop() {
                         setPayerBalance('0');
                         setPayeeBalance('0');
                         setAppSessionPartner('');
+                        setAppSessionLedgerBalances(null);
                         alert('App Session closed! Funds returned to ledger.');
                     } else if (params.error) {
                         console.error('Close error:', params.error);
@@ -1355,11 +1538,11 @@ export default function YellowWorkshop() {
 
             webSocketService.addMessageListener(handleResponse);
 
-            // Final allocations when closing - use current balances (sum must equal session total)
+            // Close with final allocations (payer already withdrawn to 0)
             const closeMsg = await createCloseAppSessionMessage(messageSigner, {
                 app_session_id: appSessionId as `0x${string}`,
                 allocations: [
-                    { participant: account, asset: 'ytest.usd', amount: payerBalance },
+                    { participant: account, asset: 'ytest.usd', amount: currentPayerBal },
                     { participant: appSessionPartner as Address, asset: 'ytest.usd', amount: payeeBalance },
                 ],
             });
@@ -1371,7 +1554,7 @@ export default function YellowWorkshop() {
             setAppSessionStatus('active');
             setIsAppSessionLoading(false);
         }
-    }, [sessionKey, appSessionId, account, appSessionPartner, payerBalance, payeeBalance]);
+    }, [sessionKey, appSessionId, account, appSessionPartner, payerBalance, payeeBalance, appSessionVersion]);
 
     // Refresh / recover app sessions from ClearNode
     const handleRefreshAppSessions = useCallback(async () => {
@@ -1614,6 +1797,72 @@ export default function YellowWorkshop() {
                             </div>
                         </div>
 
+                        {/* Server-Reported App Session Ledger Balances */}
+                        {appSessionStatus === 'active' && (
+                            <div className="mb-6 p-4 rounded-lg bg-zinc-900/50 border border-zinc-700">
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="text-xs text-zinc-500 uppercase tracking-wide font-bold">
+                                        App Session Ledger (Server-Reported)
+                                    </div>
+                                    <button
+                                        onClick={fetchAppSessionBalances}
+                                        disabled={isLoadingAppSessionBalances}
+                                        className="px-2 py-1 text-xs rounded bg-zinc-700 hover:bg-zinc-600 text-zinc-300 disabled:opacity-50 transition-colors"
+                                    >
+                                        {isLoadingAppSessionBalances ? 'Loading...' : 'Refresh'}
+                                    </button>
+                                </div>
+                                {appSessionLedgerBalances ? (
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {Object.entries(appSessionLedgerBalances).map(([asset, amount]) => (
+                                            <div key={asset} className="flex items-baseline gap-2">
+                                                <span className="font-mono text-sm text-white">{amount}</span>
+                                                <span className="text-xs text-zinc-500">{asset}</span>
+                                            </div>
+                                        ))}
+                                        {Object.keys(appSessionLedgerBalances).length === 0 && (
+                                            <div className="text-xs text-zinc-500 col-span-2">No balances in this session</div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="text-xs text-zinc-500">
+                                        {isLoadingAppSessionBalances ? 'Fetching...' : 'Not loaded'}
+                                    </div>
+                                )}
+                                <div className="text-[10px] text-zinc-600 mt-2">
+                                    Queried via get_ledger_balances(account_id={appSessionId?.slice(0, 10)}...)
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Deposit from Ledger into App Session */}
+                        {appSessionStatus === 'active' && (
+                            <div className="mb-6 flex items-center gap-3">
+                                <input
+                                    type="number"
+                                    value={appDepositAmount}
+                                    onChange={(e) => setAppDepositAmount(e.target.value)}
+                                    placeholder="Amount"
+                                    className="w-28 px-3 py-2 bg-zinc-800 border border-zinc-600 rounded-lg text-sm font-mono"
+                                />
+                                <button
+                                    onClick={handleAppSessionDeposit}
+                                    disabled={isAppSessionLoading}
+                                    className="px-4 py-2 rounded-lg font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-green-500 hover:bg-green-400 text-black shadow-lg shadow-green-500/20"
+                                >
+                                    Deposit to Session
+                                </button>
+                                <button
+                                    onClick={handleAppSessionWithdraw}
+                                    disabled={isAppSessionLoading || parseFloat(payerBalance) <= 0}
+                                    className="px-4 py-2 rounded-lg font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-red-500 hover:bg-red-400 text-black shadow-lg shadow-red-500/20"
+                                >
+                                    Withdraw to Ledger
+                                </button>
+                                <span className="text-xs text-zinc-500">Ledger ↔ App Session</span>
+                            </div>
+                        )}
+
                         {/* Partner Address Input */}
                         {appSessionStatus === 'none' && (
                             <div className="mb-6">
@@ -1642,10 +1891,12 @@ export default function YellowWorkshop() {
 
                             <button
                                 onClick={() => handleInstantPayment('10')}
-                                disabled={isAppSessionLoading || appSessionStatus !== 'active'}
+                                disabled={isAppSessionLoading || appSessionStatus !== 'active' || parseFloat(payerBalance) < 10}
                                 className="px-4 py-2 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-pink-500 hover:bg-pink-400 text-black shadow-lg shadow-pink-500/20"
                             >
-                                2. Send 10 yUSD (Instant!)
+                                {parseFloat(payerBalance) < 10 && appSessionStatus === 'active'
+                                    ? 'Insufficient Balance'
+                                    : '2. Send 10 yUSD (Instant!)'}
                             </button>
 
                             <button
