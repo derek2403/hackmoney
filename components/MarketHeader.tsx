@@ -46,6 +46,28 @@ interface MarketHeaderProps {
 
 export const MarketHeader = ({ activeView, onViewChange, marketImage = "/Khamenei.jpg", marginals = [70, 65, 65], selectedMarket = 0, onMarketChange, selected2DMarkets = [], onSelected2DMarketsChange }: MarketHeaderProps) => {
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const toggle2DMarket = (id: number) => {
+    const isSelected = selected2DMarkets.includes(id);
+    if (isSelected) {
+      onSelected2DMarketsChange?.(selected2DMarkets.filter((m) => m !== id));
+    } else if (selected2DMarkets.length < 2) {
+      onSelected2DMarketsChange?.([...selected2DMarkets, id]);
+    }
+  };
 
   return (
     <div className="flex flex-col">

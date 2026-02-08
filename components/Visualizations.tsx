@@ -4,7 +4,6 @@ import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts"
 import { cn } from "./utils"
 import JointMarket3D from "./JointMarket3D"
 import ElectricBorder from "./ElectricBorder"
-import MarketPillSelector from "./MarketPillSelector"
 import {
   JOINT_OUTCOMES,
   doesOutcomeMatch,
@@ -17,19 +16,19 @@ import type { CornerPrice, MarginalPrice } from "@/lib/yellow/market/types"
 const QUESTIONS = [
   {
     id: 1,
-    text: "Khamenei out as Supreme Leader of Iran by January 31?",
+    text: "Khamenei out as Supreme Leader of Iran by March 31?",
     image: "/Khamenei.jpg",
     shortLabel: "Khamenei",
   },
   {
     id: 2,
-    text: "US strikes Iran by January 31?",
+    text: "US strikes Iran by March 31?",
     image: "/US%20Iran.jpg",
     shortLabel: "US",
   },
   {
     id: 3,
-    text: "Israel next strikes Iran by January 31?",
+    text: "Israel next strikes Iran by March 31?",
     image: "/israeliran.jpg",
     shortLabel: "IL",
   },
@@ -97,11 +96,12 @@ interface VisualizationsProps {
   liveCornerPrices?: CornerPrice[] | null;
   /** Live marginal prices from the market API. */
   liveMarginals?: MarginalPrice[] | null;
+  /** Selected market IDs for 2D view (from header dropdowns) */
+  selected2DMarkets?: number[];
 }
 
-export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onToggleOutcome, onSelectionChange, volume, liveCornerPrices, liveMarginals }: VisualizationsProps) => {
+export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onToggleOutcome, onSelectionChange, volume, liveCornerPrices, liveMarginals, selected2DMarkets = [] }: VisualizationsProps) => {
   const [range, setRange] = useState<"1D" | "1M" | "ALL">("1M");
-  const [selectedMarketIds, setSelectedMarketIds] = useState<number[]>([]);
 
   // Build outcomes from live prices or fall back to hardcoded
   const outcomes: JointOutcome[] = useMemo(() => {
@@ -123,15 +123,6 @@ export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onT
       Math.round(outcomes.filter((o) => o.outcomes[2]).reduce((s, o) => s + o.probability, 0)),
     ];
   }, [liveMarginals, outcomes]);
-
-  const handleMarketSelect = (id: number) => {
-    setSelectedMarketIds((prev) => {
-      const idx = prev.indexOf(id);
-      if (idx !== -1) return prev.filter((_, i) => i !== idx);
-      if (prev.length < 2) return [...prev, id];
-      return [prev[0], id];
-    });
-  };
 
   const selectedMarketProbability =
     selectedOutcomeIds.length > 0
@@ -228,7 +219,7 @@ export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onT
   const wrapperClasses =
     activeView === "Odds"
       ? "flex flex-col gap-12 rounded-3xl border border-white/5 bg-white/5 p-8 backdrop-blur-xl"
-      : "flex flex-col gap-12";
+      : "flex flex-col h-full";
 
   return (
     <div className={wrapperClasses}>
@@ -362,12 +353,12 @@ export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onT
           </div>
         </div>
       ) : activeView === "1D" ? (
-        <div className="w-full">
-          <div className="h-[350px] w-full relative">
+        <div className="w-full flex-1 flex flex-col min-h-0">
+          <div className="flex-1 min-h-[200px] w-full relative">
             <ChartContainer config={chartConfig} className="h-full w-full aspect-auto relative">
               <LineChart
                 data={data}
-                margin={{ left: 0, right: 40, top: 10, bottom: 20 }}
+                margin={{ left: 0, right: 5, top: 10, bottom: 20 }}
               >
                 <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                 <XAxis
@@ -480,50 +471,14 @@ export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onT
             )}
           </div>
 
-          <div className="mt-12 flex justify-between items-center border-t border-white/5 pt-8">
-            <div className="flex flex-col gap-1">
-              <span className="text-[14px] font-black text-white tabular-nums">${volume.toLocaleString()} vol</span>
-            </div>
-            
-            <div className="flex items-center gap-4 text-[11px] font-black text-white/30 tracking-widest uppercase">
-              <span 
-                onClick={() => setRange("1D")}
-                className={cn("hover:text-white cursor-pointer transition-colors", range === "1D" && "text-white")}
-              >1D</span>
-              <span 
-                onClick={() => setRange("1M")}
-                className={cn("hover:text-white cursor-pointer transition-colors", range === "1M" && "text-white")}
-              >1M</span>
-              <span 
-                onClick={() => setRange("ALL")}
-                className={cn("hover:text-white cursor-pointer transition-colors", range === "ALL" && "text-white")}
-              >ALL</span>
-              <LayoutGrid className="h-4 w-4 ml-2" />
-            </div>
-          </div>
         </div>
       ) : activeView === "2D" ? (
         <div className="flex flex-col items-center gap-6 pt-2 pb-10">
-          <div className="flex flex-col items-center gap-4">
-            <p className="text-lg font-black text-white tracking-tight">Select two markets to view the 2D graph</p>
-            <MarketPillSelector
-              items={MARKET_PILL_ITEMS}
-              selectedIds={selectedMarketIds}
-              onSelect={handleMarketSelect}
-              multiSelect
-              className="market-pill-selector"
-              baseColor="#0a0a0a"
-              pillColor="#ffffff"
-              pillTextColor="#000000"
-              hoveredPillTextColor="#ffffff"
-            />
-          </div>
-
           <div className="relative flex flex-col items-center">
-            {selectedMarketIds.length === 2 ? (
+            {selected2DMarkets.length === 2 ? (
               (() => {
-                const marketAId = selectedMarketIds[0];
-                const marketBId = selectedMarketIds[1];
+                const marketAId = selected2DMarkets[0];
+                const marketBId = selected2DMarkets[1];
                 const xLabel = MARKET_PILL_ITEMS.find((m) => m.id === marketAId)?.label ?? "";
                 const yLabel = MARKET_PILL_ITEMS.find((m) => m.id === marketBId)?.label ?? "";
                 const heatmapCells = getHeatmapCellsFromOdds(marketAId, marketBId, outcomes);
@@ -605,7 +560,7 @@ export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onT
                 );
               })()
             ) : (
-              <p className="text-sm font-bold text-white/40 py-8">Select two markets above to see the joint probability chart.</p>
+              <p className="text-sm font-bold text-white/40 py-8">Select two markets from the dropdowns above to see the joint probability chart.</p>
             )}
           </div>
         </div>
@@ -631,29 +586,6 @@ export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onT
         </div>
       )}
 
-      {/* Legend / Status Bar */}
-      <div className="flex flex-col gap-4 border-t border-white/5 pt-8">
-        <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
-          {QUESTIONS.map((q, i) => (
-            <div key={q.id} className="flex items-center gap-3 group cursor-pointer">
-              <div className={cn("h-3 w-3 rounded-full shadow-lg transition-transform group-hover:scale-125", OUTCOME_COLORS[i])} />
-              <p className="text-sm font-bold text-white/50 group-hover:text-white transition-colors">
-                {q.text} <span className="text-white ml-2">{marginalYes[i]}%</span>
-              </p>
-            </div>
-          ))}
-          <div className="flex items-center gap-3 group cursor-pointer">
-            <div className="h-3 w-3 rounded-full shadow-lg transition-transform group-hover:scale-125 bg-blue-500" />
-            <p className="text-sm font-bold text-white/50 group-hover:text-white transition-colors">
-              User Selected Odds <span className="text-white ml-2">{selectedMarketProbability != null ? `${selectedMarketProbability.toFixed(1)}%` : "—"}</span>
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <p className="text-center text-[11px] font-bold italic text-white/20">
-        Probabilities derived from the joint-outcome AMM world table.
-      </p>
     </div>
   );
 };
