@@ -334,7 +334,7 @@ The result is a market that is simpler for users, more capital-efficient for liq
 
 ## Partner Track Integrations (HackMoney 2026)
 
-This project integrates three hackathon partner tracks to create a complete prediction market experience.
+This project integrates two hackathon partner tracks to create a complete prediction market experience.
 
 ### Architecture Overview
 
@@ -342,143 +342,146 @@ This project integrates three hackathon partner tracks to create a complete pred
 
 ---
 
-### 1) Uniswap V4 — VAMM for Outcome Token Trading
+### 1) Yellow Network — Gasless State Channel Trading via App Sessions
+
+**📹 [Watch Yellow Demo Video](https://www.canva.com/design/DAHAwLXJXFg/pZ1vXn8_x9smzPB_g5OIow/watch?utm_content=DAHAwLXJXFg&utm_campaign=designshare&utm_medium=link2&utm_source=uniquelinks&utlId=h34007d3fb2)**
 
 **What It Does:**
-Uniswap v4 Hooks power the core VAMM (Virtual AMM) that prices and trades outcome tokens for the prediction market.
+Yellow Network's Nitrolite SDK enables high-frequency betting through **App Sessions** (state channels), allowing instant, gasless transactions during a trading session.
 
 **How We Use It:**
 
-| Component | How It Works |
-|-----------|--------------|
-| **LS-LMSR AMM Engine** | Custom Hook implements our pricing logic inside v4's swap lifecycle |
-| **World Table Updates** | Hook's `beforeSwap`/`afterSwap` callbacks recalculate all 8 corner prices on every trade |
-| **Basket Trades** | When user trades a marginal (e.g., "A=Yes"), the Hook updates all affected corners in one tx |
-| **JIT Minting** | Hook mints outcome tokens on-demand when users buy positions |
+We implemented a complete **App Session lifecycle** using Yellow Network's Nitrolite SDK (`@erc7824/nitrolite`):
 
-**Why Uniswap v4:**
-- **Hooks** allow custom pricing logic (LS-LMSR) within v4's swap lifecycle
-- **Singleton architecture** reduces gas for multi-outcome updates
-- **Flash accounting** enables basket trades (marginals/slices) in one tx
-
----
-
-### 2) Yellow Network — Gasless State Channel Payments
-
-**What It Does:**
-Yellow Network handles high-frequency betting through state channels, enabling instant, gasless transactions during a betting session.
-
-**How We Use It:**
-
-| Phase | How It Works |
+| Phase | Implementation |
 |-------|--------------|
-| **Session Start** | User connects wallet, Yellow SDK opens a state channel with USDC deposit |
-| **Placing Bets** | Each bet is an off-chain signed message — no gas, instant confirmation |
-| **Live Updates** | Yellow nodes sync balances in real-time across all parties |
-| **Session End** | One on-chain tx settles final state with Uniswap v4 VAMM |
+| **Authentication** | EIP-712 wallet signature + ephemeral session keys for gasless operations |
+| **Session Creation** | User & CLOB server co-sign `CreateAppSession` message to establish P2P state channel |
+| **Off-Chain Trading** | Each bet updates channel balance via `RPCAppStateIntent.Operate` — **no gas, instant confirmation** |
+| **Balance Management** | Support for `Deposit` and `Withdraw` operations during active session |
+| **Session Close** | Liquidate positions, withdraw funds, and close channel with final settlement on Yellow Network |
+
+**Key Components:**
+- **Custom React Hook** ([hooks/useYellowSession.ts](hooks/useYellowSession.ts)) — 895-line implementation managing WebSocket RPC, co-signing, and session lifecycle
+- **CLOB Server Integration** ([server.js](server.js)) — Backend co-signs all state updates and maintains session state
+- **Co-Signing Architecture** — Both user and CLOB must approve every state transition (Nitro protocol requirement)
 
 **Why Yellow Network:**
-- **Gas efficiency**: 100 bets = 1 on-chain tx (only at session end)
+- **Gas efficiency**: 100+ bets = 1 on-chain tx (only at session close)
 - **Instant UX**: Bets feel like Web2 (no waiting for block confirmation)
-- **Session logic**: Natural fit for "betting sessions" (sit down, bet, cash out)
+- **Session logic**: Natural fit for "betting sessions" (deposit → trade many times → withdraw)
+- **WebSocket RPC**: Real-time state synchronization via Yellow Network clearnode
 
 ---
 
-### 3) ENS — Usernames & Market Names
+### 2) ENS — Human-Readable Identity & Wallet-Native Token Purchases
+
+**📹 [Watch ENS Demo Video](https://www.canva.com/design/DAHAwGt4MdA/oNNzBO-g-H2M_9ywsv7QnA/watch?utm_content=DAHAwGt4MdA&utm_campaign=designshare&utm_medium=link2&utm_source=uniquelinks&utlId=h1552841f0f)**
 
 **What It Does:**
-ENS provides human-readable identity for both **users** (like Polymarket usernames) and **markets** (enabling direct token purchases via Metamask).
+ENS provides human-readable identity for **users** and enables **direct token purchases via Metamask** through market subdomains.
 
 **How We Use It:**
 
-#### A) User Profiles (Polymarket-Style Usernames)
+#### A) User Profiles & Identity Resolution
 
-| Feature | How It Works |
+| Feature | Implementation |
 |---------|--------------|
-| **Username Display** | Show `vitalik.eth` instead of `0xd8dA...` throughout the UI |
-| **Leaderboards** | Rankings display ENS names — builds reputation and trust |
-| **Avatars** | Pull user's ENS avatar record for profile pictures |
-| **Betting History** | Associate trade history with ENS name, not raw address |
+| **Username Display** | Use wagmi's `useEnsName()` to show `vitalik.eth` instead of `0xd8dA...` throughout the UI |
+| **Avatar Resolution** | Fetch ENS avatar records via `useEnsAvatar()` for profile pictures |
+| **Profile Component** | [EnsProfile.tsx](components/EnsProfile.tsx) — Displays ENS name + avatar in navbar |
+| **Trade Attribution** | Associate all betting activity with ENS names for reputation/leaderboards |
 
-#### B) Market Names (ENS Subdomains)
+#### B) Market Subdomains for Wallet-Native Purchases
 
-We register a parent domain (e.g., `pm.eth`) and create **subdomains for each market**:
+We register **8 ENS subdomains per market** (one for each corner outcome) using the ENS NameWrapper on Sepolia:
 
-| Market | ENS Subdomain | Resolves To |
+**Parent Domain:** `onlytruth.eth`
+
+**Subdomain Pattern:** `{marketName}-{corner}.onlytruth.eth`
+
+**Example for "Iran War 2026" market:**
+| Corner | ENS Subdomain | Resolves To |
 |--------|---------------|-------------|
-| "Trump wins 2024" | `trump2024.pm.eth` | Market contract address |
-| "ETH > $10k by Dec" | `eth10k-dec.pm.eth` | Market contract address |
-| "Fed rate cut Q1" | `fedcut-q1.pm.eth` | Market contract address |
+| 000 (No/No/No) | `iranwar-nnn.onlytruth.eth` | CornerReceiver[000] contract |
+| 001 (No/No/Yes) | `iranwar-nny.onlytruth.eth` | CornerReceiver[001] contract |
+| ... | ... | ... |
+| 111 (Yes/Yes/Yes) | `iranwar-yyy.onlytruth.eth` | CornerReceiver[111] contract |
 
-**User Benefit — Buy Tokens Directly from Metamask:**
+**How It Works:**
 
-Instead of navigating through our UI, users can:
-1. Open Metamask
-2. Send USDC to `trump2024-yes.pm.eth`
-3. Automatically receive YES outcome tokens
+1. **Subdomain Creation** ([useMarketSubdomains.ts](lib/ens/useMarketSubdomains.ts)):
+   - Uses ENS NameWrapper's `setSubnodeRecord()` to create subdomain
+   - Uses Public Resolver's `setAddr()` to point subdomain to CornerReceiver contract
 
-This works because:
-- ENS subdomain resolves to the market's swap router
-- The router detects incoming USDC and mints the default outcome token (YES)
-- User receives tokens at their ENS-resolved address
+2. **Wallet-Native Purchase Flow**:
+   - User sends ETH to `iranwar-yyy.onlytruth.eth` from Metamask
+   - ENS resolves to CornerReceiver contract address
+   - CornerReceiver forwards to SwapRouter which mints outcome tokens
+   - SwapRouter emits `CornerPurchased` event
 
-#### C) ENS Text Records for Market Metadata
+3. **Event Listening** ([ensListener.js](server/market/ensListener.js)):
+   - CLOB server polls for `CornerPurchased` events
+   - Automatically credits buyer's session and executes market buy
 
-Each market subdomain stores metadata in ENS text records:
-
-| Record Key | Example Value |
-|------------|---------------|
-| `description` | "Will Donald Trump win the 2024 US Presidential Election?" |
-| `resolution-date` | "2024-11-06" |
-| `oracle` | "uma.eth" |
-| `yes-token` | "0x123..." |
-| `no-token` | "0x456..." |
+**ENS Contracts Used:**
+- **NameWrapper** (`0x0635513f179D50A207757E05759CbD106d7dFcE8`) — Subdomain creation
+- **Public Resolver** (`0xE99638b40E4Fff0129D56f03b55b6bbC4BBE49b5`) — Address record management
 
 **Why ENS:**
-- **Trust**: Users see `vitalik.eth` not hex — recognizable identity
+- **Trust**: Users see `vitalik.eth` not `0x1234...` — builds recognizable identity
 - **Discoverability**: Markets have memorable names, not contract addresses
-- **Wallet-Native UX**: Buy tokens by sending to ENS name (no dApp required)
-- **Composability**: Any wallet/dApp can resolve market info from ENS records
+- **Wallet-Native UX**: Buy tokens by sending ETH to ENS name (no dApp required)
+- **Composability**: Any wallet/dApp can resolve market contracts via ENS
 
 ---
 
 ### Integration Flow: Placing a Bet
 
 **Step 1: User "vitalik.eth" opens betting session**
-- ENS resolves `vitalik.eth` → wallet address
-- Yellow SDK creates state channel
-- User deposits 100 USDC into channel
+- ENS resolves `vitalik.eth` → wallet address via `useEnsName()`
+- Yellow SDK creates App Session (state channel) between user and CLOB
+- User deposits 100 ytest.usd into channel via `createAppSession()`
 
 **Step 2: User places bets (gasless via Yellow)**
-- Bets on "A=Yes", "B=No", corner (1,1,0)
-- All off-chain signed messages — no gas fees
-- UI shows "vitalik.eth betting..."
+- User selects corner "111" (Yes/Yes/Yes) and bets $5
+- `sendPaymentToCLOB(5)` transfers funds off-chain via `RPCAppStateIntent.Operate`
+- CLOB server co-signs state update
+- Trade executed on order book against vAMM or user limit orders
+- **No gas fees, instant confirmation**
+- UI shows "vitalik.eth betting..." with ENS avatar
 
 **Step 3: User ends session**
-- Yellow aggregates all bets into one settlement tx
-- Uniswap v4 Hook processes basket trades via LS-LMSR
-- Outcome tokens minted to `vitalik.eth`
+- `closeSession()` liquidates all positions to USD
+- Final withdrawal via `RPCAppStateIntent.Withdraw`
+- `CloseAppSession` message settles on Yellow Network
+- User's ledger balance updated (one on-chain settlement)
 
 **Step 4: Market Resolution**
 - Oracle resolves events A, B, C
-- Winning corner identified
-- `vitalik.eth` redeems winning tokens for USDC
+- Winning corner identified (e.g., corner 111)
+- `vitalik.eth` redeems winning tokens for final payout
+
+**Alternative: ENS Direct Purchase**
+- User sends ETH to `iranwar-yyy.onlytruth.eth` from Metamask
+- ENS resolves to CornerReceiver contract
+- CLOB server detects `CornerPurchased` event and executes market buy
+- Outcome tokens delivered to buyer's address
 
 ---
 
-### Summary: Why These Three Tracks?
+### Summary: Why These Two Tracks?
 
 | Track | Role | Benefit |
 |-------|------|---------|
-| **Uniswap v4** | Core trading engine (VAMM + Hooks) | Coherent multi-outcome pricing, shared liquidity |
-| **Yellow Network** | Payment layer (State Channels) | Gasless betting, instant UX, session-based logic |
-| **ENS** | Identity + Market Names | Usernames, market discovery, wallet-native buying |
+| **Yellow Network** | Payment layer (App Sessions/State Channels) | Gasless betting, instant UX, session-based trading |
+| **ENS** | Identity + Market Discovery | User profiles, wallet-native token purchases via subdomains |
 
-Together, they create a prediction market that:
-- ✅ Trades like Web2 (instant, gasless via Yellow)
-- ✅ Settles on DeFi rails (Uniswap v4 liquidity)
+Together with our custom vAMM (LS-LMSR), they create a prediction market that:
+- ✅ Trades like Web2 (instant, gasless via Yellow App Sessions)
+- ✅ Provides coherent pricing (vAMM updates all 8 corners atomically)
 - ✅ Feels human (ENS names for users and markets)
-- ✅ Works from any wallet (send to `market-yes.pm.eth` to buy)
+- ✅ Works from any wallet (send ETH to `iranwar-yyy.onlytruth.eth` to buy)
 
 ---
 
