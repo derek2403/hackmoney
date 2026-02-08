@@ -9,7 +9,11 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
  * @dev Only the authorized minter (SwapRouter) can mint tokens
  */
 contract OutcomeToken is ERC20 {
-    address public immutable minter;
+    string private _name;
+    string private _symbol;
+    bool public initialized;
+
+    address public minter;
 
     error OnlyMinter();
 
@@ -18,17 +22,27 @@ contract OutcomeToken is ERC20 {
         _;
     }
 
-    /**
-     * @param name_ Token name (e.g., "Market ABC Corner 110")
-     * @param symbol_ Token symbol (e.g., "ABC-110")
-     * @param minter_ Address authorized to mint (SwapRouter)
-     */
-    constructor(
+    constructor() ERC20("", "") {}
+
+    function initialize(
         string memory name_,
         string memory symbol_,
         address minter_
-    ) ERC20(name_, symbol_) {
+    ) external {
+        if (initialized) revert("Already initialized");
+        initialized = true;
+
+        _name = name_;
+        _symbol = symbol_;
         minter = minter_;
+    }
+
+    function name() public view virtual override returns (string memory) {
+        return _name;
+    }
+
+    function symbol() public view virtual override returns (string memory) {
+        return _symbol;
     }
 
     /**
