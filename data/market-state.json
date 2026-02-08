@@ -18,7 +18,7 @@
     "status": "open",
     "resolution": null,
     "winningCorner": null,
-    "totalVolume": 1070.9,
+    "totalVolume": 1071.4,
     "createdAt": 1770535663934
   },
   "amm": {
@@ -38,7 +38,7 @@
   "balances": {
     "0x41Db99b9A098Af28A06C0af238799c08076Af2f7": {
       "100": 0,
-      "101": 0,
+      "101": 5,
       "110": 43.33333333333334,
       "111": 0,
       "000": 93.75,
@@ -58,7 +58,7 @@
     },
     "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6": {
       "100": 0,
-      "101": 50,
+      "101": 45,
       "110": 433.3333333333333,
       "111": 4.263256414560601e-14,
       "000": 381.25,
@@ -180,7 +180,7 @@
           "side": "sell",
           "price": 0.1,
           "quantity": 500,
-          "filled": 450,
+          "filled": 455,
           "timestamp": 1770535670834
         }
       ]
@@ -664,15 +664,25 @@
       "amount": 1,
       "shares": 10,
       "fills": 1
+    },
+    {
+      "id": 1,
+      "timestamp": 1770554347439,
+      "user": "0x41Db99b9A098Af28A06C0af238799c08076Af2f7",
+      "type": "buy-slice",
+      "description": "slice buy",
+      "amount": 0.5,
+      "shares": 5,
+      "fills": 1
     }
   ],
   "sessions": {
     "0x41Db99b9A098Af28A06C0af238799c08076Af2f7": {
-      "sessionId": "0x8faab38a3b421ed6988b2eb7f1dd3e710814ac56c8bc3cd82eda2ead92000a72",
-      "userBalance": 19998470
+      "sessionId": "0x2aebc7a306719edebc123ab041660a656888b5dc9877afe10c0b3fe9c64c9098",
+      "userBalance": 9999999.5
     },
     "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd": {
-      "userBalance": 222.5,
+      "userBalance": 232.5,
       "sessionId": "0xb4b186042685212dffdc8e8a1ea3f7f6404dc1d472714f30ccb153f533b1d760"
     },
     "0xMaker": {
