@@ -438,7 +438,7 @@ function handleGetOrderBook(corner) {
   return {
     corner: label,
     ammPrice: price ?? 0,
-    ...getBookSnapshot(book),
+    ...getBookSnapshot(book, clobAddress),
   };
 }
 
@@ -455,7 +455,7 @@ function handleGetAllOrderBooks() {
     const price = bestAskPrice(book);
     books[label] = {
       ammPrice: price ?? 0,
-      ...getBookSnapshot(book),
+      ...getBookSnapshot(book, clobAddress),
     };
   }
 

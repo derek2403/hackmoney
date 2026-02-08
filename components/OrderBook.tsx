@@ -5,7 +5,7 @@ import { cn } from "./utils";
 import { fetchOrderBook, fetchAllOrderBooks } from "@/lib/yellow/market/marketClient";
 import type { OrderBookLevel } from "@/lib/yellow/market/types";
 
-type BookRow = { price: number; shares: number; total: number };
+type BookRow = { price: number; shares: number; total: number; isAmm: boolean };
 
 const CORNER_LABELS = ["000", "001", "010", "011", "100", "101", "110", "111"];
 const CORNER_DESCRIPTIONS: Record<string, string> = {
@@ -24,6 +24,7 @@ function levelsToRows(levels: OrderBookLevel[]): BookRow[] {
     price: l.price,
     shares: l.quantity,
     total: Math.round(l.quantity * l.price * 100) / 100,
+    isAmm: l.isAmm ?? false,
   }));
 }
 
@@ -176,13 +177,22 @@ export const OrderBook = ({ avgPriceCents, volume = 0, selectedCorner: controlle
               {asks.map((row) => (
                 <div
                   key={row.price}
-                  className="relative grid grid-cols-[1fr_auto_auto] gap-4 py-1.5 items-center text-sm group hover:bg-white/5 rounded"
+                  className={cn(
+                    "relative grid grid-cols-[1fr_auto_auto] gap-4 py-1.5 items-center text-sm group hover:bg-white/5 rounded",
+                    row.isAmm && "border-l-2 border-blue-400/60"
+                  )}
                 >
                   <div
-                    className="absolute left-0 top-0 bottom-0 rounded-r bg-rose-500/20 max-w-full transition-[width] duration-300"
+                    className={cn(
+                      "absolute left-0 top-0 bottom-0 rounded-r max-w-full transition-[width] duration-300",
+                      row.isAmm ? "bg-blue-500/15" : "bg-rose-500/20"
+                    )}
                     style={{ width: `${(row.total / maxDepth) * 100}%` }}
                   />
-                  <div className="relative pl-8 font-semibold text-rose-400">{Math.round(row.price * 100)}¢</div>
+                  <div className={cn("relative pl-8 font-semibold", row.isAmm ? "text-blue-400" : "text-rose-400")}>
+                    {Math.round(row.price * 100)}¢
+                    {row.isAmm && <span className="ml-1.5 text-[9px] font-bold text-blue-400/70">AMM</span>}
+                  </div>
                   <div className="relative text-right w-20 text-white/70 tabular-nums">{row.shares.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
                   <div className="relative text-right w-24 text-white/70 tabular-nums">${row.total.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
                 </div>
@@ -213,13 +223,22 @@ export const OrderBook = ({ avgPriceCents, volume = 0, selectedCorner: controlle
               {bids.map((row) => (
                 <div
                   key={row.price}
-                  className="relative grid grid-cols-[1fr_auto_auto] gap-4 py-1.5 items-center text-sm group hover:bg-white/5 rounded"
+                  className={cn(
+                    "relative grid grid-cols-[1fr_auto_auto] gap-4 py-1.5 items-center text-sm group hover:bg-white/5 rounded",
+                    row.isAmm && "border-l-2 border-blue-400/60"
+                  )}
                 >
                   <div
-                    className="absolute left-0 top-0 bottom-0 rounded-r bg-emerald-500/20 max-w-full transition-[width] duration-300"
+                    className={cn(
+                      "absolute left-0 top-0 bottom-0 rounded-r max-w-full transition-[width] duration-300",
+                      row.isAmm ? "bg-blue-500/15" : "bg-emerald-500/20"
+                    )}
                     style={{ width: `${(row.total / maxDepth) * 100}%` }}
                   />
-                  <div className="relative pl-8 font-semibold text-emerald-400">{Math.round(row.price * 100)}¢</div>
+                  <div className={cn("relative pl-8 font-semibold", row.isAmm ? "text-blue-400" : "text-emerald-400")}>
+                    {Math.round(row.price * 100)}¢
+                    {row.isAmm && <span className="ml-1.5 text-[9px] font-bold text-blue-400/70">AMM</span>}
+                  </div>
                   <div className="relative text-right w-20 text-white/70 tabular-nums">{row.shares.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
                   <div className="relative text-right w-24 text-white/70 tabular-nums">${row.total.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
                 </div>
