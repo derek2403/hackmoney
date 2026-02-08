@@ -8,10 +8,13 @@ interface BuddhaGLBProps {
   src?: string;
   className?: string;
   height?: number | string;
+  onLoad?: () => void;
 }
 
-export default function BuddhaGLB({ src = "/buddha5.glb", className = "", height = 320 }: BuddhaGLBProps) {
+export default function BuddhaGLB({ src = "/buddha5.glb", className = "", height = 320, onLoad }: BuddhaGLBProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const onLoadRef = useRef(onLoad);
+  onLoadRef.current = onLoad;
 
   useEffect(() => {
     if (!containerRef.current || typeof window === "undefined") return;
@@ -66,9 +69,13 @@ export default function BuddhaGLB({ src = "/buddha5.glb", className = "", height
         model.position.sub(center);
         model.scale.setScalar(scale);
         model.rotation.y = 0;
+        onLoadRef.current?.();
       },
       undefined,
-      (err) => console.error("GLB load error:", err)
+      (err) => {
+        console.error("GLB load error:", err);
+        onLoadRef.current?.();
+      }
     );
 
     const animate = () => {
