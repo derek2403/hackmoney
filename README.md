@@ -1,5 +1,8 @@
 # Unified Liquidity Multi-Dimensional Prediction Market (Joint-Outcome AMM)
 
+- **Yellow Demo**: [Watch Video](https://www.canva.com/design/DAHAwLXJXFg/pZ1vXn8_x9smzPB_g5OIow/watch?utm_content=DAHAwLXJXFg&utm_campaign=designshare&utm_medium=link2&utm_source=uniquelinks&utlId=h34007d3fb2)
+- **ENS Demo**: [Watch Video](https://www.canva.com/design/DAHAwGt4MdA/oNNzBO-g-H2M_9ywsv7QnA/watch?utm_content=DAHAwGt4MdA&utm_campaign=designshare&utm_medium=link2&utm_source=uniquelinks&utlId=h1552841f0f)
+
 **One-liner:** A combined prediction market that pools liquidity across multiple correlated Yes/No questions by pricing them through a single joint-outcome (“world table”) AMM, while still letting users trade simple binary markets and “partial” multi-event slices.
 
 ---
