@@ -44,6 +44,8 @@ export interface NavbarProps {
   onDepositToSession?: (amount: number) => Promise<boolean>;
   /** Request faucet tokens. */
   onRequestFaucet?: () => Promise<void>;
+  /** Close the current Yellow app session. */
+  onCloseSession?: () => Promise<void>;
 }
 
 export const Navbar = ({
@@ -57,6 +59,7 @@ export const Navbar = ({
   onCreateSession,
   onDepositToSession,
   onRequestFaucet,
+  onCloseSession,
 }: NavbarProps) => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [depositOpen, setDepositOpen] = useState(false);
@@ -283,10 +286,24 @@ export const Navbar = ({
 
                               <div className="border-t border-white/5" />
 
-                              {/* Logout */}
+                              {/* Close Session + Logout */}
                               <div className="py-2">
+                                {appSessionStatus === "active" && onCloseSession && (
+                                  <button
+                                    onClick={async () => {
+                                      await onCloseSession();
+                                      setProfileOpen(false);
+                                    }}
+                                    className="w-full px-5 py-2.5 text-sm font-semibold text-yellow-400 hover:bg-yellow-500/10 transition-colors text-left"
+                                  >
+                                    Close Session
+                                  </button>
+                                )}
                                 <button
-                                  onClick={() => {
+                                  onClick={async () => {
+                                    if (appSessionStatus === "active" && onCloseSession) {
+                                      await onCloseSession();
+                                    }
                                     disconnect();
                                     setProfileOpen(false);
                                   }}

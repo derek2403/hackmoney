@@ -35,6 +35,8 @@ let sessionKey = null;
 let isAuthenticated = false;
 let pendingRequests = new Map();
 let sessionExpireTimestamp = '';
+let authRetryCount = 0;
+const MAX_AUTH_RETRIES = 5;
 
 // ==================== SESSION KEY UTILITIES ====================
 function generateSessionKeyPair() {
@@ -79,9 +81,10 @@ function connectToYellow() {
     wsConnection.on('open', () => {
         console.log('✓ WebSocket Connected to Yellow Network');
         wsStatus = 'connected';
+        authRetryCount = 0;
 
-        // Start authentication flow
-        startAuthentication();
+        // Delay before auth — clearnode may not be ready immediately after handshake
+        setTimeout(() => startAuthentication(), 1500);
     });
 
     wsConnection.on('message', async (data) => {
@@ -134,7 +137,7 @@ async function startAuthentication() {
         scope: AUTH_SCOPE,
         application: APP_NAME,
         allowances: [
-            { asset: 'ytest.usd', amount: '1000000' },
+            { asset: 'ytest.usd', amount: '999999999999999' },
         ],
     };
 
@@ -186,7 +189,7 @@ async function handleAuthChallenge(response) {
         session_key: sessionKey.address,
         expires_at: BigInt(sessionExpireTimestamp),
         allowances: [
-            { asset: 'ytest.usd', amount: '1000000' },
+            { asset: 'ytest.usd', amount: '999999999999999' },
         ],
     };
 
@@ -251,6 +254,17 @@ async function handleMessage(data) {
 
             case 'error':
                 console.error('RPC Error:', params);
+                // Retry auth if challenge generation failed
+                if (!isAuthenticated && params?.error === 'failed to generate challenge') {
+                    authRetryCount++;
+                    if (authRetryCount <= MAX_AUTH_RETRIES) {
+                        const delay = authRetryCount * 2000;
+                        console.log(`Retrying authentication in ${delay}ms (attempt ${authRetryCount}/${MAX_AUTH_RETRIES})...`);
+                        setTimeout(() => startAuthentication(), delay);
+                    } else {
+                        console.error('Max auth retries reached. Will retry on next reconnect.');
+                    }
+                }
                 break;
 
             default:
