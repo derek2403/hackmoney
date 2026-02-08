@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Bookmark, Link2, ChevronDown } from "lucide-react";
+import { Bookmark, Link2, ChevronDown, Check } from "lucide-react";
 import { cn } from "./utils";
 
 const VIEW_TABS = ["1D", "2D", "3D", "World Table"] as const;

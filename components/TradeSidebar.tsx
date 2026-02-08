@@ -10,21 +10,21 @@ import type { MarginalPrice } from "@/lib/yellow/market/types";
 const QUESTIONS_STATIC = [
   {
     id: 1,
-    text: "Khamenei out as Supreme Leader of Iran by January 31?",
+    text: "Khamenei out as Supreme Leader of Iran by March 31?",
     image: "/Khamenei.jpg",
     yesPrice: 0.48,
     noPrice: 0.52,
   },
   {
     id: 2,
-    text: "US strikes Iran by January 31?",
+    text: "US strikes Iran by March 31?",
     image: "/US%20Iran.jpg",
     yesPrice: 0.51,
     noPrice: 0.49,
   },
   {
     id: 3,
-    text: "Israel next strikes Iran by January 31?",
+    text: "Israel next strikes Iran by March 31?",
     image: "/israeliran.jpg",
     yesPrice: 0.45,
     noPrice: 0.55,

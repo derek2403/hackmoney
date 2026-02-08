@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from "react";
+import Link from "next/link";
 import { Search, ChevronDown, ChevronUp, Plus, X, Wallet, CreditCard, ArrowLeftRight, Zap, Trophy, Gift, Code, Users, Moon } from "lucide-react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount, useBalance, useDisconnect } from "wagmi";
@@ -65,12 +66,12 @@ export const Navbar = () => {
         <div className="mx-auto flex h-18 max-w-[1920px] items-center justify-between px-10">
           {/* Left: Logo + Nav Links */}
           <div className="flex items-center gap-12">
-            <div className="flex items-center cursor-pointer">
+            <Link href="/market" className="flex items-center cursor-pointer">
               <img src="/feather.png" alt="Logo" className="h-14 w-14" />
               <span className="text-2xl font-bold tracking-tight text-white">
                 OnlyTruth
               </span>
-            </div>
+            </Link>
 
             <nav className="flex items-center gap-9">
               {NAV_LINKS.map((link) => (
@@ -112,7 +113,7 @@ export const Navbar = () => {
             {isConnected && (
               <button
                 onClick={() => setDepositOpen(true)}
-                className="flex items-center gap-1.5 rounded-lg bg-emerald-500 px-6 py-2.5 text-base font-semibold text-white transition-all hover:bg-emerald-400 active:scale-95"
+                className="flex items-center gap-1.5 rounded-lg border border-emerald-400/30 bg-emerald-500 px-4 py-1.5 text-sm font-semibold text-white transition-all hover:bg-emerald-400 active:scale-95"
               >
                 <Plus className="h-3.5 w-3.5" />
                 Deposit
