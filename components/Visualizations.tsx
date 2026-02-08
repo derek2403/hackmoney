@@ -477,11 +477,6 @@ export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onT
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col gap-1">
-              <span className="text-[14px] font-black text-white tabular-nums">${volume.toLocaleString()} vol</span>
-            </div>
-          </div>
           <JointMarket3D
             outcomes={outcomes.map((o) => ({
               id: o.id,
