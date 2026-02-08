@@ -295,7 +295,7 @@ export default function IranWar() {
                   {/* Right: Order Book (inline) — collapsible */}
                   {!orderBookCollapsed && (
                     <div className="w-95 shrink-0">
-                      <OrderBook avgPriceCents={avgPriceCents} volume={volume} inline selectedCorner={selectedCorner} />
+                      <OrderBook avgPriceCents={avgPriceCents} volume={volume} inline selectedCorner={selectedCorner} refreshKey={refreshKey} />
                     </div>
                   )}
                 </div>
