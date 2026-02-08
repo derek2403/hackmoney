@@ -156,15 +156,7 @@ export const Navbar = ({
               </div>
             </div>
 
-            {isConnected && (
-              <button
-                onClick={() => setDepositOpen(true)}
-                className="flex items-center gap-1.5 rounded-lg bg-emerald-500 px-6 py-2.5 text-base font-semibold text-white transition-all hover:bg-emerald-400 active:scale-95"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Deposit
-              </button>
-            )}
+            {/* Deposit button hidden — session auto-starts on wallet connect */}
 
             <ConnectButton.Custom>
               {({ account, chain, openChainModal, openConnectModal, mounted }) => {

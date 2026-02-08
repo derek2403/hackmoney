@@ -288,7 +288,7 @@ export function useYellowSession() {
                 address: account, session_key: sessionKey.address,
                 expires_at: BigInt(Math.floor(Date.now() / 1000) + SESSION_DURATION),
                 scope: AUTH_SCOPE, application: APP_NAME,
-                allowances: [{ asset: 'ytest.usd', amount: '1000000' }],
+                allowances: [{ asset: 'ytest.usd', amount: '100000000' }],
             };
             createAuthRequestMessage(authParams).then((p) => webSocketService.send(p));
         }
@@ -313,7 +313,7 @@ export function useYellowSession() {
                 const authParams = {
                     scope: AUTH_SCOPE, application: APP_NAME, participant: sessionKey.address,
                     session_key: sessionKey.address, expires_at: BigInt(sessionExpireTimestamp),
-                    allowances: [{ asset: 'ytest.usd', amount: '1000000' }],
+                    allowances: [{ asset: 'ytest.usd', amount: '100000000' }],
                 };
                 try {
                     const signer = createEIP712AuthMessageSigner(walletClient, authParams, getAuthDomain());
