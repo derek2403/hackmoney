@@ -18,7 +18,7 @@
     "status": "open",
     "resolution": null,
     "winningCorner": null,
-    "totalVolume": 730,
+    "totalVolume": 900,
     "createdAt": 1770535663934
   },
   "amm": {
@@ -50,7 +50,7 @@
       "100": 200,
       "101": 200,
       "110": 166.66666666666666,
-      "111": 182.14285714285714,
+      "111": 150,
       "000": 150,
       "001": 162.5,
       "010": 175,
@@ -60,7 +60,7 @@
       "100": 500,
       "101": 500,
       "110": 500,
-      "111": 500,
+      "111": 4.263256414560601e-14,
       "000": 443.75,
       "001": 500,
       "010": 500,
@@ -91,6 +91,26 @@
       "101": 0,
       "110": 33.333333333333336,
       "111": 0,
+      "000": 0,
+      "001": 0,
+      "010": 0,
+      "011": 0
+    },
+    "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd": {
+      "100": 0,
+      "101": 0,
+      "110": 0,
+      "111": 496.42857142857144,
+      "000": 0,
+      "001": 0,
+      "010": 0,
+      "011": 0
+    },
+    "0x8cA2f29c522ACa3Cd": {
+      "100": 0,
+      "101": 0,
+      "110": 0,
+      "111": 35.71428571428571,
       "000": 0,
       "001": 0,
       "010": 0,
@@ -238,22 +258,13 @@
       ],
       "sells": [
         {
-          "id": 8,
-          "user": "0xMaker",
+          "id": 31,
+          "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
           "side": "sell",
-          "price": 0.28,
-          "quantity": 50,
-          "filled": 17.857142857142854,
-          "timestamp": 1770535670833
-        },
-        {
-          "id": 16,
-          "user": "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6",
-          "side": "sell",
-          "price": 0.28,
-          "quantity": 500,
-          "filled": 0,
-          "timestamp": 1770535670834
+          "price": 0.3,
+          "quantity": 300,
+          "filled": 69.99999999999997,
+          "timestamp": 1770546510164
         }
       ]
     },
@@ -468,6 +479,86 @@
       "amount": 10,
       "shares": 93.75000000000001,
       "fills": 4
+    },
+    {
+      "id": 7,
+      "timestamp": 1770546493624,
+      "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 99.99999999999999,
+      "shares": 357.1428571428571,
+      "fills": 2
+    },
+    {
+      "id": 8,
+      "timestamp": 1770546680521,
+      "user": "0x8cA2f29c522ACa3Cd",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 10,
+      "shares": 35.71428571428571,
+      "fills": 1
+    },
+    {
+      "id": 9,
+      "timestamp": 1770546731055,
+      "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 10,
+      "shares": 35.71428571428571,
+      "fills": 1
+    },
+    {
+      "id": 1,
+      "timestamp": 1770550324205,
+      "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 10,
+      "shares": 35.71428571428571,
+      "fills": 1
+    },
+    {
+      "id": 2,
+      "timestamp": 1770550324208,
+      "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 10,
+      "shares": 35.71428571428571,
+      "fills": 1
+    },
+    {
+      "id": 3,
+      "timestamp": 1770550324209,
+      "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 10,
+      "shares": 35.476190476190474,
+      "fills": 2
+    },
+    {
+      "id": 4,
+      "timestamp": 1770550324211,
+      "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 10,
+      "shares": 33.333333333333336,
+      "fills": 1
+    },
+    {
+      "id": 5,
+      "timestamp": 1770550408668,
+      "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 10,
+      "shares": 33.333333333333336,
+      "fills": 1
     }
   ],
   "sessions": {

@@ -7,6 +7,7 @@ const { sepolia } = require('viem/chains');
 const http_module = require('http');
 const { createECDSAMessageSigner: sdkCreateECDSAMessageSigner } = require('@erc7824/nitrolite');
 const { createMarketRouter } = require('./server/market/api');
+const { startENSListener } = require('./server/market/ensListener');
 
 // ==================== CONFIGURATION ====================
 const CLEARNODE_WS_URL = process.env.CLEARNODE_WS_URL || 'wss://clearnet-sandbox.yellow.com/ws';
@@ -400,6 +401,9 @@ httpServer.listen(SERVER_PORT, () => {
 
     // Connect to Yellow Network
     connectToYellow();
+
+    // Start ENS event listener (polls for CornerPurchased events)
+    startENSListener(SERVER_PORT);
 });
 
 // Graceful shutdown
