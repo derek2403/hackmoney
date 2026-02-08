@@ -5,6 +5,7 @@ import {
   probabilitySumForOutcomeIds,
   selectionsToOutcomeIds,
   selectedOutcomeIdsToSelections,
+  outcomesFromPrices,
 } from "@/lib/selectedOdds";
 import { MarketHeader } from "../components/MarketHeader";
 import { Visualizations } from "../components/Visualizations";
@@ -36,12 +37,19 @@ export default function Home() {
     [selectedOutcomeIds]
   );
 
+  const liveOutcomes = useMemo(() => {
+    if (marketData?.corners && marketData.corners.length === 8) {
+      return outcomesFromPrices(marketData.corners);
+    }
+    return undefined;
+  }, [marketData?.corners]);
+
   const avgPriceCents = useMemo(
     () =>
       selectedOutcomeIds.length > 0
-        ? probabilitySumForOutcomeIds(selectedOutcomeIds)
+        ? probabilitySumForOutcomeIds(selectedOutcomeIds, liveOutcomes)
         : null,
-    [selectedOutcomeIds]
+    [selectedOutcomeIds, liveOutcomes]
   );
 
   const handleToggleOutcome = (outcomeId: number) => {
@@ -390,6 +398,8 @@ export default function Home() {
                   setSelectedOutcomeIds(ids.length === 8 ? [] : ids);
                 }}
                 volume={volume}
+                liveCornerPrices={marketData?.corners ?? null}
+                liveMarginals={marketData?.marginals ?? null}
               />
               <OrderBook avgPriceCents={avgPriceCents} volume={volume} />
               <MarketPositions

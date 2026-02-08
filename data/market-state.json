@@ -15,82 +15,450 @@
         "description": "Israel next strikes Iran by January 31?"
       }
     ],
-    "status": "seeding",
+    "status": "open",
     "resolution": null,
     "winningCorner": null,
-    "totalVolume": 400,
-    "createdAt": 1770535199025
+    "totalVolume": 720,
+    "createdAt": 1770535663934
   },
   "amm": {
     "quantities": [
-      400,
-      400,
-      400,
-      400,
-      400,
-      400,
-      400,
-      400
+      247.42713556917442,
+      287.9736463799909,
+      269.7414907005955,
+      310.28800151141184,
+      200.42677264460093,
+      269.7414907005955,
+      287.9736463799909,
+      372.70343241871126
     ],
     "alpha": 0.05,
     "minB": 100
   },
   "balances": {
     "0x41Db99b9A098Af28A06C0af238799c08076Af2f7": {
-      "100": 400,
-      "101": 400,
-      "110": 400,
-      "111": 400,
-      "000": 400,
-      "001": 400,
-      "010": 400,
-      "011": 400
+      "100": 0,
+      "101": 0,
+      "110": 0,
+      "111": 0,
+      "000": 0,
+      "001": 0,
+      "010": 0,
+      "011": 0
+    },
+    "0xMaker": {
+      "100": 200,
+      "101": 200,
+      "110": 166.66666666666666,
+      "111": 182.14285714285714,
+      "000": 150,
+      "001": 183.33333333333334,
+      "010": 200,
+      "011": 180
+    },
+    "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6": {
+      "100": 500,
+      "101": 500,
+      "110": 500,
+      "111": 500,
+      "000": 475,
+      "001": 500,
+      "010": 500,
+      "011": 500
+    },
+    "0xAlice": {
+      "100": 0,
+      "101": 0,
+      "110": 0,
+      "111": 17.857142857142854,
+      "000": 0,
+      "001": 16.666666666666668,
+      "010": 0,
+      "011": 0
+    },
+    "0xBob": {
+      "100": 0,
+      "101": 0,
+      "110": 0,
+      "111": 0,
+      "000": 75,
+      "001": 0,
+      "010": 0,
+      "011": 20
+    },
+    "0xCharlie": {
+      "100": 0,
+      "101": 0,
+      "110": 33.333333333333336,
+      "111": 0,
+      "000": 0,
+      "001": 0,
+      "010": 0,
+      "011": 0
     }
   },
   "orders": {
     "100": {
-      "buys": [],
-      "sells": []
-    },
-    "101": {
-      "buys": [],
-      "sells": []
-    },
-    "110": {
-      "buys": [],
-      "sells": []
-    },
-    "111": {
-      "buys": [],
+      "buys": [
+        {
+          "id": 21,
+          "user": "0xTrader2",
+          "side": "buy",
+          "price": 0.03,
+          "quantity": 40,
+          "filled": 0,
+          "timestamp": 1770535670920
+        },
+        {
+          "id": 30,
+          "user": "0xTrader3",
+          "side": "buy",
+          "price": 0.02,
+          "quantity": 60,
+          "filled": 0,
+          "timestamp": 1770535671046
+        }
+      ],
       "sells": [
         {
-          "id": 1,
-          "user": "0x41Db99b9A098Af28A06C0af238799c08076Af2f7",
+          "id": 5,
+          "user": "0xMaker",
           "side": "sell",
-          "price": 0.5,
-          "quantity": 400,
+          "price": 0.05,
+          "quantity": 50,
           "filled": 0,
-          "timestamp": 1770535383419
+          "timestamp": 1770535670762
+        },
+        {
+          "id": 13,
+          "user": "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6",
+          "side": "sell",
+          "price": 0.05,
+          "quantity": 500,
+          "filled": 0,
+          "timestamp": 1770535670834
+        }
+      ]
+    },
+    "101": {
+      "buys": [
+        {
+          "id": 22,
+          "user": "0xTrader1",
+          "side": "buy",
+          "price": 0.07,
+          "quantity": 25,
+          "filled": 0,
+          "timestamp": 1770535670934
+        }
+      ],
+      "sells": [
+        {
+          "id": 6,
+          "user": "0xMaker",
+          "side": "sell",
+          "price": 0.1,
+          "quantity": 50,
+          "filled": 0,
+          "timestamp": 1770535670786
+        },
+        {
+          "id": 14,
+          "user": "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6",
+          "side": "sell",
+          "price": 0.1,
+          "quantity": 500,
+          "filled": 0,
+          "timestamp": 1770535670834
+        }
+      ]
+    },
+    "110": {
+      "buys": [
+        {
+          "id": 23,
+          "user": "0xTrader3",
+          "side": "buy",
+          "price": 0.09,
+          "quantity": 30,
+          "filled": 0,
+          "timestamp": 1770535670947
+        },
+        {
+          "id": 29,
+          "user": "0xTrader2",
+          "side": "buy",
+          "price": 0.07,
+          "quantity": 25,
+          "filled": 0,
+          "timestamp": 1770535671031
+        }
+      ],
+      "sells": [
+        {
+          "id": 7,
+          "user": "0xMaker",
+          "side": "sell",
+          "price": 0.12,
+          "quantity": 50,
+          "filled": 33.333333333333336,
+          "timestamp": 1770535670809
+        },
+        {
+          "id": 15,
+          "user": "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6",
+          "side": "sell",
+          "price": 0.12,
+          "quantity": 500,
+          "filled": 0,
+          "timestamp": 1770535670834
+        }
+      ]
+    },
+    "111": {
+      "buys": [
+        {
+          "id": 24,
+          "user": "0xTrader2",
+          "side": "buy",
+          "price": 0.24,
+          "quantity": 20,
+          "filled": 0,
+          "timestamp": 1770535670962
+        },
+        {
+          "id": 28,
+          "user": "0xTrader1",
+          "side": "buy",
+          "price": 0.2,
+          "quantity": 40,
+          "filled": 0,
+          "timestamp": 1770535671018
+        }
+      ],
+      "sells": [
+        {
+          "id": 8,
+          "user": "0xMaker",
+          "side": "sell",
+          "price": 0.28,
+          "quantity": 50,
+          "filled": 17.857142857142854,
+          "timestamp": 1770535670833
+        },
+        {
+          "id": 16,
+          "user": "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6",
+          "side": "sell",
+          "price": 0.28,
+          "quantity": 500,
+          "filled": 0,
+          "timestamp": 1770535670834
         }
       ]
     },
     "000": {
-      "buys": [],
-      "sells": []
+      "buys": [
+        {
+          "id": 17,
+          "user": "0xTrader1",
+          "side": "buy",
+          "price": 0.06,
+          "quantity": 30,
+          "filled": 0,
+          "timestamp": 1770535670865
+        },
+        {
+          "id": 25,
+          "user": "0xTrader3",
+          "side": "buy",
+          "price": 0.05,
+          "quantity": 50,
+          "filled": 0,
+          "timestamp": 1770535670976
+        }
+      ],
+      "sells": [
+        {
+          "id": 9,
+          "user": "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6",
+          "side": "sell",
+          "price": 0.08,
+          "quantity": 500,
+          "filled": 25,
+          "timestamp": 1770535670834
+        }
+      ]
     },
     "001": {
-      "buys": [],
-      "sells": []
+      "buys": [
+        {
+          "id": 18,
+          "user": "0xTrader2",
+          "side": "buy",
+          "price": 0.1,
+          "quantity": 25,
+          "filled": 0,
+          "timestamp": 1770535670878
+        },
+        {
+          "id": 26,
+          "user": "0xTrader1",
+          "side": "buy",
+          "price": 0.08,
+          "quantity": 30,
+          "filled": 0,
+          "timestamp": 1770535670990
+        }
+      ],
+      "sells": [
+        {
+          "id": 2,
+          "user": "0xMaker",
+          "side": "sell",
+          "price": 0.12,
+          "quantity": 50,
+          "filled": 16.666666666666668,
+          "timestamp": 1770535670690
+        },
+        {
+          "id": 10,
+          "user": "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6",
+          "side": "sell",
+          "price": 0.12,
+          "quantity": 500,
+          "filled": 0,
+          "timestamp": 1770535670834
+        }
+      ]
     },
     "010": {
-      "buys": [],
-      "sells": []
+      "buys": [
+        {
+          "id": 19,
+          "user": "0xTrader1",
+          "side": "buy",
+          "price": 0.08,
+          "quantity": 20,
+          "filled": 0,
+          "timestamp": 1770535670893
+        }
+      ],
+      "sells": [
+        {
+          "id": 3,
+          "user": "0xMaker",
+          "side": "sell",
+          "price": 0.1,
+          "quantity": 50,
+          "filled": 0,
+          "timestamp": 1770535670714
+        },
+        {
+          "id": 11,
+          "user": "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6",
+          "side": "sell",
+          "price": 0.1,
+          "quantity": 500,
+          "filled": 0,
+          "timestamp": 1770535670834
+        }
+      ]
     },
     "011": {
-      "buys": [],
-      "sells": []
+      "buys": [
+        {
+          "id": 20,
+          "user": "0xTrader3",
+          "side": "buy",
+          "price": 0.12,
+          "quantity": 35,
+          "filled": 0,
+          "timestamp": 1770535670906
+        },
+        {
+          "id": 27,
+          "user": "0xTrader2",
+          "side": "buy",
+          "price": 0.1,
+          "quantity": 20,
+          "filled": 0,
+          "timestamp": 1770535671004
+        }
+      ],
+      "sells": [
+        {
+          "id": 4,
+          "user": "0xMaker",
+          "side": "sell",
+          "price": 0.15,
+          "quantity": 50,
+          "filled": 20,
+          "timestamp": 1770535670738
+        },
+        {
+          "id": 12,
+          "user": "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6",
+          "side": "sell",
+          "price": 0.15,
+          "quantity": 500,
+          "filled": 0,
+          "timestamp": 1770535670834
+        }
+      ]
     }
   },
-  "trades": [],
+  "trades": [
+    {
+      "id": 1,
+      "timestamp": 1770535671061,
+      "user": "0xAlice",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 5,
+      "shares": 17.857142857142854,
+      "fills": 1
+    },
+    {
+      "id": 2,
+      "timestamp": 1770535671094,
+      "user": "0xBob",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 3,
+      "shares": 20,
+      "fills": 1
+    },
+    {
+      "id": 3,
+      "timestamp": 1770535671125,
+      "user": "0xAlice",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 2,
+      "shares": 16.666666666666668,
+      "fills": 1
+    },
+    {
+      "id": 4,
+      "timestamp": 1770535671157,
+      "user": "0xCharlie",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 4,
+      "shares": 33.333333333333336,
+      "fills": 1
+    },
+    {
+      "id": 5,
+      "timestamp": 1770535671190,
+      "user": "0xBob",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 6,
+      "shares": 75,
+      "fills": 2
+    }
+  ],
   "sessions": {}
 }

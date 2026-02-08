@@ -9,7 +9,10 @@ import {
   JOINT_OUTCOMES,
   doesOutcomeMatch,
   probabilitySumForOutcomeIds,
+  outcomesFromPrices,
+  type JointOutcome,
 } from "@/lib/selectedOdds"
+import type { CornerPrice, MarginalPrice } from "@/lib/yellow/market/types"
 
 const QUESTIONS = [
   {
@@ -39,11 +42,7 @@ import {
   type ChartConfig,
 } from "./ui/chart"
 
-const OUTCOMES = [
-  { label: "Khamenei out as Supreme Leader of Iran by January 31?", prob: "70%", color: "bg-rose-500" },
-  { label: "US strikes Iran by January 31?", prob: "60%", color: "bg-yellow-500" },
-  { label: "Israel next strikes Iran by January 31?", prob: "50%", color: "bg-emerald-500" },
-];
+const OUTCOME_COLORS = ["bg-rose-500", "bg-yellow-500", "bg-emerald-500"];
 
 // Pills for 2D market selection (same order as QUESTIONS)
 const MARKET_PILL_ITEMS = [
@@ -55,15 +54,16 @@ const MARKET_PILL_ITEMS = [
 // Market id (1,2,3) -> index in JOINT_OUTCOMES.outcomes (Khamenei=0, US=1, Israel=2)
 const MARKET_ID_TO_OUTCOME_INDEX: Record<number, number> = { 1: 0, 2: 1, 3: 2 };
 
-/** Compute 2D heatmap cell values from JOINT_OUTCOMES for two markets. Order: No/Yes, Yes/Yes, No/No, Yes/No. */
+/** Compute 2D heatmap cell values for two markets. Order: No/Yes, Yes/Yes, No/No, Yes/No. */
 function getHeatmapCellsFromOdds(
   marketAId: number,
-  marketBId: number
+  marketBId: number,
+  outcomes: JointOutcome[]
 ): { value: number; label: string; aYes: boolean; bYes: boolean }[] {
   const aIdx = MARKET_ID_TO_OUTCOME_INDEX[marketAId] ?? 0;
   const bIdx = MARKET_ID_TO_OUTCOME_INDEX[marketBId] ?? 1;
   const sum = (aYes: boolean, bYes: boolean) =>
-    JOINT_OUTCOMES.filter(
+    outcomes.filter(
       (o) => o.outcomes[aIdx] === aYes && o.outcomes[bIdx] === bYes
     ).reduce((acc, o) => acc + o.probability, 0);
 
@@ -93,11 +93,36 @@ interface VisualizationsProps {
   onToggleOutcome: (outcomeId: number) => void;
   onSelectionChange?: (selections: Record<number, string | null>) => void;
   volume: number;
+  /** Live corner prices from the market API. When provided, overrides hardcoded probabilities. */
+  liveCornerPrices?: CornerPrice[] | null;
+  /** Live marginal prices from the market API. */
+  liveMarginals?: MarginalPrice[] | null;
 }
 
-export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onToggleOutcome, onSelectionChange, volume }: VisualizationsProps) => {
+export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onToggleOutcome, onSelectionChange, volume, liveCornerPrices, liveMarginals }: VisualizationsProps) => {
   const [range, setRange] = useState<"1D" | "1M" | "ALL">("1M");
   const [selectedMarketIds, setSelectedMarketIds] = useState<number[]>([]);
+
+  // Build outcomes from live prices or fall back to hardcoded
+  const outcomes: JointOutcome[] = useMemo(() => {
+    if (liveCornerPrices && liveCornerPrices.length === 8) {
+      return outcomesFromPrices(liveCornerPrices);
+    }
+    return JOINT_OUTCOMES;
+  }, [liveCornerPrices]);
+
+  // Live marginal Yes percentages for the 3 events (0-100)
+  const marginalYes = useMemo(() => {
+    if (liveMarginals && liveMarginals.length === 3) {
+      return liveMarginals.map((m) => Math.round(m.yes * 100));
+    }
+    // Derive from outcomes
+    return [
+      Math.round(outcomes.filter((o) => o.outcomes[0]).reduce((s, o) => s + o.probability, 0)),
+      Math.round(outcomes.filter((o) => o.outcomes[1]).reduce((s, o) => s + o.probability, 0)),
+      Math.round(outcomes.filter((o) => o.outcomes[2]).reduce((s, o) => s + o.probability, 0)),
+    ];
+  }, [liveMarginals, outcomes]);
 
   const handleMarketSelect = (id: number) => {
     setSelectedMarketIds((prev) => {
@@ -110,38 +135,36 @@ export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onT
 
   const selectedMarketProbability =
     selectedOutcomeIds.length > 0
-      ? probabilitySumForOutcomeIds(selectedOutcomeIds)
+      ? probabilitySumForOutcomeIds(selectedOutcomeIds, outcomes)
       : null;
 
   const data = useMemo(() => {
     const noise = (val: number) => (Math.random() - 0.5) * val;
     const currentSelectedProb = selectedMarketProbability;
+    const [khaYes, usYes, isrYes] = marginalYes;
 
     if (range === "1D") {
       return Array.from({ length: 24 }, (_, i) => {
         const t = i / 23;
         const hour = i.toString().padStart(2, '0');
         const isLast = i === 23;
-        
-        // Generate historical data for selected market (dummy data with trend)
+
         let selectedMarketValue: number | null = null;
         if (currentSelectedProb !== null) {
           if (isLast) {
-            // Latest value must be calculated correctly
             selectedMarketValue = currentSelectedProb;
           } else {
-            // Historical data: trend towards current value with some noise
-            const baseTrend = currentSelectedProb - 5 + (t * 5); // Trend from -5% to current
+            const baseTrend = currentSelectedProb - 5 + (t * 5);
             selectedMarketValue = Number((baseTrend + noise(1.5)).toFixed(2));
-            selectedMarketValue = Math.max(0, Math.min(100, selectedMarketValue)); // Clamp to 0-100
+            selectedMarketValue = Math.max(0, Math.min(100, selectedMarketValue));
           }
         }
-        
+
         return {
           label: `${hour}:00`,
-          khamenei: Number((69 + (t * 1) + noise(0.5)).toFixed(1)),
-          us_strikes: Number((59 + (t * 1) + noise(0.5)).toFixed(1)),
-          israel_strikes: Number((49 + (t * 1) + noise(0.5)).toFixed(1)),
+          khamenei: isLast ? khaYes : Number(((khaYes - 1) + (t * 1) + noise(0.5)).toFixed(1)),
+          us_strikes: isLast ? usYes : Number(((usYes - 1) + (t * 1) + noise(0.5)).toFixed(1)),
+          israel_strikes: isLast ? isrYes : Number(((isrYes - 1) + (t * 1) + noise(0.5)).toFixed(1)),
           selected_market: selectedMarketValue,
         };
       });
@@ -150,7 +173,7 @@ export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onT
       return Array.from({ length: 30 }, (_, i) => {
         const t = i / 29;
         const isLast = i === 29;
-        
+
         let selectedMarketValue: number | null = null;
         if (currentSelectedProb !== null) {
           if (isLast) {
@@ -161,12 +184,12 @@ export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onT
             selectedMarketValue = Math.max(0, Math.min(100, selectedMarketValue));
           }
         }
-        
+
         return {
           label: `Day ${i + 1}`,
-          khamenei: Number((60 + (t * 10) + noise(2)).toFixed(1)),
-          us_strikes: Number((50 + (t * 10) + noise(2)).toFixed(1)),
-          israel_strikes: Number((40 + (t * 10) + noise(2)).toFixed(1)),
+          khamenei: isLast ? khaYes : Number(((khaYes - 10) + (t * 10) + noise(2)).toFixed(1)),
+          us_strikes: isLast ? usYes : Number(((usYes - 10) + (t * 10) + noise(2)).toFixed(1)),
+          israel_strikes: isLast ? isrYes : Number(((isrYes - 10) + (t * 10) + noise(2)).toFixed(1)),
           selected_market: selectedMarketValue,
         };
       });
@@ -176,12 +199,10 @@ export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onT
     return months.map((m, i) => {
       const t = i / (months.length - 1);
       const isLast = i === months.length - 1;
-      
-      // Historical data for Khamenei climb
-      const baseK = i < 8 ? 10 + (i * 3) : 34 + (i - 8) * 4.5;
-      // Historical data for US and Israel strikes
-      const baseUS = i < 8 ? 20 + (i * 2) : 36 + (i - 8) * 3;
-      const baseIsr = i < 8 ? 15 + (i * 1.5) : 28.5 + (i - 8) * 2.7;
+
+      const baseK = isLast ? khaYes : Math.max(0.5, khaYes * (0.3 + t * 0.7) + noise(2));
+      const baseUS = isLast ? usYes : Math.max(0.5, usYes * (0.3 + t * 0.7) + noise(1));
+      const baseIsr = isLast ? isrYes : Math.max(0.5, isrYes * (0.3 + t * 0.7) + noise(1));
 
       let selectedMarketValue: number | null = null;
       if (currentSelectedProb !== null) {
@@ -196,13 +217,13 @@ export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onT
 
       return {
         label: m,
-        khamenei: i === months.length - 1 ? 70 : Number((baseK + noise(2)).toFixed(1)),
-        us_strikes: i === months.length - 1 ? 60 : Math.max(0.5, Number((baseUS + noise(1)).toFixed(1))),
-        israel_strikes: i === months.length - 1 ? 50 : Math.max(0.5, Number((baseIsr + noise(1)).toFixed(1))),
+        khamenei: Number(baseK.toFixed(1)),
+        us_strikes: Number(baseUS.toFixed(1)),
+        israel_strikes: Number(baseIsr.toFixed(1)),
         selected_market: selectedMarketValue,
       };
     });
-  }, [range, selectedMarketProbability]);
+  }, [range, selectedMarketProbability, marginalYes]);
 
   const wrapperClasses =
     activeView === "Odds"
@@ -268,7 +289,7 @@ export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onT
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {JOINT_OUTCOMES.map((row) => {
+                {outcomes.map((row) => {
                   const isSelected = selectedOutcomeIds.includes(row.id);
                   return (
                     <tr
@@ -296,8 +317,8 @@ export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onT
                               key={idx}
                               className={cn(
                                 "h-3 w-3 rounded-full border-2",
-                                isOn 
-                                  ? cn(OUTCOMES[idx].color, "border-transparent") 
+                                isOn
+                                  ? cn(OUTCOME_COLORS[idx], "border-transparent")
                                   : isSelected
                                   ? "border-black/20 bg-transparent"
                                   : "border-white/10 bg-transparent"
@@ -308,16 +329,16 @@ export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onT
                       </td>
                       <td className={cn(
                         "px-6 py-4 text-sm font-bold transition-colors",
-                        isSelected 
-                          ? "text-black" 
+                        isSelected
+                          ? "text-black"
                           : "text-white/40 group-hover:text-white/70"
                       )}>
                         {row.description}
                       </td>
                       <td className={cn(
                         "px-6 py-4 text-right text-sm font-black transition-colors",
-                        isSelected 
-                          ? "text-black" 
+                        isSelected
+                          ? "text-black"
                           : "text-white"
                       )}>
                         {row.probability.toFixed(2)}%
@@ -505,7 +526,7 @@ export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onT
                 const marketBId = selectedMarketIds[1];
                 const xLabel = MARKET_PILL_ITEMS.find((m) => m.id === marketAId)?.label ?? "";
                 const yLabel = MARKET_PILL_ITEMS.find((m) => m.id === marketBId)?.label ?? "";
-                const heatmapCells = getHeatmapCellsFromOdds(marketAId, marketBId);
+                const heatmapCells = getHeatmapCellsFromOdds(marketAId, marketBId, outcomes);
                 return (
                   <div className="flex items-stretch gap-3">
                     {/* Y axis (left): label rotated + Yes/No */}
@@ -595,18 +616,29 @@ export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onT
               <span className="text-[14px] font-black text-white tabular-nums">${volume.toLocaleString()} vol</span>
             </div>
           </div>
-          <JointMarket3D selections={selections} onSelectionChange={onSelectionChange} />
+          <JointMarket3D
+            outcomes={outcomes.map((o) => ({
+              id: o.id,
+              aYes: o.outcomes[0],
+              bYes: o.outcomes[1],
+              cYes: o.outcomes[2],
+              label: o.description,
+              probability: o.probability,
+            }))}
+            selections={selections}
+            onSelectionChange={onSelectionChange}
+          />
         </div>
       )}
 
       {/* Legend / Status Bar */}
       <div className="flex flex-col gap-4 border-t border-white/5 pt-8">
         <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
-          {OUTCOMES.map((oc, i) => (
-            <div key={i} className="flex items-center gap-3 group cursor-pointer">
-              <div className={cn("h-3 w-3 rounded-full shadow-lg transition-transform group-hover:scale-125", oc.color)} />
+          {QUESTIONS.map((q, i) => (
+            <div key={q.id} className="flex items-center gap-3 group cursor-pointer">
+              <div className={cn("h-3 w-3 rounded-full shadow-lg transition-transform group-hover:scale-125", OUTCOME_COLORS[i])} />
               <p className="text-sm font-bold text-white/50 group-hover:text-white transition-colors">
-                {oc.label} <span className="text-white ml-2">{oc.prob}</span>
+                {q.text} <span className="text-white ml-2">{marginalYes[i]}%</span>
               </p>
             </div>
           ))}
