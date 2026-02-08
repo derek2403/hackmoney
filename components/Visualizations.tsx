@@ -139,7 +139,13 @@ export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onT
       : null;
 
   const data = useMemo(() => {
-    const noise = (val: number) => (Math.random() - 0.5) * val;
+    // Seeded PRNG so chart noise is stable across re-renders
+    let seed = 42;
+    const seededRandom = () => {
+      seed = (seed * 16807 + 0) % 2147483647;
+      return (seed & 0x7fffffff) / 0x7fffffff;
+    };
+    const noise = (val: number) => (seededRandom() - 0.5) * val;
     const currentSelectedProb = selectedMarketProbability;
     const [khaYes, usYes, isrYes] = marginalYes;
 

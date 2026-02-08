@@ -96,8 +96,6 @@ export default function Home() {
 
   useEffect(() => {
     fetchPrices();
-    const id = setInterval(fetchPrices, 3000);
-    return () => clearInterval(id);
   }, [fetchPrices, refreshKey]);
 
   const volume = marketData?.totalVolume ?? 0;
@@ -315,7 +313,7 @@ export default function Home() {
 
                 {/* Order Book */}
                 <div className="border-t border-white/[0.06] px-8 py-8">
-                  <OrderBook avgPriceCents={avgPriceCents} volume={volume} />
+                  <OrderBook avgPriceCents={avgPriceCents} volume={volume} refreshKey={refreshKey} />
                 </div>
 
                 {/* Positions */}

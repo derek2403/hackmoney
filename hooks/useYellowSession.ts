@@ -244,12 +244,10 @@ export function useYellowSession() {
         return () => { webSocketService.removeStatusListener(setWsStatus); };
     }, []);
 
-    // ==================== CLOB POLLING ====================
+    // ==================== CLOB INFO (fetch once on mount) ====================
     useEffect(() => {
         const check = async () => { const info = await fetchCLOBInfo(); setClobInfo(info); };
         check();
-        const id = setInterval(check, 5000);
-        return () => clearInterval(id);
     }, []);
 
     // ==================== AUTO-AUTH ====================

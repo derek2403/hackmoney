@@ -32,9 +32,11 @@ interface OrderBookProps {
   volume?: number;
   /** Which corner to show, e.g. "000". If omitted, shows a corner picker. */
   selectedCorner?: string;
+  /** Increment to trigger a re-fetch (e.g. after a trade). */
+  refreshKey?: number;
 }
 
-export const OrderBook = ({ avgPriceCents, volume = 0, selectedCorner: controlledCorner }: OrderBookProps) => {
+export const OrderBook = ({ avgPriceCents, volume = 0, selectedCorner: controlledCorner, refreshKey }: OrderBookProps) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [corner, setCorner] = useState(controlledCorner || "000");
   const [asks, setAsks] = useState<BookRow[]>([]);
@@ -72,9 +74,7 @@ export const OrderBook = ({ avgPriceCents, volume = 0, selectedCorner: controlle
 
   useEffect(() => {
     fetchData();
-    const id = setInterval(fetchData, 3000); // Poll every 3s
-    return () => clearInterval(id);
-  }, [fetchData]);
+  }, [fetchData, refreshKey]);
 
   const spread = asks.length && bids.length
     ? Math.round((asks[asks.length - 1]!.price - bids[0]!.price) * 100)
