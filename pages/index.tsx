@@ -7,7 +7,7 @@ import gsap from "gsap";
 import CountUp from "../components/CountUp";
 import DecryptedText from "../components/DecryptedText";
 import FuzzyText from "../components/FuzzyText";
-import Galaxy from "../components/Galaxy";
+
 import { HyperText } from "@/components/ui/hyper-text"
 
 const cinzel = Cinzel({
@@ -322,22 +322,7 @@ export default function Home() {
             </Head>
 
             {/* Galaxy background – full viewport, no mouse interaction */}
-            <div className="fixed inset-0 z-0 pointer-events-none" style={{ width: "100%", height: "100%" }}>
-                <Galaxy
-                    mouseRepulsion
-                    mouseInteraction
-                    density={0.7}
-                    glowIntensity={0.2}
-                    saturation={0.4}
-                    hueShift={140}
-                    twinkleIntensity={0.9}
-                    rotationSpeed={0.05}
-                    repulsionStrength={8}
-                    autoCenterRepulsion={0}
-                    starSpeed={0.3}
-                    speed={0.3}
-                />
-            </div>
+
             {/* Dark overlay for content readability */}
             <div className="fixed inset-0 z-0 pointer-events-none bg-[#0a0a0b]/40" />
 
@@ -486,12 +471,11 @@ export default function Home() {
 
                         {/* Stats Section */}
                         {cardsVisible && (
-                            <section className="w-full max-w-4xl mx-auto mt-8">
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <section className="w-full max-w-4xl mx-auto">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {[
                                         { label: "Total Volume", value: 166, prefix: "$", suffix: "M+", duration: 2 },
                                         { label: "Active Markets", value: 24, prefix: "", suffix: "", duration: 1.5 },
-                                        { label: "Traders", value: 2400, prefix: "", suffix: "+", duration: 2.5 },
                                     ].map((stat) => (
                                         <div
                                             key={stat.label}
@@ -513,7 +497,7 @@ export default function Home() {
 
                         {/* Company Logos */}
                         {cardsVisible && (
-                            <section className="w-full max-w-4xl mx-auto mt-8 mb-12">
+                            <section className="w-full max-w-4xl mx-auto mb-12">
                                 <p className="text-center text-[10px] font-black uppercase tracking-[0.3em] text-white/20 mb-8">
                                     Data Sourced From
                                 </p>

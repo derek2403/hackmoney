@@ -247,6 +247,7 @@ export default function IranWar() {
           onCreateSession={handleNavbarCreateSession}
           onDepositToSession={handleNavbarDeposit}
           onRequestFaucet={yellow.requestFaucet}
+          onCloseSession={yellow.closeSession}
         />
 
         <main className="mx-auto flex-1 w-full max-w-[1440px] px-6 pt-4 pb-12">

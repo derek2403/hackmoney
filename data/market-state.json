@@ -18,7 +18,7 @@
     "status": "open",
     "resolution": null,
     "winningCorner": null,
-    "totalVolume": 1138.4,
+    "totalVolume": 1492.75,
     "createdAt": 1770535663934
   },
   "amm": {
@@ -37,9 +37,9 @@
   },
   "balances": {
     "0x41Db99b9A098Af28A06C0af238799c08076Af2f7": {
-      "100": 97.85714285714286,
+      "100": 700,
       "101": 56.666666666666664,
-      "110": 87.08333333333336,
+      "110": 95.41666666666669,
       "111": 18.071428571428573,
       "000": 96.875,
       "001": 22.916666666666668,
@@ -47,7 +47,7 @@
       "011": 18.333333333333336
     },
     "0x9fD3e7A1c5B8d2F6a4E0b9C3a7D5e1F8b2C4a6D9": {
-      "100": 150,
+      "100": 50,
       "101": 150,
       "110": 150,
       "111": 150,
@@ -57,9 +57,9 @@
       "011": 161.66666666666669
     },
     "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6": {
-      "100": 500,
+      "100": 15,
       "101": 500,
-      "110": 500,
+      "110": 491.6666666666667,
       "111": 428.57142857142856,
       "000": 500,
       "001": 500,
@@ -97,7 +97,7 @@
       "011": 0
     },
     "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd": {
-      "100": 452.14285714285717,
+      "100": 350,
       "101": 493.3333333333333,
       "110": 0,
       "111": 549.7857142857142,
@@ -127,9 +127,39 @@
       "011": 0
     },
     "0x6eD4a8B3f1C5e9A2d7F6b0E4a3C8d1B5f9A2e7D3": {
-      "100": 0,
+      "100": 35,
       "101": 0,
       "110": 10,
+      "111": 0,
+      "000": 0,
+      "001": 0,
+      "010": 0,
+      "011": 0
+    },
+    "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266": {
+      "100": 0,
+      "101": 0,
+      "110": 0,
+      "111": 0,
+      "000": 0,
+      "001": 0,
+      "010": 0,
+      "011": 0
+    },
+    "0xA2e5F8d1B4c7a3D6e9B2f0A5c8D1e4F7b3A6d9C2": {
+      "100": -35,
+      "101": 0,
+      "110": 0,
+      "111": 0,
+      "000": 0,
+      "001": 0,
+      "010": 0,
+      "011": 0
+    },
+    "0xB3d9E5a1C7f4b8D2e6A3c0F5b1E7d4A9f2C8a6B3": {
+      "100": 50,
+      "101": 0,
+      "110": 0,
       "111": 0,
       "000": 0,
       "001": 0,
@@ -141,30 +171,12 @@
     "100": {
       "buys": [
         {
-          "id": 242,
-          "user": "0x6eD4a8B3f1C5e9A2d7F6b0E4a3C8d1B5f9A2e7D3",
-          "side": "buy",
-          "price": 0.04,
-          "quantity": 35,
-          "filled": 0,
-          "timestamp": 1770535670920
-        },
-        {
-          "id": 243,
-          "user": "0xB3d9E5a1C7f4b8D2e6A3c0F5b1E7d4A9f2C8a6B3",
-          "side": "buy",
-          "price": 0.03,
-          "quantity": 50,
-          "filled": 0,
-          "timestamp": 1770535670930
-        },
-        {
           "id": 300,
           "user": "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6",
           "side": "buy",
           "price": 0.03,
           "quantity": 500,
-          "filled": 0,
+          "filled": 15,
           "timestamp": 1770556305783
         },
         {
@@ -186,62 +198,7 @@
           "timestamp": 1770535670950
         }
       ],
-      "sells": [
-        {
-          "id": 301,
-          "user": "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6",
-          "side": "sell",
-          "price": 0.05,
-          "quantity": 500,
-          "filled": 0,
-          "timestamp": 1770556305783
-        },
-        {
-          "id": 33,
-          "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
-          "side": "sell",
-          "price": 0.07,
-          "quantity": 120,
-          "filled": 17.857142857142854,
-          "timestamp": 1770535671210
-        },
-        {
-          "id": 34,
-          "user": "0x9fD3e7A1c5B8d2F6a4E0b9C3a7D5e1F8b2C4a6D9",
-          "side": "sell",
-          "price": 0.09,
-          "quantity": 50,
-          "filled": 0,
-          "timestamp": 1770535671220
-        },
-        {
-          "id": 35,
-          "user": "0x9fD3e7A1c5B8d2F6a4E0b9C3a7D5e1F8b2C4a6D9",
-          "side": "sell",
-          "price": 0.12,
-          "quantity": 50,
-          "filled": 0,
-          "timestamp": 1770535671230
-        },
-        {
-          "id": 246,
-          "user": "0xA2e5F8d1B4c7a3D6e9B2f0A5c8D1e4F7b3A6d9C2",
-          "side": "sell",
-          "price": 0.16,
-          "quantity": 35,
-          "filled": 0,
-          "timestamp": 1770535671240
-        },
-        {
-          "id": 247,
-          "user": "0xD7a3C6e9B1f4A8d2E5b7C0a3F9d6B2e8A4c1D5f7",
-          "side": "sell",
-          "price": 0.2,
-          "quantity": 30,
-          "filled": 0,
-          "timestamp": 1770535671250
-        }
-      ]
+      "sells": []
     },
     "101": {
       "buys": [
@@ -457,7 +414,7 @@
           "side": "sell",
           "price": 0.12,
           "quantity": 500,
-          "filled": 110.41666666666667,
+          "filled": 118.75,
           "timestamp": 1770535670834
         },
         {
@@ -1521,11 +1478,72 @@
       "amount": 10,
       "shares": 35.71428571428571,
       "fills": 1
+    },
+    {
+      "id": 1,
+      "timestamp": 1770556910610,
+      "user": "0x41Db99b9A098Af28A06C0af238799c08076Af2f7",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 1,
+      "shares": 8.333333333333334,
+      "fills": 1
+    },
+    {
+      "id": 1,
+      "timestamp": 1770558088643,
+      "user": "0x41Db99b9A098Af28A06C0af238799c08076Af2f7",
+      "type": "sell-corner",
+      "description": "corner sell",
+      "amount": -3.3500000000000005,
+      "shares": 100,
+      "fills": 3
+    },
+    {
+      "id": 2,
+      "timestamp": 1770558181934,
+      "user": "0x41Db99b9A098Af28A06C0af238799c08076Af2f7",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 100,
+      "shares": 200,
+      "fills": 1
+    },
+    {
+      "id": 3,
+      "timestamp": 1770558185508,
+      "user": "0x41Db99b9A098Af28A06C0af238799c08076Af2f7",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 100,
+      "shares": 200,
+      "fills": 1
+    },
+    {
+      "id": 4,
+      "timestamp": 1770558188650,
+      "user": "0x41Db99b9A098Af28A06C0af238799c08076Af2f7",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 100,
+      "shares": 200,
+      "fills": 1
+    },
+    {
+      "id": 5,
+      "timestamp": 1770558192950,
+      "user": "0x41Db99b9A098Af28A06C0af238799c08076Af2f7",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 50,
+      "shares": 100,
+      "fills": 1
     }
   ],
   "sessions": {
     "0x41Db99b9A098Af28A06C0af238799c08076Af2f7": {
-      "userBalance": 9999989
+      "userBalance": 10000000,
+      "sessionId": "0x5539f57cad6f462fd1e1f5e0950866bb83e2acda28e971b35525dcf2cabaf63f"
     },
     "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd": {
       "userBalance": 263.8,

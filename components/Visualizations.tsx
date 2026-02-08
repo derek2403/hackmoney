@@ -3,7 +3,6 @@ import { TrendingUp, LayoutGrid } from "lucide-react"
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts"
 import { cn } from "./utils"
 import JointMarket3D from "./JointMarket3D"
-import ElectricBorder from "./ElectricBorder"
 import {
   JOINT_OUTCOMES,
   doesOutcomeMatch,
@@ -272,8 +271,8 @@ export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onT
                                 isOn
                                   ? cn(OUTCOME_COLORS[idx], "border-transparent")
                                   : isSelected
-                                  ? "border-black/20 bg-transparent"
-                                  : "border-white/10 bg-transparent"
+                                    ? "border-black/20 bg-transparent"
+                                    : "border-white/10 bg-transparent"
                               )}
                             />
                           ))}
@@ -358,9 +357,9 @@ export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onT
                   ticks={[0, 20, 40, 60, 80]}
                   tickFormatter={(val) => `${val}%`}
                 />
-                <ChartTooltip 
-                  cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1 }} 
-                  content={<ChartTooltipContent hideLabel valueFormatter={(val) => `${val}%`} />} 
+                <ChartTooltip
+                  cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1 }}
+                  content={<ChartTooltipContent hideLabel valueFormatter={(val) => `${val}%`} />}
                 />
                 <Line
                   dataKey="khamenei"
@@ -386,68 +385,8 @@ export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onT
                   dot={false}
                   animationDuration={0}
                 />
-                {selectedMarketProbability !== null && (
-                  <Line
-                    dataKey="selected_market"
-                    type="monotone"
-                    stroke="#3b82f6"
-                    strokeWidth={4}
-                    dot={(props: any) => {
-                      // Only show dot on the last data point
-                      const isLast = props.index === data.length - 1;
-                      if (!isLast) return null;
-                      return (
-                        <circle
-                          {...props}
-                          r={6}
-                          fill="#3b82f6"
-                          stroke="#ffffff"
-                          strokeWidth={2}
-                          style={{
-                            filter: "drop-shadow(0 0 12px rgba(59, 130, 246, 1))",
-                            animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-                          }}
-                        />
-                      );
-                    }}
-                    activeDot={{
-                      r: 8,
-                      fill: "#3b82f6",
-                      stroke: "#ffffff",
-                      strokeWidth: 3,
-                      style: {
-                        filter: "drop-shadow(0 0 16px rgba(59, 130, 246, 1))",
-                      },
-                    }}
-                    animationDuration={300}
-                    style={{
-                      filter: "drop-shadow(0 0 8px rgba(59, 130, 246, 0.6))",
-                    }}
-                  />
-                )}
               </LineChart>
             </ChartContainer>
-            
-            {/* Shining effect overlay */}
-            {selectedMarketProbability !== null && (
-              <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl">
-                <div 
-                  className="absolute inset-0"
-                  style={{
-                    background: `linear-gradient(90deg, 
-                      transparent 0%, 
-                      rgba(59, 130, 246, 0.1) 45%, 
-                      rgba(59, 130, 246, 0.3) 50%, 
-                      rgba(59, 130, 246, 0.1) 55%, 
-                      transparent 100%
-                    )`,
-                    animation: "shine 3s ease-in-out infinite",
-                    width: "200%",
-                    height: "100%",
-                  }}
-                />
-              </div>
-            )}
           </div>
 
         </div>
@@ -476,19 +415,24 @@ export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onT
                     </div>
                     {/* Chart + X axis */}
                     <div className="flex flex-col items-center gap-2">
-                      <ElectricBorder
-                        color="#7df9ff"
-                        speed={0.4}
-                        chaos={0.15}
-                        style={{ borderRadius: 16 }}
-                      >
-                        <div className="grid h-[380px] w-[380px] grid-cols-2 grid-rows-2 gap-2.5 rounded-2xl p-1 bg-transparent shadow-2xl">
-                          {heatmapCells.map((cell) => (
-                            <div
-                              key={cell.label}
-                              role="button"
-                              tabIndex={0}
-                              onClick={() => {
+                      <div className="grid h-[380px] w-[380px] grid-cols-2 grid-rows-2 gap-2.5 rounded-2xl p-1 bg-transparent shadow-2xl">
+                        {heatmapCells.map((cell) => (
+                          <div
+                            key={cell.label}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => {
+                              const thirdMarketId = [1, 2, 3].find((id) => id !== marketAId && id !== marketBId);
+                              onSelectionChange?.({
+                                ...selections,
+                                [marketAId]: cell.aYes ? "Yes" : "No",
+                                [marketBId]: cell.bYes ? "Yes" : "No",
+                                ...(thirdMarketId != null && { [thirdMarketId]: "Any" }),
+                              });
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
                                 const thirdMarketId = [1, 2, 3].find((id) => id !== marketAId && id !== marketBId);
                                 onSelectionChange?.({
                                   ...selections,
@@ -496,38 +440,26 @@ export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onT
                                   [marketBId]: cell.bYes ? "Yes" : "No",
                                   ...(thirdMarketId != null && { [thirdMarketId]: "Any" }),
                                 });
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter" || e.key === " ") {
-                                  e.preventDefault();
-                                  const thirdMarketId = [1, 2, 3].find((id) => id !== marketAId && id !== marketBId);
-                                  onSelectionChange?.({
-                                    ...selections,
-                                    [marketAId]: cell.aYes ? "Yes" : "No",
-                                    [marketBId]: cell.bYes ? "Yes" : "No",
-                                    ...(thirdMarketId != null && { [thirdMarketId]: "Any" }),
-                                  });
-                                }
-                              }}
-                              className="heatmap-cell-breath flex flex-col items-center justify-center relative group cursor-pointer transition-all hover:brightness-110 rounded-xl border border-white/20 backdrop-blur-xl overflow-hidden"
-                              style={{
-                                backgroundColor: `rgba(59, 130, 246, ${heatmapOpacityByOdds(cell.value)})`,
-                                boxShadow: "inset 0 1px 0 0 rgba(255,255,255,0.15), 0 4px 24px -4px rgba(0,0,0,0.2)",
-                              }}
-                            >
-                              <span className={cn(
-                                "font-black text-white group-hover:scale-110 transition-transform",
-                                cell.value >= 35 ? "text-4xl" : "text-3xl"
-                              )}>
-                                {cell.value.toFixed(1)}%
-                              </span>
-                              <span className="text-[10px] font-black text-white/70 absolute bottom-6 tracking-widest uppercase">
-                                {cell.label}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </ElectricBorder>
+                              }
+                            }}
+                            className="heatmap-cell-breath flex flex-col items-center justify-center relative group cursor-pointer transition-all hover:brightness-110 rounded-xl border border-white/20 bg-[#18181b] overflow-hidden"
+                            style={{
+                              background: `linear-gradient(rgba(59, 130, 246, ${heatmapOpacityByOdds(cell.value)}), rgba(59, 130, 246, ${heatmapOpacityByOdds(cell.value)})), #18181b`,
+                              boxShadow: "inset 0 1px 0 0 rgba(255,255,255,0.15), 0 4px 24px -4px rgba(0,0,0,0.2)",
+                            }}
+                          >
+                            <span className={cn(
+                              "font-black text-white group-hover:scale-110 transition-transform",
+                              cell.value >= 35 ? "text-4xl" : "text-3xl"
+                            )}>
+                              {cell.value.toFixed(1)}%
+                            </span>
+                            <span className="text-[10px] font-black text-white/70 absolute bottom-6 tracking-widest uppercase">
+                              {cell.label}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                       {/* X axis (below): No | label | Yes */}
                       <div className="flex items-center justify-between w-full mt-1" style={{ width: 380 }}>
                         <span className="text-[10px] font-black text-white/40">No</span>
