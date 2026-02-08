@@ -238,7 +238,7 @@ export default function IranWar() {
       <div className="relative z-10 flex min-h-screen flex-col">
         <Navbar
           portfolioValue={portfolioValue}
-          cash={yellow.appSessionStatus === 'active' ? yellow.payerBalance || 0 : ledgerNum}
+          cash={yellow.appSessionStatus === 'active' ? yellow.payerBalance || 0 : 0}
           ledgerBalance={yellow.ledgerBalance}
           isYellowAuthenticated={yellow.isAuthenticated}
           isClobReady={!!yellow.clobInfo?.authenticated}

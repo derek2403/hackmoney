@@ -18,7 +18,7 @@
     "status": "open",
     "resolution": null,
     "winningCorner": null,
-    "totalVolume": 1522.75,
+    "totalVolume": 1532.75,
     "createdAt": 1770535663934
   },
   "amm": {
@@ -61,7 +61,7 @@
       "101": 500,
       "110": 408.33333333333337,
       "111": 428.57142857142856,
-      "000": 250,
+      "000": 125,
       "001": 500,
       "010": 500,
       "011": 500
@@ -181,7 +181,7 @@
       "101": 0,
       "110": 0,
       "111": 0,
-      "000": 250,
+      "000": 375,
       "001": 0,
       "010": 0,
       "011": 0
@@ -407,24 +407,6 @@
           "quantity": 75,
           "filled": 0,
           "timestamp": 1770535671080
-        },
-        {
-          "id": 1,
-          "user": "0x41Db99b9A098Af28A06C0af238799c08076Af2f7",
-          "side": "buy",
-          "price": 0.01,
-          "quantity": 10,
-          "filled": 0,
-          "timestamp": 1770555713470
-        },
-        {
-          "id": 2,
-          "user": "0x41Db99b9A098Af28A06C0af238799c08076Af2f7",
-          "side": "buy",
-          "price": 0.01,
-          "quantity": 100,
-          "filled": 0,
-          "timestamp": 1770555725140
         }
       ],
       "sells": [
@@ -698,7 +680,7 @@
           "side": "sell",
           "price": 0.08,
           "quantity": 500,
-          "filled": 371.875,
+          "filled": 496.875,
           "timestamp": 1770535670834
         },
         {
@@ -1598,6 +1580,16 @@
       "amount": 142.81,
       "shares": 1179.1130952380954,
       "fills": 8
+    },
+    {
+      "id": 1,
+      "timestamp": 1770567612901,
+      "user": "0xa6f7DF49e2D4B48Bc1EEA0886fB8798fb51046d7",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 10,
+      "shares": 125,
+      "fills": 1
     }
   ],
   "sessions": {
