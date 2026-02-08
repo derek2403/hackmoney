@@ -301,24 +301,6 @@ export const TradeSidebar = ({
               </p>
             </div>
             <div className="grid grid-cols-3 gap-2">
-              {["Yes", "No", "Any"].map((option) => (
-                <button
-                  key={option}
-                  onClick={() => handleSelect(q.id, option)}
-                  className={cn(
-                    "rounded-xl py-2.5 text-xs font-bold transition-all border border-transparent",
-                    selections[q.id] === option
-                      ? option === "Yes"
-                        ? "bg-emerald-500 shadow-lg shadow-emerald-500/20 text-white"
-                        : option === "No"
-                        ? "bg-rose-500 shadow-lg shadow-rose-500/20 text-white"
-                        : "bg-blue-500 shadow-lg shadow-blue-500/20 text-white"
-                      : "bg-white/5 text-white/30 hover:bg-white/8 hover:text-white/50 border-white/5"
-                  )}
-                >
-                  {option}
-                </button>
-              ))}
               {["Yes", "No", "Any"].map((option) => {
                 const price = option === "Yes" ? q.yesPrice : option === "No" ? q.noPrice : null;
                 return (
@@ -437,10 +419,6 @@ export const TradeSidebar = ({
           </div>
         )}
 
-        <div className="pt-2">
-          <GooeyButton
-            label={`${activeTab} ${orderType}`}
-            onClick={() => console.log(`Executing ${activeTab} ${orderType} order`)}
         <div className="pt-4">
           <GooeyButton
             label={isSubmitting ? "Submitting..." : `${activeTab} ${orderType}`}
