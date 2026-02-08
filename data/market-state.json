@@ -1,0 +1,682 @@
+{
+  "market": {
+    "id": "iran-war-2026",
+    "events": [
+      {
+        "index": 0,
+        "description": "Khamenei out as Supreme Leader of Iran by January 31?"
+      },
+      {
+        "index": 1,
+        "description": "US strikes Iran by January 31?"
+      },
+      {
+        "index": 2,
+        "description": "Israel next strikes Iran by January 31?"
+      }
+    ],
+    "status": "open",
+    "resolution": null,
+    "winningCorner": null,
+    "totalVolume": 1070.9,
+    "createdAt": 1770535663934
+  },
+  "amm": {
+    "quantities": [
+      247.42713556917442,
+      287.9736463799909,
+      269.7414907005955,
+      310.28800151141184,
+      200.42677264460093,
+      269.7414907005955,
+      287.9736463799909,
+      372.70343241871126
+    ],
+    "alpha": 0.05,
+    "minB": 100
+  },
+  "balances": {
+    "0x41Db99b9A098Af28A06C0af238799c08076Af2f7": {
+      "100": 0,
+      "101": 0,
+      "110": 43.33333333333334,
+      "111": 0,
+      "000": 93.75,
+      "001": 20.833333333333336,
+      "010": 85,
+      "011": 16.666666666666668
+    },
+    "0xMaker": {
+      "100": 150,
+      "101": 150,
+      "110": 150,
+      "111": 150,
+      "000": 150,
+      "001": 162.5,
+      "010": 150,
+      "011": 163.33333333333334
+    },
+    "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6": {
+      "100": 0,
+      "101": 50,
+      "110": 433.3333333333333,
+      "111": 4.263256414560601e-14,
+      "000": 381.25,
+      "001": 500,
+      "010": 465,
+      "011": 500
+    },
+    "0xAlice": {
+      "100": 0,
+      "101": 0,
+      "110": 0,
+      "111": 17.857142857142854,
+      "000": 0,
+      "001": 16.666666666666668,
+      "010": 0,
+      "011": 0
+    },
+    "0xBob": {
+      "100": 0,
+      "101": 0,
+      "110": 0,
+      "111": 0,
+      "000": 75,
+      "001": 0,
+      "010": 0,
+      "011": 20
+    },
+    "0xCharlie": {
+      "100": 0,
+      "101": 0,
+      "110": 33.333333333333336,
+      "111": 0,
+      "000": 0,
+      "001": 0,
+      "010": 0,
+      "011": 0
+    },
+    "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd": {
+      "100": 550,
+      "101": 500,
+      "110": 0,
+      "111": 496.42857142857144,
+      "000": 0,
+      "001": 0,
+      "010": 0,
+      "011": 0
+    },
+    "0x8cA2f29c522ACa3Cd": {
+      "100": 0,
+      "101": 0,
+      "110": 0,
+      "111": 35.71428571428571,
+      "000": 0,
+      "001": 0,
+      "010": 0,
+      "011": 0
+    },
+    "0xTrader3": {
+      "100": 0,
+      "101": 0,
+      "110": 30,
+      "111": 0,
+      "000": 0,
+      "001": 0,
+      "010": 0,
+      "011": 0
+    },
+    "0xTrader2": {
+      "100": 0,
+      "101": 0,
+      "110": 10,
+      "111": 0,
+      "000": 0,
+      "001": 0,
+      "010": 0,
+      "011": 0
+    }
+  },
+  "orders": {
+    "100": {
+      "buys": [
+        {
+          "id": 21,
+          "user": "0xTrader2",
+          "side": "buy",
+          "price": 0.03,
+          "quantity": 40,
+          "filled": 0,
+          "timestamp": 1770535670920
+        },
+        {
+          "id": 30,
+          "user": "0xTrader3",
+          "side": "buy",
+          "price": 0.02,
+          "quantity": 60,
+          "filled": 0,
+          "timestamp": 1770535671046
+        }
+      ],
+      "sells": []
+    },
+    "101": {
+      "buys": [
+        {
+          "id": 22,
+          "user": "0xTrader1",
+          "side": "buy",
+          "price": 0.07,
+          "quantity": 25,
+          "filled": 0,
+          "timestamp": 1770535670934
+        }
+      ],
+      "sells": [
+        {
+          "id": 14,
+          "user": "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6",
+          "side": "sell",
+          "price": 0.1,
+          "quantity": 500,
+          "filled": 450,
+          "timestamp": 1770535670834
+        }
+      ]
+    },
+    "110": {
+      "buys": [
+        {
+          "id": 29,
+          "user": "0xTrader2",
+          "side": "buy",
+          "price": 0.07,
+          "quantity": 25,
+          "filled": 10,
+          "timestamp": 1770535671031
+        }
+      ],
+      "sells": [
+        {
+          "id": 15,
+          "user": "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6",
+          "side": "sell",
+          "price": 0.12,
+          "quantity": 500,
+          "filled": 66.66666666666667,
+          "timestamp": 1770535670834
+        }
+      ]
+    },
+    "111": {
+      "buys": [
+        {
+          "id": 24,
+          "user": "0xTrader2",
+          "side": "buy",
+          "price": 0.24,
+          "quantity": 20,
+          "filled": 0,
+          "timestamp": 1770535670962
+        },
+        {
+          "id": 28,
+          "user": "0xTrader1",
+          "side": "buy",
+          "price": 0.2,
+          "quantity": 40,
+          "filled": 0,
+          "timestamp": 1770535671018
+        }
+      ],
+      "sells": []
+    },
+    "000": {
+      "buys": [
+        {
+          "id": 17,
+          "user": "0xTrader1",
+          "side": "buy",
+          "price": 0.06,
+          "quantity": 30,
+          "filled": 0,
+          "timestamp": 1770535670865
+        },
+        {
+          "id": 25,
+          "user": "0xTrader3",
+          "side": "buy",
+          "price": 0.05,
+          "quantity": 50,
+          "filled": 0,
+          "timestamp": 1770535670976
+        }
+      ],
+      "sells": [
+        {
+          "id": 9,
+          "user": "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6",
+          "side": "sell",
+          "price": 0.08,
+          "quantity": 500,
+          "filled": 118.75,
+          "timestamp": 1770535670834
+        }
+      ]
+    },
+    "001": {
+      "buys": [
+        {
+          "id": 18,
+          "user": "0xTrader2",
+          "side": "buy",
+          "price": 0.1,
+          "quantity": 25,
+          "filled": 0,
+          "timestamp": 1770535670878
+        },
+        {
+          "id": 26,
+          "user": "0xTrader1",
+          "side": "buy",
+          "price": 0.08,
+          "quantity": 30,
+          "filled": 0,
+          "timestamp": 1770535670990
+        }
+      ],
+      "sells": [
+        {
+          "id": 2,
+          "user": "0xMaker",
+          "side": "sell",
+          "price": 0.12,
+          "quantity": 50,
+          "filled": 37.5,
+          "timestamp": 1770535670690
+        },
+        {
+          "id": 10,
+          "user": "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6",
+          "side": "sell",
+          "price": 0.12,
+          "quantity": 500,
+          "filled": 0,
+          "timestamp": 1770535670834
+        }
+      ]
+    },
+    "010": {
+      "buys": [
+        {
+          "id": 19,
+          "user": "0xTrader1",
+          "side": "buy",
+          "price": 0.08,
+          "quantity": 20,
+          "filled": 0,
+          "timestamp": 1770535670893
+        }
+      ],
+      "sells": [
+        {
+          "id": 11,
+          "user": "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6",
+          "side": "sell",
+          "price": 0.1,
+          "quantity": 500,
+          "filled": 35,
+          "timestamp": 1770535670834
+        }
+      ]
+    },
+    "011": {
+      "buys": [
+        {
+          "id": 20,
+          "user": "0xTrader3",
+          "side": "buy",
+          "price": 0.12,
+          "quantity": 35,
+          "filled": 0,
+          "timestamp": 1770535670906
+        },
+        {
+          "id": 27,
+          "user": "0xTrader2",
+          "side": "buy",
+          "price": 0.1,
+          "quantity": 20,
+          "filled": 0,
+          "timestamp": 1770535671004
+        }
+      ],
+      "sells": [
+        {
+          "id": 4,
+          "user": "0xMaker",
+          "side": "sell",
+          "price": 0.15,
+          "quantity": 50,
+          "filled": 36.66666666666667,
+          "timestamp": 1770535670738
+        },
+        {
+          "id": 12,
+          "user": "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6",
+          "side": "sell",
+          "price": 0.15,
+          "quantity": 500,
+          "filled": 0,
+          "timestamp": 1770535670834
+        }
+      ]
+    }
+  },
+  "trades": [
+    {
+      "id": 1,
+      "timestamp": 1770535671061,
+      "user": "0xAlice",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 5,
+      "shares": 17.857142857142854,
+      "fills": 1
+    },
+    {
+      "id": 2,
+      "timestamp": 1770535671094,
+      "user": "0xBob",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 3,
+      "shares": 20,
+      "fills": 1
+    },
+    {
+      "id": 3,
+      "timestamp": 1770535671125,
+      "user": "0xAlice",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 2,
+      "shares": 16.666666666666668,
+      "fills": 1
+    },
+    {
+      "id": 4,
+      "timestamp": 1770535671157,
+      "user": "0xCharlie",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 4,
+      "shares": 33.333333333333336,
+      "fills": 1
+    },
+    {
+      "id": 5,
+      "timestamp": 1770535671190,
+      "user": "0xBob",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 6,
+      "shares": 75,
+      "fills": 2
+    },
+    {
+      "id": 6,
+      "timestamp": 1770538104038,
+      "user": "0x41Db99b9A098Af28A06C0af238799c08076Af2f7",
+      "type": "buy-marginal",
+      "description": "marginal buy",
+      "amount": 10,
+      "shares": 93.75000000000001,
+      "fills": 4
+    },
+    {
+      "id": 7,
+      "timestamp": 1770546493624,
+      "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 99.99999999999999,
+      "shares": 357.1428571428571,
+      "fills": 2
+    },
+    {
+      "id": 8,
+      "timestamp": 1770546680521,
+      "user": "0x8cA2f29c522ACa3Cd",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 10,
+      "shares": 35.71428571428571,
+      "fills": 1
+    },
+    {
+      "id": 9,
+      "timestamp": 1770546731055,
+      "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 10,
+      "shares": 35.71428571428571,
+      "fills": 1
+    },
+    {
+      "id": 1,
+      "timestamp": 1770550324205,
+      "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 10,
+      "shares": 35.71428571428571,
+      "fills": 1
+    },
+    {
+      "id": 2,
+      "timestamp": 1770550324208,
+      "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 10,
+      "shares": 35.71428571428571,
+      "fills": 1
+    },
+    {
+      "id": 3,
+      "timestamp": 1770550324209,
+      "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 10,
+      "shares": 35.476190476190474,
+      "fills": 2
+    },
+    {
+      "id": 4,
+      "timestamp": 1770550324211,
+      "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 10,
+      "shares": 33.333333333333336,
+      "fills": 1
+    },
+    {
+      "id": 5,
+      "timestamp": 1770550408668,
+      "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 10,
+      "shares": 33.333333333333336,
+      "fills": 1
+    },
+    {
+      "id": 6,
+      "timestamp": 1770550489284,
+      "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 10,
+      "shares": 200,
+      "fills": 2
+    },
+    {
+      "id": 7,
+      "timestamp": 1770550649043,
+      "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 10,
+      "shares": 200,
+      "fills": 1
+    },
+    {
+      "id": 1,
+      "timestamp": 1770551282156,
+      "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 10,
+      "shares": 33.333333333333336,
+      "fills": 1
+    },
+    {
+      "id": 2,
+      "timestamp": 1770551282161,
+      "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 10,
+      "shares": 33.333333333333336,
+      "fills": 1
+    },
+    {
+      "id": 3,
+      "timestamp": 1770551282165,
+      "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 10,
+      "shares": 33.333333333333336,
+      "fills": 1
+    },
+    {
+      "id": 4,
+      "timestamp": 1770551282169,
+      "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 10,
+      "shares": 33.333333333333336,
+      "fills": 1
+    },
+    {
+      "id": 5,
+      "timestamp": 1770551282174,
+      "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 10,
+      "shares": 33.333333333333336,
+      "fills": 1
+    },
+    {
+      "id": 6,
+      "timestamp": 1770551344372,
+      "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
+      "type": "buy-slice",
+      "description": "slice buy",
+      "amount": 57.5,
+      "shares": 650,
+      "fills": 3
+    },
+    {
+      "id": 1,
+      "timestamp": 1770551640159,
+      "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 10,
+      "shares": 33.333333333333336,
+      "fills": 1
+    },
+    {
+      "id": 2,
+      "timestamp": 1770551640161,
+      "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 9,
+      "shares": 30,
+      "fills": 1
+    },
+    {
+      "id": 1,
+      "timestamp": 1770552758773,
+      "user": "0x41Db99b9A098Af28A06C0af238799c08076Af2f7",
+      "type": "buy-slice",
+      "description": "slice buy",
+      "amount": 10,
+      "shares": 112.5,
+      "fills": 3
+    },
+    {
+      "id": 2,
+      "timestamp": 1770553085886,
+      "user": "0x41Db99b9A098Af28A06C0af238799c08076Af2f7",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 10,
+      "shares": 83.33333333333334,
+      "fills": 2
+    },
+    {
+      "id": 3,
+      "timestamp": 1770553128256,
+      "user": "0x41Db99b9A098Af28A06C0af238799c08076Af2f7",
+      "type": "sell-corner",
+      "description": "corner sell",
+      "amount": -2.6999999999999997,
+      "shares": 30,
+      "fills": 1
+    },
+    {
+      "id": 4,
+      "timestamp": 1770553137480,
+      "user": "0x41Db99b9A098Af28A06C0af238799c08076Af2f7",
+      "type": "sell-corner",
+      "description": "corner sell",
+      "amount": -0.7000000000000001,
+      "shares": 10,
+      "fills": 1
+    },
+    {
+      "id": 5,
+      "timestamp": 1770553144597,
+      "user": "0x41Db99b9A098Af28A06C0af238799c08076Af2f7",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 1,
+      "shares": 10,
+      "fills": 1
+    }
+  ],
+  "sessions": {
+    "0x41Db99b9A098Af28A06C0af238799c08076Af2f7": {
+      "sessionId": "0x8faab38a3b421ed6988b2eb7f1dd3e710814ac56c8bc3cd82eda2ead92000a72",
+      "userBalance": 19998470
+    },
+    "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd": {
+      "userBalance": 222.5,
+      "sessionId": "0xb4b186042685212dffdc8e8a1ea3f7f6404dc1d472714f30ccb153f533b1d760"
+    },
+    "0xMaker": {
+      "userBalance": 9.5
+    }
+  }
+}

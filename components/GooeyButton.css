@@ -1,0 +1,151 @@
+.gooey-button-container {
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.gooey-button {
+  width: 100%;
+  padding: 1.25rem;
+  border-radius: 1rem;
+  background: #3b82f6;
+  color: #ffffff;
+  font-weight: 900;
+  font-size: 1.125rem;
+  text-transform: uppercase;
+  border: 1px solid #3b82f6;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  z-index: 5;
+  letter-spacing: 0.1em;
+  box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.2), 0 4px 6px -4px rgba(59, 130, 246, 0.2);
+}
+
+.gooey-button:hover {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.gooey-button.active {
+  background: #3b82f6;
+  color: #ffffff;
+  border-color: #3b82f6;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+}
+
+.gooey-button:active {
+  transform: translateY(0);
+}
+
+.gooey-button-container .effect {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 1;
+  pointer-events: none;
+  display: grid;
+  place-items: center;
+  z-index: 1;
+}
+
+.gooey-button-container .effect.filter {
+  filter: blur(4px) contrast(12) blur(0);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.gooey-button.active ~ .effect.filter {
+  opacity: 1;
+}
+
+.gooey-button-container .effect.filter::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #3b82f6;
+  transform: scale(0);
+  opacity: 0;
+  z-index: -1;
+  border-radius: 1rem;
+}
+
+.gooey-button-container .effect.active::after {
+  animation: pill-burst 0.4s ease-out both;
+}
+
+@keyframes pill-burst {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.gooey-button-container .particle,
+.gooey-button-container .point {
+  display: block;
+  opacity: 0;
+  width: 25px;
+  height: 25px;
+  border-radius: 100%;
+  transform-origin: center;
+}
+
+.gooey-button-container .particle {
+  --time: 5s;
+  position: absolute;
+  top: calc(50% - 12px);
+  left: calc(50% - 12px);
+  animation: particle-fly calc(var(--time)) ease 1 -100ms;
+}
+
+.gooey-button-container .point {
+  background: #3b82f6;
+  opacity: 1;
+  animation: point-grow calc(var(--time)) ease 1 -100ms;
+}
+
+@keyframes particle-fly {
+  0% {
+    transform: rotate(0deg) translate(calc(var(--start-x)), calc(var(--start-y)));
+    opacity: 1;
+  }
+  70% {
+    transform: rotate(calc(var(--rotate) * 0.5)) translate(calc(var(--end-x) * 1.5), calc(var(--end-y) * 1.5));
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(calc(var(--rotate))) translate(calc(var(--end-x)), calc(var(--end-y)));
+    opacity: 0;
+  }
+}
+
+@keyframes point-grow {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  60% {
+    transform: scale(var(--scale));
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
