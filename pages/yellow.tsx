@@ -287,6 +287,7 @@ export default function YellowWorkshop() {
     // Chapter 4: Balance state
     const [balances, setBalances] = useState<Record<string, string> | null>(null);
     const [isLoadingBalances, setIsLoadingBalances] = useState(false);
+    const [walletBalance, setWalletBalance] = useState<string>('0');
 
     // Chapter 5: Transfer state
     const [isTransferring, setIsTransferring] = useState(false);
@@ -307,6 +308,7 @@ export default function YellowWorkshop() {
     const [appSessionStatus, setAppSessionStatus] = useState<'none' | 'creating' | 'active' | 'closing' | 'closed'>('none');
     const [appSessionPartner, setAppSessionPartner] = useState<string>('');
     const [isAppSessionLoading, setIsAppSessionLoading] = useState(false);
+    const [appSessionVersion, setAppSessionVersion] = useState<number>(1);
     const [payerBalance, setPayerBalance] = useState<string>('0');
     const [payeeBalance, setPayeeBalance] = useState<string>('0');
     const [appStateVersion, setAppStateVersion] = useState<number>(1); // Track state version (starts at 1)
@@ -384,6 +386,7 @@ export default function YellowWorkshop() {
             setPublicClient(pubClient);
             setNitroliteClient(nitroClient);
             setAccount(address);
+            fetchWalletBalance(pubClient, address);
         } catch (error) {
             console.error('Failed to connect wallet:', error);
             alert('Failed to connect wallet. Please try again.');
@@ -391,6 +394,28 @@ export default function YellowWorkshop() {
     };
 
     const formatAddress = (address: Address) => `${address.slice(0, 6)}...${address.slice(-4)}`;
+
+    // Fetch on-chain ytest.usd wallet balance
+    const fetchWalletBalance = useCallback(async (pubClient: PublicClient, userAddress: Address) => {
+        try {
+            const raw = await pubClient.readContract({
+                address: YTEST_USD_TOKEN,
+                abi: [{ name: 'balanceOf', type: 'function', stateMutability: 'view', inputs: [{ name: 'account', type: 'address' }], outputs: [{ name: '', type: 'uint256' }] }],
+                functionName: 'balanceOf',
+                args: [userAddress],
+            }) as bigint;
+            // ytest.usd uses 6 decimals based on balance format from ClearNode
+            const decimals = await pubClient.readContract({
+                address: YTEST_USD_TOKEN,
+                abi: [{ name: 'decimals', type: 'function', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint8' }] }],
+                functionName: 'decimals',
+            }) as number;
+            const formatted = (Number(raw) / Math.pow(10, Number(decimals))).toFixed(2);
+            setWalletBalance(formatted);
+        } catch (error) {
+            console.error('Failed to fetch wallet balance:', error);
+        }
+    }, []);
 
     // ==================== CHAPTER 2: WEBSOCKET INIT ====================
     useEffect(() => {
@@ -1122,6 +1147,111 @@ export default function YellowWorkshop() {
         }
     }, [nitroliteClient, account]);
 
+    // ==================== DEPOSIT / WITHDRAW (Wallet ↔ Ledger) ====================
+    const [depositWithdrawAmount, setDepositWithdrawAmount] = useState<string>('100');
+    const [isDepositingOrWithdrawing, setIsDepositingOrWithdrawing] = useState(false);
+
+    // Deposit: Wallet (on-chain) → Ledger (off-chain)
+    const handleLedgerDeposit = useCallback(async () => {
+        if (!nitroliteClient || !account || !publicClient) {
+            alert('Please connect wallet first');
+            return;
+        }
+        const raw = parseFloat(depositWithdrawAmount);
+        if (isNaN(raw) || raw <= 0) {
+            alert('Enter a valid amount');
+            return;
+        }
+
+        setIsDepositingOrWithdrawing(true);
+        try {
+            // Get decimals to convert human-readable to raw
+            const decimals = await publicClient.readContract({
+                address: YTEST_USD_TOKEN,
+                abi: [{ name: 'decimals', type: 'function', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint8' }] }],
+                functionName: 'decimals',
+            }) as number;
+            const rawAmount = BigInt(Math.floor(raw * Math.pow(10, Number(decimals))));
+
+            console.log(`Depositing ${raw} ytest.usd (${rawAmount} raw) to Ledger...`);
+            const txHash = await nitroliteClient.deposit(YTEST_USD_TOKEN, rawAmount);
+            console.log('Deposit TX:', txHash);
+            alert(`Deposited ${raw} ytest.usd! TX: ${String(txHash).slice(0, 10)}...`);
+
+            // Refresh wallet balance
+            fetchWalletBalance(publicClient, account);
+        } catch (error) {
+            console.error('Deposit failed:', error);
+            alert('Deposit failed. Make sure you have approved the token and have enough balance.');
+        } finally {
+            setIsDepositingOrWithdrawing(false);
+        }
+    }, [nitroliteClient, publicClient, account, depositWithdrawAmount, fetchWalletBalance]);
+
+    // Withdraw: Ledger (off-chain) → Wallet (on-chain)
+    const handleLedgerWithdraw = useCallback(async () => {
+        if (!nitroliteClient || !publicClient || !account) {
+            alert('Please connect wallet first');
+            return;
+        }
+        const raw = parseFloat(depositWithdrawAmount);
+        if (isNaN(raw) || raw <= 0) {
+            alert('Enter a valid amount');
+            return;
+        }
+
+        setIsDepositingOrWithdrawing(true);
+        try {
+            const decimals = await publicClient.readContract({
+                address: YTEST_USD_TOKEN,
+                abi: [{ name: 'decimals', type: 'function', stateMutability: 'view', inputs: [], outputs: [{ name: '', type: 'uint8' }] }],
+                functionName: 'decimals',
+            }) as number;
+            const rawAmount = BigInt(Math.floor(raw * Math.pow(10, Number(decimals))));
+
+            console.log(`Withdrawing ${raw} ytest.usd (${rawAmount} raw) from Ledger...`);
+            const txHash = await nitroliteClient.withdrawal(YTEST_USD_TOKEN, rawAmount);
+            console.log('Withdrawal TX:', txHash);
+            alert(`Withdrew ${raw} ytest.usd! TX: ${String(txHash).slice(0, 10)}...`);
+
+            // Refresh wallet balance
+            fetchWalletBalance(publicClient, account);
+        } catch (error) {
+            console.error('Withdrawal failed:', error);
+            alert('Withdrawal failed. Check console.');
+        } finally {
+            setIsDepositingOrWithdrawing(false);
+        }
+    }, [nitroliteClient, publicClient, account, depositWithdrawAmount, fetchWalletBalance]);
+
+    // Request tokens from sandbox faucet → credits Ledger directly
+    const handleFaucet = useCallback(async () => {
+        if (!account) {
+            alert('Please connect wallet first');
+            return;
+        }
+
+        setIsDepositingOrWithdrawing(true);
+        try {
+            const res = await fetch('https://clearnet-sandbox.yellow.com/faucet/requestTokens', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userAddress: account }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert(`Faucet: +${data.amount} ${data.asset} credited to your ledger!`);
+            } else {
+                alert(`Faucet failed: ${data.message || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error('Faucet request failed:', error);
+            alert('Faucet request failed. Check console.');
+        } finally {
+            setIsDepositingOrWithdrawing(false);
+        }
+    }, [account]);
+
     // ==================== CHAPTER 7: APP SESSION (INSTANT PAYMENTS) ====================
     // Create an App Session for instant off-chain payments (no blockchain TX needed!)
     const handleCreateAppSession = useCallback(async () => {
@@ -1172,6 +1302,7 @@ export default function YellowWorkshop() {
                         console.log('✓ App Session created:', sessionId);
                         setAppSessionId(sessionId);
                         setAppSessionStatus('active');
+                        setAppSessionVersion(1);
                         setPayerBalance('100');
                         setPayeeBalance('0');
                         setAppStateVersion(1); // Reset version for new session
@@ -1224,7 +1355,11 @@ export default function YellowWorkshop() {
         }
     }, [sessionKey, account, appSessionPartner]);
 
+<<<<<<< HEAD
     // Send instant payment within the App Session using submit_app_state (requires dual signatures)
+=======
+    // Send instant payment within the App Session using submit_app_state (NO blockchain TX!)
+>>>>>>> d2cfae9b76773a2d40511aba6ee1d08691c9f8f6
     const handleInstantPayment = useCallback(async (amount: string = '10') => {
         if (!sessionKey || !appSessionId || !account) {
             alert('Please create an App Session first');
@@ -1264,6 +1399,29 @@ export default function YellowWorkshop() {
                 console.log('Getting CLOB co-signature for payment...');
                 const msgJson = JSON.parse(stateMsg);
                 const clobSig = await getCLOBSignature(msgJson);
+            // Calculate new FINAL allocations (not delta)
+            const newPayerBalance = (parseFloat(payerBalance) - parseFloat(amount)).toString();
+            const newPayeeBalance = (parseFloat(payeeBalance) + parseFloat(amount)).toString();
+            const nextVersion = appSessionVersion + 1;
+
+            // submit_app_state with intent: operate (redistribute within session)
+            const submitMsg = await createSubmitAppStateMessage<typeof RPCProtocolVersion.NitroRPC_0_4>(messageSigner, {
+                app_session_id: appSessionId as `0x${string}`,
+                intent: RPCAppStateIntent.Operate,
+                version: nextVersion,
+                allocations: [
+                    { participant: account, asset: 'ytest.usd', amount: newPayerBalance },
+                    { participant: appSessionPartner as Address, asset: 'ytest.usd', amount: newPayeeBalance },
+                ],
+            });
+
+            console.log('Sending app state update:', amount, 'ytest.usd, version:', nextVersion);
+            webSocketService.send(submitMsg);
+
+            // Update local state
+            setPayerBalance(newPayerBalance);
+            setPayeeBalance(newPayeeBalance);
+            setAppSessionVersion(nextVersion);
 
                 if (clobSig) {
                     msgJson.sig.push(clobSig);
@@ -1289,7 +1447,11 @@ export default function YellowWorkshop() {
             console.error('Failed to send payment:', error);
             alert('Payment failed. Check console.');
         }
+<<<<<<< HEAD
     }, [sessionKey, appSessionId, appSessionPartner, account, payerBalance, payeeBalance, isMultiPartyMode, clobInfo]);
+=======
+    }, [sessionKey, appSessionId, appSessionPartner, account, payerBalance, payeeBalance, appSessionVersion]);
+>>>>>>> d2cfae9b76773a2d40511aba6ee1d08691c9f8f6
 
     // Close the App Session
     const handleCloseAppSession = useCallback(async () => {
@@ -1315,6 +1477,7 @@ export default function YellowWorkshop() {
                         console.log('✓ App Session closed');
                         setAppSessionId(null);
                         setAppSessionStatus('closed');
+                        setAppSessionVersion(1);
                         setPayerBalance('0');
                         setPayeeBalance('0');
                         setAppSessionPartner('');
@@ -1341,6 +1504,12 @@ export default function YellowWorkshop() {
                 allocations: [
                     { participant: account, asset: 'ytest.usd', amount: '100' },
                     { participant: partnerAddress as Address, asset: 'ytest.usd', amount: '0' },
+            // Final allocations when closing - use current balances (sum must equal session total)
+            const closeMsg = await createCloseAppSessionMessage(messageSigner, {
+                app_session_id: appSessionId as `0x${string}`,
+                allocations: [
+                    { participant: account, asset: 'ytest.usd', amount: payerBalance },
+                    { participant: appSessionPartner as Address, asset: 'ytest.usd', amount: payeeBalance },
                 ],
             });
 
@@ -1368,7 +1537,65 @@ export default function YellowWorkshop() {
             setAppSessionStatus('active');
             setIsAppSessionLoading(false);
         }
-    }, [sessionKey, appSessionId, account, appSessionPartner]);
+    }, [sessionKey, appSessionId, account, appSessionPartner, payerBalance, payeeBalance]);
+
+    // Refresh / recover app sessions from ClearNode
+    const handleRefreshAppSessions = useCallback(async () => {
+        if (!account) {
+            alert('Please connect wallet first');
+            return;
+        }
+
+        try {
+            const getSessionsMsg = createGetAppSessionsMessageV2(account);
+
+            const handleResponse = async (data: unknown) => {
+                const response = parseAnyRPCResponse(JSON.stringify(data));
+                console.log('App Sessions response:', response);
+
+                if (response.method === RPCMethod.GetAppSessions) {
+                    const params = response.params as any;
+                    const sessions = params.appSessions || params.app_sessions || [];
+
+                    if (sessions.length > 0) {
+                        // Find the latest open session
+                        const openSession = sessions.find((s: any) => s.status === 'open');
+                        if (openSession) {
+                            const sid = openSession.appSessionId || openSession.app_session_id;
+                            setAppSessionId(sid);
+                            setAppSessionStatus('active');
+                            setAppSessionVersion(openSession.version || 1);
+
+                            // Restore allocations if available
+                            if (openSession.allocations) {
+                                const myAlloc = openSession.allocations.find((a: any) => a.participant?.toLowerCase() === account.toLowerCase());
+                                const partnerAlloc = openSession.allocations.find((a: any) => a.participant?.toLowerCase() !== account.toLowerCase());
+                                if (myAlloc) setPayerBalance(myAlloc.amount || '0');
+                                if (partnerAlloc) {
+                                    setPayeeBalance(partnerAlloc.amount || '0');
+                                    setAppSessionPartner(partnerAlloc.participant || '');
+                                }
+                            }
+
+                            alert(`Recovered session: ${sid.slice(0, 10)}...`);
+                        } else {
+                            alert(`Found ${sessions.length} session(s), but none are open.`);
+                        }
+                    } else {
+                        alert('No app sessions found.');
+                    }
+
+                    webSocketService.removeMessageListener(handleResponse);
+                }
+            };
+
+            webSocketService.addMessageListener(handleResponse);
+            webSocketService.send(getSessionsMsg);
+        } catch (error) {
+            console.error('Failed to refresh app sessions:', error);
+            alert('Failed to refresh. Check console.');
+        }
+    }, [account]);
 
     return (
         <div className="min-h-screen bg-zinc-950 text-white">
@@ -1444,6 +1671,68 @@ export default function YellowWorkshop() {
                         Use the &quot;Support&quot; buttons to send instant, gasless transfers.
                     </p>
                 </div>
+
+                {/* Wallet & Ledger Balances with Deposit/Withdraw */}
+                {account && (
+                    <div className="mb-6 p-4 rounded-xl bg-zinc-900 border border-zinc-700">
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <div className="text-xs text-zinc-500 uppercase tracking-wide font-bold mb-1">Wallet (On-Chain)</div>
+                                <div className="text-xl font-bold text-white">{walletBalance} <span className="text-sm text-zinc-500">ytest.usd</span></div>
+                                <div className="text-[10px] text-zinc-600">ERC-20 on Sepolia</div>
+                            </div>
+                            <div>
+                                <div className="text-xs text-zinc-500 uppercase tracking-wide font-bold mb-1">Ledger (Off-Chain)</div>
+                                <div className="text-xl font-bold text-yellow-400">{balances?.['ytest.usd'] ?? '—'} <span className="text-sm text-zinc-500">ytest.usd</span></div>
+                                <div className="text-[10px] text-zinc-600">Unified balance on ClearNode</div>
+                            </div>
+                        </div>
+
+                        {/* Faucet - Sandbox only */}
+                        <div className="flex items-center gap-3 mb-3">
+                            <button
+                                onClick={handleFaucet}
+                                disabled={isDepositingOrWithdrawing}
+                                className="px-4 py-2 rounded-lg font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-yellow-500 hover:bg-yellow-400 text-black"
+                            >
+                                {isDepositingOrWithdrawing ? '...' : 'Request Faucet Tokens'}
+                            </button>
+                            <span className="text-xs text-zinc-500">Credits 10M ytest.usd directly to your ledger (sandbox only)</span>
+                        </div>
+
+                        {/* On-chain Deposit/Withdraw (requires ERC-20 tokens in wallet) */}
+                        <details className="group">
+                            <summary className="cursor-pointer text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
+                                On-chain Deposit/Withdraw (production flow)
+                            </summary>
+                            <div className="flex items-center gap-3 mt-2">
+                                <input
+                                    type="number"
+                                    value={depositWithdrawAmount}
+                                    onChange={(e) => setDepositWithdrawAmount(e.target.value)}
+                                    placeholder="Amount"
+                                    className="w-32 px-3 py-2 bg-zinc-800 border border-zinc-600 rounded-lg text-sm font-mono"
+                                />
+                                <span className="text-xs text-zinc-500">ytest.usd</span>
+                                <button
+                                    onClick={handleLedgerDeposit}
+                                    disabled={isDepositingOrWithdrawing || !nitroliteClient}
+                                    className="px-4 py-2 rounded-lg font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-green-600 hover:bg-green-500 text-white"
+                                >
+                                    {isDepositingOrWithdrawing ? '...' : 'Deposit →'}
+                                </button>
+                                <button
+                                    onClick={handleLedgerWithdraw}
+                                    disabled={isDepositingOrWithdrawing || !nitroliteClient}
+                                    className="px-4 py-2 rounded-lg font-semibold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-red-600 hover:bg-red-500 text-white"
+                                >
+                                    {isDepositingOrWithdrawing ? '...' : '← Withdraw'}
+                                </button>
+                            </div>
+                            <div className="text-[10px] text-zinc-600 mt-1">Requires ERC-20 ytest.usd tokens in your wallet. Deposit: wallet → custody → ledger. Withdraw: ledger → custody → wallet.</div>
+                        </details>
+                    </div>
+                )}
 
                 {/* App Session Payments - EIP-712 Sign Once, Then All Automatic */}
                 {isAuthenticated && (
@@ -1532,10 +1821,19 @@ export default function YellowWorkshop() {
                             >
                                 {appSessionStatus === 'closing' ? 'Closing...' : '3. Close Session'}
                             </button>
+
+                            <button
+                                onClick={handleRefreshAppSessions}
+                                disabled={!isAuthenticated}
+                                className="px-4 py-2 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-zinc-700 hover:bg-zinc-600 text-white"
+                            >
+                                Refresh Sessions
+                            </button>
                         </div>
 
                         <div className="mt-4 text-xs text-zinc-500">
-                            All 3 steps above use your EIP-712 authorized session key — no additional wallet signatures needed!
+                            All steps above use your EIP-712 authorized session key — no additional wallet signatures needed!
+                            Version: {appSessionVersion}
                         </div>
                     </div>
                 )}
@@ -1601,6 +1899,7 @@ export default function YellowWorkshop() {
                                     )}
                                 </div>
 
+<<<<<<< HEAD
                                 <div className="p-4 rounded-lg bg-zinc-900/50 border border-zinc-700">
                                     <div className="text-sm text-zinc-400 mb-1">Channel Balance</div>
                                     <div className="font-semibold">{channelBalance} ytest.usd</div>
@@ -1688,6 +1987,19 @@ export default function YellowWorkshop() {
                                     apps.yellow.com
                                 </a>
                             </div>
+=======
+                        {/* Deposit ytest.usd */}
+                        <div className="mb-6 p-4 rounded-lg bg-zinc-900/30 border border-zinc-800">
+                            <label className="block text-xs text-zinc-500 mb-2 uppercase tracking-wide font-bold">Step 0: Fund Ledger (ytest.usd)</label>
+                            <button
+                                onClick={() => handleDeposit(BigInt(10000000000000000))}
+                                disabled={isChannelLoading}
+                                className="w-full px-4 py-1.5 rounded-md text-sm font-bold bg-zinc-100 hover:bg-white text-black transition-all disabled:opacity-50"
+                            >
+                                {isChannelLoading ? 'Processing...' : 'Deposit 0.01 ytest.usd'}
+                            </button>
+                            <p className="text-[10px] text-zinc-500 mt-1">Moves funds from Wallet → Unified Balance</p>
+>>>>>>> d2cfae9b76773a2d40511aba6ee1d08691c9f8f6
                         </div>
                     </details>
                 )}
