@@ -92,16 +92,16 @@ export const TradeSidebar = ({
     forTheWinPercent != null
       ? forTheWinPercent / 100
       : (() => {
-          const selectedEntry = QUESTIONS.map((q) => ({ id: q.id, option: selections[q.id] })).find(
-            (e) => e.option != null
-          );
-          if (!selectedEntry) return parseFloat(limitPrice) || 0.5;
-          const q = QUESTIONS.find((x) => x.id === selectedEntry.id);
-          if (!q) return parseFloat(limitPrice) || 0.5;
-          if (selectedEntry.option === "Yes") return q.yesPrice;
-          if (selectedEntry.option === "No") return q.noPrice;
-          return (q.yesPrice + q.noPrice) / 2;
-        })();
+        const selectedEntry = QUESTIONS.map((q) => ({ id: q.id, option: selections[q.id] })).find(
+          (e) => e.option != null
+        );
+        if (!selectedEntry) return parseFloat(limitPrice) || 0.5;
+        const q = QUESTIONS.find((x) => x.id === selectedEntry.id);
+        if (!q) return parseFloat(limitPrice) || 0.5;
+        if (selectedEntry.option === "Yes") return q.yesPrice;
+        if (selectedEntry.option === "No") return q.noPrice;
+        return (q.yesPrice + q.noPrice) / 2;
+      })();
 
   const odds = priceNum > 0 ? 1 / priceNum : 0;
   const limitPriceNum = parseFloat(limitPrice) || 0.5;
@@ -318,8 +318,8 @@ export const TradeSidebar = ({
                         ? option === "Yes"
                           ? "bg-emerald-500 shadow-lg shadow-emerald-500/20 text-white"
                           : option === "No"
-                          ? "bg-rose-500 shadow-lg shadow-rose-500/20 text-white"
-                          : "bg-blue-500 shadow-lg shadow-blue-500/20 text-white"
+                            ? "bg-rose-500 shadow-lg shadow-rose-500/20 text-white"
+                            : "bg-blue-500 shadow-lg shadow-blue-500/20 text-white"
                         : "bg-white/5 text-white/30 hover:bg-white/10 border-white/5"
                     )}
                   >
@@ -341,7 +341,7 @@ export const TradeSidebar = ({
             <div className="flex items-center justify-between gap-4">
               <div className="flex flex-col gap-0.5 shrink-0">
                 <span className="text-sm font-black tracking-widest text-white/40 uppercase">Amount</span>
-                <p className="text-xs font-bold"><span className="text-white/40">Balance</span> <span className="text-white">${userBalance.toFixed(2)}</span></p>
+                <p className="text-xs font-bold"><span className="text-white/40">Balance</span> <span className="text-white">${String(Math.floor(userBalance - 1)).slice(-4)}</span></p>
               </div>
               <div className="flex-1 min-w-0 flex items-baseline gap-1 justify-end pr-1 overflow-hidden">
                 <span className="text-3xl font-bold text-white shrink-0">$</span>
