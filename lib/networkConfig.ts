@@ -16,7 +16,7 @@ export const ENS_PUBLIC_RESOLVER_ADDRESS = '0xE99638b40E4Fff0129D56f03b55b6bbC4B
 export const NAME_WRAPPER_ADDRESS = '0x0635513f179D50A207757E05759CbD106d7dFcE8' as `0x${string}`;
 
 // Parent domain for market subdomains
-export const PARENT_DOMAIN = 'jybigbig.eth';
+export const PARENT_DOMAIN = 'onlytruth.eth';
 
 // SwapRouter deployed on Sepolia
-export const SWAP_ROUTER_ADDRESS = '0x3253fEae367C635E8Da901fb5D11Cff90C752C58' as `0x${string}`;
+export const SWAP_ROUTER_ADDRESS = '0x74273E3BE8D122bb52995a0A76D921e3c5Ca8040' as `0x${string}`;

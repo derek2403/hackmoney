@@ -117,8 +117,13 @@ export default function EventsPage() {
                     <h1 className="text-3xl font-bold tracking-tighter">
                         CONTRACT <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">EVENTS</span>
                     </h1>
-                    <div className="text-xs text-gray-500 border border-white/10 px-3 py-1 rounded bg-black/50">
-                        Auto-refreshing (10s)
+                    <div className="flex flex-col items-end">
+                        <div className="text-xs text-gray-500 border border-white/10 px-3 py-1 rounded bg-black/50 mb-2">
+                            Auto-refreshing (10s)
+                        </div>
+                        <div className="text-[10px] font-mono text-gray-600">
+                            Watching: <span className="text-gray-400">{SWAP_ROUTER_ADDRESS}</span>
+                        </div>
                     </div>
                 </div>
 
