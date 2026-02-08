@@ -483,7 +483,7 @@ const httpServer = http_module.createServer((req, res) => {
 });
 
 // ==================== START SERVER ====================
-httpServer.listen(SERVER_PORT, () => {
+httpServer.listen(SERVER_PORT, '0.0.0.0', () => {
     console.log(`CLOB Server listening on port ${SERVER_PORT}`);
     console.log(`Status endpoint: http://localhost:${SERVER_PORT}/status`);
     console.log(`CLOB address endpoint: http://localhost:${SERVER_PORT}/clob-address`);
