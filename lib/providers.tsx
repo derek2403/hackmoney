@@ -14,7 +14,7 @@ import {
 import { chains } from './networkConfig';
 
 const config = getDefaultConfig({
-  appName: 'PolygonAkindo',
+  appName: 'OnlyTruth',
   projectId: 'YOUR_PROJECT_ID', // Get your projectId from https://cloud.walletconnect.com/
   chains,
   ssr: true,
