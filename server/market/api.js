@@ -45,6 +45,9 @@ const {
   saveState,
   setSession,
   getSession,
+  getUserUsdBalance,
+  deductUserUsd,
+  creditUserUsd,
 } = require('./state');
 
 // ==================== STATE HOLDER ====================
@@ -218,6 +221,14 @@ function handleBuy(body) {
   const { user, type, amount } = body;
   if (!user || !amount || amount <= 0) return { error: 'Invalid params' };
 
+  // Require session and sufficient USD balance
+  const session = getSession(marketState, user);
+  if (!session) return { error: 'No session — deposit funds first' };
+  const userUsd = session.userBalance || 0;
+  if (userUsd < amount - 0.001) {
+    return { error: `Insufficient balance: have $${Math.round(userUsd * 100) / 100}, need $${amount}` };
+  }
+
   const corners = getMatchingCorners(type, body);
   if (corners.length === 0) return { error: `Invalid type: ${type}` };
 
@@ -247,6 +258,20 @@ function handleBuy(body) {
     return { error: 'No sell orders available on the book' };
   }
 
+  // Deduct USD from buyer's tracked balance
+  try {
+    deductUserUsd(marketState, user, totalCost);
+  } catch (err) {
+    console.warn(`[Market] USD deduction warning for ${user}: ${err.message}`);
+  }
+
+  // Credit USD to sellers
+  for (const fill of allFills) {
+    if (fill.user !== clobAddress) {
+      creditUserUsd(marketState, fill.user, fill.quantity * fill.price);
+    }
+  }
+
   marketState.market.totalVolume += totalCost;
 
   recordTrade(marketState, {
@@ -265,6 +290,7 @@ function handleBuy(body) {
     cost: Math.round(totalCost * 10000) / 10000,
     shares: Math.round(totalShares * 10000) / 10000,
     fills: allFills,
+    newBalance: Math.round(getUserUsdBalance(marketState, user) * 100) / 100,
   };
 }
 
@@ -279,6 +305,10 @@ function handleSell(body) {
 
   const { user, type, shares } = body;
   if (!user || !shares || shares <= 0) return { error: 'Invalid params' };
+
+  // Require session
+  const session = getSession(marketState, user);
+  if (!session) return { error: 'No session — deposit funds first' };
 
   const corners = getMatchingCorners(type, body);
   if (corners.length === 0) return { error: `Invalid type: ${type}` };
@@ -318,6 +348,19 @@ function handleSell(body) {
     return { error: 'No buy orders available on the book' };
   }
 
+  // Credit USD to seller
+  creditUserUsd(marketState, user, totalRevenue);
+
+  // Deduct USD from buyers (if they have balances)
+  for (const fill of allFills) {
+    if (fill.user !== clobAddress) {
+      const buyerUsd = getUserUsdBalance(marketState, fill.user);
+      if (buyerUsd > 0) {
+        try { deductUserUsd(marketState, fill.user, fill.quantity * fill.price); } catch {}
+      }
+    }
+  }
+
   marketState.market.totalVolume += totalRevenue;
 
   recordTrade(marketState, {
@@ -336,6 +379,7 @@ function handleSell(body) {
     revenue: Math.round(totalRevenue * 10000) / 10000,
     shares: Math.round(totalSold * 10000) / 10000,
     fills: allFills,
+    newBalance: Math.round(getUserUsdBalance(marketState, user) * 100) / 100,
   };
 }
 
@@ -551,10 +595,19 @@ function handleGetState() {
 function handleRegisterSession(body) {
   if (!marketState) return { error: 'No market exists' };
 
-  const { user, sessionId, userBalance, clobBalance, version } = body;
+  const { user, sessionId, userBalance, addBalance, clobBalance, version } = body;
   if (!user) return { error: 'Missing user address' };
 
-  setSession(marketState, user, { sessionId, userBalance, clobBalance, version });
+  if (addBalance && typeof addBalance === 'number' && addBalance > 0) {
+    // Additive mode: credit balance on top of existing (used by ENS listener)
+    creditUserUsd(marketState, user, addBalance);
+    // Also ensure session entry exists with other fields
+    const existing = getSession(marketState, user) || {};
+    if (sessionId) existing.sessionId = sessionId;
+    setSession(marketState, user, existing);
+  } else {
+    setSession(marketState, user, { sessionId, userBalance, clobBalance, version });
+  }
   persist();
 
   return { success: true, session: getSession(marketState, user) };

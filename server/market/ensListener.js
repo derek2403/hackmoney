@@ -45,6 +45,42 @@ function loadConfig() {
 }
 
 /**
+ * Register a session for an ENS buyer (credits them USD so the buy can proceed).
+ */
+function postSession(port, user, addBalance) {
+  return new Promise((resolve, reject) => {
+    const data = JSON.stringify({ user, addBalance });
+    console.log(`[ENS Listener] POST /api/market/session payload:`, data);
+    const req = http_module.request(
+      {
+        hostname: '127.0.0.1',
+        port,
+        path: '/api/market/session',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(data),
+        },
+      },
+      (res) => {
+        let body = '';
+        res.on('data', (chunk) => { body += chunk; });
+        res.on('end', () => {
+          console.log(`[ENS Listener] Session response (${res.statusCode}):`, body);
+          try { resolve(JSON.parse(body)); } catch { resolve({ raw: body }); }
+        });
+      }
+    );
+    req.on('error', (err) => {
+      console.error(`[ENS Listener] Session HTTP error:`, err.message);
+      reject(err);
+    });
+    req.write(data);
+    req.end();
+  });
+}
+
+/**
  * Make a POST request to the CLOB server's market buy endpoint.
  */
 function postBuy(port, buyPayload) {
@@ -198,8 +234,15 @@ function startENSListener(serverPort) {
           continue;
         }
 
-        // Buy on the CLOB order book at market price
+        // Register/credit session for the ENS buyer so they have USD to spend
         const buyAmount = currentConfig.defaultBuyAmount || defaultAmount;
+        try {
+          await postSession(serverPort, buyer, buyAmount);
+        } catch (err) {
+          console.error(`[ENS Listener] Session registration error:`, err.message);
+        }
+
+        // Buy on the CLOB order book at market price
         try {
           const result = await postBuy(serverPort, {
             user: buyer,

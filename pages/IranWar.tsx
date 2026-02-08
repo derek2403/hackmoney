@@ -56,6 +56,7 @@ export default function Home() {
   const [fundAmount, setFundAmount] = useState("100");
   const [bottomTab, setBottomTab] = useState<typeof BOTTOM_TABS[number]>("Rules");
   const [portfolioValue, setPortfolioValue] = useState(0);
+  const [serverUsdBalance, setServerUsdBalance] = useState(0);
 
   // Auto-connect Yellow session when wagmi wallet connects
   useEffect(() => {
@@ -64,11 +65,14 @@ export default function Home() {
     }
   }, [wagmiAddress, yellow.account, yellow.connectWallet]);
 
-  // Fetch portfolio value (total share holdings)
+  // Fetch portfolio value + server-tracked USD balance
   useEffect(() => {
     if (yellow.account) {
       fetchPositions(yellow.account)
-        .then((p) => setPortfolioValue(p.totalShareValue))
+        .then((p) => {
+          setPortfolioValue(p.totalShareValue);
+          setServerUsdBalance(p.usdBalance ?? 0);
+        })
         .catch(() => {});
     }
   }, [yellow.account, refreshKey]);
@@ -151,30 +155,40 @@ export default function Home() {
 
   // ==================== BUY FLOW ====================
   const handlePostBuy = useCallback(async (cost: number) => {
-    if (yellow.appSessionStatus !== "active" || cost <= 0) return;
+    if (cost <= 0) return;
 
-    const ok = await yellow.sendPaymentToCLOB(cost);
-    if (!ok) {
-      console.warn("Failed to send instant payment for trade — session may be out of sync");
+    // If Yellow session is active, send instant payment
+    if (yellow.appSessionStatus === "active") {
+      const ok = await yellow.sendPaymentToCLOB(cost);
+      if (!ok) {
+        console.warn("Failed to send instant payment for trade — session may be out of sync");
+      }
+      if (yellow.account) {
+        await registerSession({ user: yellow.account, userBalance: yellow.payerBalance - cost }).catch(() => {});
+      }
     }
 
-    if (yellow.account) {
-      await registerSession({ user: yellow.account, userBalance: yellow.payerBalance - cost }).catch(() => {});
-    }
+    // Refresh server-tracked balance
+    setRefreshKey((k) => k + 1);
   }, [yellow]);
 
   // ==================== SELL FLOW ====================
   const handlePostSell = useCallback(async (revenue: number) => {
-    if (yellow.appSessionStatus !== "active" || revenue <= 0) return;
+    if (revenue <= 0) return;
 
-    const ok = await yellow.receivePaymentFromCLOB(revenue);
-    if (!ok) {
-      console.warn("Failed to receive instant payment for sale");
+    // If Yellow session is active, receive instant payment
+    if (yellow.appSessionStatus === "active") {
+      const ok = await yellow.receivePaymentFromCLOB(revenue);
+      if (!ok) {
+        console.warn("Failed to receive instant payment for sale");
+      }
+      if (yellow.account) {
+        await registerSession({ user: yellow.account, userBalance: yellow.payerBalance + revenue }).catch(() => {});
+      }
     }
 
-    if (yellow.account) {
-      await registerSession({ user: yellow.account, userBalance: yellow.payerBalance + revenue }).catch(() => {});
-    }
+    // Refresh server-tracked balance
+    setRefreshKey((k) => k + 1);
   }, [yellow]);
 
   // ==================== NAVBAR DEPOSIT HANDLER ====================
@@ -217,7 +231,7 @@ export default function Home() {
       <div className="relative z-10 flex min-h-screen flex-col">
         <Navbar
           portfolioValue={portfolioValue}
-          cash={parseFloat(yellow.ledgerBalance) || 0}
+          cash={yellow.appSessionStatus === 'active' ? yellow.payerBalance : serverUsdBalance}
           ledgerBalance={yellow.ledgerBalance}
           isYellowAuthenticated={yellow.isAuthenticated}
           isClobReady={!!yellow.clobInfo?.authenticated}
@@ -454,7 +468,7 @@ export default function Home() {
                   forTheWinPercent={avgPriceCents}
                   userAddress={yellow.account ?? null}
                   liveMarginals={marketData?.marginals ?? null}
-                  userBalance={yellow.payerBalance}
+                  userBalance={yellow.appSessionStatus === 'active' ? yellow.payerBalance : serverUsdBalance}
                   onTradeComplete={handleTradeComplete}
                   onPostBuy={handlePostBuy}
                   onPostSell={handlePostSell}
