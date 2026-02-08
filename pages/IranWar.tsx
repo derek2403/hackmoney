@@ -18,9 +18,10 @@ import { OrderBook } from "../components/OrderBook";
 import { MarketRules } from "../components/MarketRules";
 import { SidebarFeed } from "../components/SidebarFeed";
 import { MarketPositions } from "../components/MarketPositions";
-import { fetchMarketPrices, registerSession, fundMarket } from "@/lib/yellow/market/marketClient";
+import { fetchMarketPrices, fetchPositions, registerSession, fundMarket } from "@/lib/yellow/market/marketClient";
 import type { MarketPrices } from "@/lib/yellow/market/types";
 import { useYellowSession } from "../hooks/useYellowSession";
+import { useAccount } from "wagmi";
 import { cn } from "../components/utils";
 
 const spaceGrotesk = Space_Grotesk({
@@ -46,6 +47,7 @@ const BOTTOM_TABS = ["Rules", "History", "Activity"] as const;
 
 export default function Home() {
   const yellow = useYellowSession();
+  const { address: wagmiAddress } = useAccount();
 
   const [view, setView] = useState<"1D" | "2D" | "3D" | "Odds">("1D");
   const [selectedOutcomeIds, setSelectedOutcomeIds] = useState<number[]>([]);
@@ -53,6 +55,23 @@ export default function Home() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [fundAmount, setFundAmount] = useState("100");
   const [bottomTab, setBottomTab] = useState<typeof BOTTOM_TABS[number]>("Rules");
+  const [portfolioValue, setPortfolioValue] = useState(0);
+
+  // Auto-connect Yellow session when wagmi wallet connects
+  useEffect(() => {
+    if (wagmiAddress && !yellow.account) {
+      yellow.connectWallet();
+    }
+  }, [wagmiAddress, yellow.account, yellow.connectWallet]);
+
+  // Fetch portfolio value (total share holdings)
+  useEffect(() => {
+    if (yellow.account) {
+      fetchPositions(yellow.account)
+        .then((p) => setPortfolioValue(p.totalShareValue))
+        .catch(() => {});
+    }
+  }, [yellow.account, refreshKey]);
 
   const marketStatus = marketData?.status ?? "seeding";
 
@@ -158,6 +177,15 @@ export default function Home() {
     }
   }, [yellow]);
 
+  // ==================== NAVBAR DEPOSIT HANDLER ====================
+  const handleNavbarCreateSession = useCallback(async (amount: number) => {
+    await yellow.createAppSession(amount);
+  }, [yellow.createAppSession]);
+
+  const handleNavbarDeposit = useCallback(async (amount: number) => {
+    return yellow.depositToSession(amount);
+  }, [yellow.depositToSession]);
+
   const MARKET_INFO = [
     { label: "Volume", value: `$${volume.toLocaleString()}`, color: "" },
     { label: "24h Change", value: "+5.2%", color: "text-emerald-400" },
@@ -187,7 +215,17 @@ export default function Home() {
       <div className="fixed inset-0 z-0 pointer-events-none bg-black/40" />
 
       <div className="relative z-10 flex min-h-screen flex-col">
-        <Navbar />
+        <Navbar
+          portfolioValue={portfolioValue}
+          cash={yellow.payerBalance}
+          ledgerBalance={yellow.ledgerBalance}
+          isYellowAuthenticated={yellow.isAuthenticated}
+          appSessionStatus={yellow.appSessionStatus}
+          isSessionLoading={yellow.isSessionLoading}
+          onCreateSession={handleNavbarCreateSession}
+          onDepositToSession={handleNavbarDeposit}
+          onRequestFaucet={yellow.requestFaucet}
+        />
 
         <main className="mx-auto flex-1 w-full max-w-[1440px] px-6 pt-4 pb-12">
           <div className="flex items-stretch gap-12">
