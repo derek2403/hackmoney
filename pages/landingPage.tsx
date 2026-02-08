@@ -5,7 +5,7 @@ import { useRouter } from "next/router";
 import { Audiowide, Cinzel, Permanent_Marker, Orbitron, Exo_2 } from "next/font/google";
 import dynamic from "next/dynamic";
 import gsap from "gsap";
-import Galaxy from "../components/Galaxy";
+
 import DecryptedText from "../components/DecryptedText";
 import FuzzyText from "../components/FuzzyText";
 import TrueFocus from "../components/TrueFocus";
@@ -174,20 +174,7 @@ export default function LandingPage() {
       </Head>
       <div className={`${cinzel.variable} ${orbitron.variable} ${exo2.variable} ${audiowide.variable} min-h-screen bg-[#0a0a0b] text-white antialiased relative overflow-hidden font-sans`} style={{ fontFamily: "var(--font-exo), system-ui, sans-serif" }}>
         <div className="fixed inset-0 z-0 pointer-events-none" style={{ width: "100%", height: "100%" }}>
-          <Galaxy
-            mouseRepulsion
-            mouseInteraction
-            density={1.1}
-            glowIntensity={0.2}
-            saturation={0.4}
-            hueShift={140}
-            twinkleIntensity={0.9}
-            rotationSpeed={0.05}
-            repulsionStrength={8}
-            autoCenterRepulsion={0}
-            starSpeed={0.3}
-            speed={0.3}
-          />
+
         </div>
         <div className="fixed inset-0 z-0 pointer-events-none bg-[#0a0a0b]/40" />
         <div className="landing-grid-overlay fixed inset-0 z-0 pointer-events-none opacity-[0.12]" />
