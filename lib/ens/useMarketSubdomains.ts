@@ -19,7 +19,7 @@ const PUBLIC_RESOLVER_ABI = [
 ] as const;
 
 // All 8 corners for a 3-event market
-export const CORNERS = ['000', '001', '010', '011', '100', '101', '110', '111'] as const;
+export const CORNERS = ['nnn', 'nny', 'nyn', 'nyy', 'ynn', 'yny', 'yyn', 'yyy'] as const;
 export type Corner = typeof CORNERS[number];
 
 export type MarketSubdomainStep =

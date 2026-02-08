@@ -204,7 +204,7 @@ export const CreateMarketForm: React.FC<CreateMarketFormProps> = ({
                 )}
                 {isValidName && (
                     <p className="mt-1 text-sm text-gray-500">
-                        Will create: {marketName}-000.{PARENT_DOMAIN}, ..., {marketName}-111.{PARENT_DOMAIN}
+                        Will create: {marketName}-nnn.{PARENT_DOMAIN}, ..., {marketName}-yyy.{PARENT_DOMAIN}
                     </p>
                 )}
             </div>
