@@ -535,7 +535,7 @@ export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onT
                               tabIndex={0}
                               onClick={() => {
                                 const thirdMarketId = [1, 2, 3].find((id) => id !== marketAId && id !== marketBId);
-                                onSelectionChange({
+                                onSelectionChange?.({
                                   ...selections,
                                   [marketAId]: cell.aYes ? "Yes" : "No",
                                   [marketBId]: cell.bYes ? "Yes" : "No",
@@ -546,7 +546,7 @@ export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onT
                                 if (e.key === "Enter" || e.key === " ") {
                                   e.preventDefault();
                                   const thirdMarketId = [1, 2, 3].find((id) => id !== marketAId && id !== marketBId);
-                                  onSelectionChange({
+                                  onSelectionChange?.({
                                     ...selections,
                                     [marketAId]: cell.aYes ? "Yes" : "No",
                                     [marketBId]: cell.bYes ? "Yes" : "No",

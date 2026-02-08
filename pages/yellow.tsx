@@ -311,14 +311,10 @@ export default function YellowWorkshop() {
     const [appSessionVersion, setAppSessionVersion] = useState<number>(1);
     const [payerBalance, setPayerBalance] = useState<string>('0');
     const [payeeBalance, setPayeeBalance] = useState<string>('0');
-<<<<<<< HEAD
-    const [appStateVersion, setAppStateVersion] = useState<number>(1); // Track state version (starts at 1)
     const [clobInfo, setClobInfo] = useState<CLOBInfo | null>(null);
     const [isMultiPartyMode, setIsMultiPartyMode] = useState(true); // Enable 50/50 mode
-=======
     const [appSessionLedgerBalances, setAppSessionLedgerBalances] = useState<Record<string, string> | null>(null);
     const [isLoadingAppSessionBalances, setIsLoadingAppSessionBalances] = useState(false);
->>>>>>> da1d28c9813693799764e3c0fc85bcd941e493b2
     // ==================== CHAPTER 1: WALLET CONNECTION ====================
     const connectWallet = async () => {
         if (typeof window === 'undefined' || !window.ethereum) {
@@ -1367,7 +1363,6 @@ export default function YellowWorkshop() {
                         setAppSessionVersion(1);
                         setPayerBalance('100');
                         setPayeeBalance('0');
-                        setAppStateVersion(1); // Reset version for new session
                         alert(`App Session created! ID: ${sessionId.slice(0, 10)}...`);
                     } else if (params.error) {
                         console.error('App Session error:', params.error);
@@ -1417,11 +1412,7 @@ export default function YellowWorkshop() {
         }
     }, [sessionKey, account, appSessionPartner]);
 
-<<<<<<< HEAD
     // Send instant payment within the App Session using submit_app_state (requires dual signatures)
-=======
-    // Send instant payment within the App Session using submit_app_state (NO blockchain TX!)
->>>>>>> d2cfae9b76773a2d40511aba6ee1d08691c9f8f6
     const handleInstantPayment = useCallback(async (amount: string = '10') => {
         if (!sessionKey || !appSessionId || !account) {
             alert('Please create an App Session first');
@@ -1447,7 +1438,7 @@ export default function YellowWorkshop() {
             const stateMsg = await createSubmitAppStateMessage<RPCProtocolVersion.NitroRPC_0_4>(messageSigner, {
                 app_session_id: appSessionId as `0x${string}`,
                 intent: RPCAppStateIntent.Operate,
-                version: appStateVersion + 1, // Increment version for each state update
+                version: appSessionVersion + 1, // Increment version for each state update
                 allocations: [
                     { participant: account, asset: 'ytest.usd', amount: newPayerBalance },
                     { participant: partnerAddress as Address, asset: 'ytest.usd', amount: newPayeeBalance },
@@ -1461,31 +1452,7 @@ export default function YellowWorkshop() {
                 console.log('Getting CLOB co-signature for payment...');
                 const msgJson = JSON.parse(stateMsg);
                 const clobSig = await getCLOBSignature(msgJson);
-            // Calculate new FINAL allocations (not delta)
-            const newPayerBalance = (parseFloat(payerBalance) - parseFloat(amount)).toString();
-            const newPayeeBalance = (parseFloat(payeeBalance) + parseFloat(amount)).toString();
-            const nextVersion = appSessionVersion + 1;
 
-            // submit_app_state with intent: operate (redistribute within session)
-            const submitMsg = await createSubmitAppStateMessage<typeof RPCProtocolVersion.NitroRPC_0_4>(messageSigner, {
-                app_session_id: appSessionId as `0x${string}`,
-                intent: RPCAppStateIntent.Operate,
-                version: nextVersion,
-                allocations: [
-                    { participant: account, asset: 'ytest.usd', amount: newPayerBalance },
-                    { participant: appSessionPartner as Address, asset: 'ytest.usd', amount: newPayeeBalance },
-                ],
-            });
-
-            console.log('Sending app state update:', amount, 'ytest.usd, version:', nextVersion);
-            webSocketService.send(submitMsg);
-
-            // Update local state optimistically
-            setPayerBalance(newPayerBalance);
-            setPayeeBalance(newPayeeBalance);
-            setAppSessionVersion(nextVersion);
-
-<<<<<<< HEAD
                 if (clobSig) {
                     msgJson.sig.push(clobSig);
                     console.log('✓ Payment with both signatures');
@@ -1499,31 +1466,23 @@ export default function YellowWorkshop() {
                 webSocketService.send(stateMsg);
             }
 
-            // Update payer/payee balances and version locally
+            // Update local state optimistically
             setPayerBalance(newPayerBalance);
             setPayeeBalance(newPayeeBalance);
-            setAppStateVersion(prev => prev + 1); // Increment version after successful update
+            setAppSessionVersion(prev => prev + 1);
+
+            // Refresh server-reported balances after a short delay
+            if (typeof fetchAppSessionBalances === 'function') {
+                setTimeout(() => fetchAppSessionBalances(), 500);
+            }
 
             alert(`Sent ${amount} ytest.usd instantly! (No gas fees${isMultiPartyMode ? ', dual-signed' : ''})`);
-=======
-            // Refresh server-reported balances after a short delay
-            setTimeout(() => fetchAppSessionBalances(), 500);
-
-            alert(`Sent ${amount} ytest.usd instantly! (No gas fees)`);
->>>>>>> da1d28c9813693799764e3c0fc85bcd941e493b2
 
         } catch (error) {
             console.error('Failed to send payment:', error);
             alert('Payment failed. Check console.');
         }
-<<<<<<< HEAD
-<<<<<<< HEAD
-    }, [sessionKey, appSessionId, appSessionPartner, account, payerBalance, payeeBalance, isMultiPartyMode, clobInfo]);
-=======
-    }, [sessionKey, appSessionId, appSessionPartner, account, payerBalance, payeeBalance, appSessionVersion]);
->>>>>>> d2cfae9b76773a2d40511aba6ee1d08691c9f8f6
-=======
-    }, [sessionKey, appSessionId, appSessionPartner, account, payerBalance, payeeBalance, appSessionVersion, fetchAppSessionBalances]);
+    }, [sessionKey, appSessionId, appSessionPartner, account, payerBalance, payeeBalance, isMultiPartyMode, clobInfo, appSessionVersion]);
 
     // Deposit funds from Ledger into the active App Session
     const [appDepositAmount, setAppDepositAmount] = useState<string>('50');
@@ -1541,6 +1500,9 @@ export default function YellowWorkshop() {
         try {
             const messageSigner = createECDSAMessageSigner(sessionKey.privateKey);
 
+            // Resolve partner address (use CLOB address in multi-party mode)
+            const partnerAddress = isMultiPartyMode && clobInfo ? clobInfo.address : appSessionPartner;
+
             // New payer allocation = current + deposit amount (payee unchanged)
             const newPayerBalance = (parseFloat(payerBalance) + depositAmt).toString();
             const nextVersion = appSessionVersion + 1;
@@ -1551,12 +1513,30 @@ export default function YellowWorkshop() {
                 version: nextVersion,
                 allocations: [
                     { participant: account, asset: 'ytest.usd', amount: newPayerBalance },
-                    { participant: appSessionPartner as Address, asset: 'ytest.usd', amount: payeeBalance },
+                    { participant: partnerAddress as Address, asset: 'ytest.usd', amount: payeeBalance },
                 ],
             });
 
             console.log(`Depositing ${depositAmt} ytest.usd from ledger into app session, version:`, nextVersion);
-            webSocketService.send(submitMsg);
+
+            // For multi-party mode, get CLOB co-signature to meet quorum
+            if (isMultiPartyMode && clobInfo?.authenticated) {
+                console.log('Getting CLOB co-signature for deposit...');
+                const msgJson = JSON.parse(submitMsg);
+                const clobSig = await getCLOBSignature(msgJson);
+
+                if (clobSig) {
+                    msgJson.sig.push(clobSig);
+                    console.log('✓ Deposit with both signatures');
+                    webSocketService.send(JSON.stringify(msgJson));
+                } else {
+                    console.warn('Failed to get CLOB signature for deposit');
+                    alert('CLOB co-signature required for multi-party deposit');
+                    return;
+                }
+            } else {
+                webSocketService.send(submitMsg);
+            }
 
             // Update local state optimistically
             setPayerBalance(newPayerBalance);
@@ -1569,7 +1549,7 @@ export default function YellowWorkshop() {
             console.error('Failed to deposit into app session:', error);
             alert('Deposit into app session failed. Check console.');
         }
-    }, [sessionKey, appSessionId, appSessionPartner, account, payerBalance, payeeBalance, appSessionVersion, appDepositAmount, fetchAppSessionBalances]);
+    }, [sessionKey, appSessionId, appSessionPartner, account, payerBalance, payeeBalance, appSessionVersion, appDepositAmount, fetchAppSessionBalances, isMultiPartyMode, clobInfo]);
 
     // Withdraw funds from App Session back to Ledger
     const handleAppSessionWithdraw = useCallback(async () => {
@@ -1590,6 +1570,9 @@ export default function YellowWorkshop() {
         try {
             const messageSigner = createECDSAMessageSigner(sessionKey.privateKey);
 
+            // Resolve partner address (use CLOB address in multi-party mode)
+            const partnerAddress = isMultiPartyMode && clobInfo ? clobInfo.address : appSessionPartner;
+
             // New payer allocation = current - withdraw amount (payee unchanged)
             const newPayerBalance = (parseFloat(payerBalance) - withdrawAmt).toString();
             const nextVersion = appSessionVersion + 1;
@@ -1600,12 +1583,30 @@ export default function YellowWorkshop() {
                 version: nextVersion,
                 allocations: [
                     { participant: account, asset: 'ytest.usd', amount: newPayerBalance },
-                    { participant: appSessionPartner as Address, asset: 'ytest.usd', amount: payeeBalance },
+                    { participant: partnerAddress as Address, asset: 'ytest.usd', amount: payeeBalance },
                 ],
             });
 
             console.log(`Withdrawing ${withdrawAmt} ytest.usd from app session to ledger, version:`, nextVersion);
-            webSocketService.send(submitMsg);
+
+            // For multi-party mode, get CLOB co-signature to meet quorum
+            if (isMultiPartyMode && clobInfo?.authenticated) {
+                console.log('Getting CLOB co-signature for withdraw...');
+                const msgJson = JSON.parse(submitMsg);
+                const clobSig = await getCLOBSignature(msgJson);
+
+                if (clobSig) {
+                    msgJson.sig.push(clobSig);
+                    console.log('✓ Withdraw with both signatures');
+                    webSocketService.send(JSON.stringify(msgJson));
+                } else {
+                    console.warn('Failed to get CLOB signature for withdraw');
+                    alert('CLOB co-signature required for multi-party withdraw');
+                    return;
+                }
+            } else {
+                webSocketService.send(submitMsg);
+            }
 
             // Update local state optimistically
             setPayerBalance(newPayerBalance);
@@ -1618,8 +1619,7 @@ export default function YellowWorkshop() {
             console.error('Failed to withdraw from app session:', error);
             alert('Withdraw from app session failed. Check console.');
         }
-    }, [sessionKey, appSessionId, appSessionPartner, account, payerBalance, payeeBalance, appSessionVersion, appDepositAmount, fetchAppSessionBalances]);
->>>>>>> da1d28c9813693799764e3c0fc85bcd941e493b2
+    }, [sessionKey, appSessionId, appSessionPartner, account, payerBalance, payeeBalance, appSessionVersion, appDepositAmount, fetchAppSessionBalances, isMultiPartyMode, clobInfo]);
 
     // Close the App Session
     const handleCloseAppSession = useCallback(async () => {
@@ -1636,6 +1636,9 @@ export default function YellowWorkshop() {
             let currentPayerBal = payerBalance;
             let currentVersion = appSessionVersion;
 
+            // Determine partner address consistently
+            const partnerAddress = isMultiPartyMode && clobInfo ? clobInfo.address : appSessionPartner;
+
             // If payer still has balance, withdraw it all back to ledger first
             if (parseFloat(currentPayerBal) > 0) {
                 console.log(`Withdrawing remaining ${currentPayerBal} ytest.usd to ledger before closing...`);
@@ -1647,10 +1650,25 @@ export default function YellowWorkshop() {
                     version: currentVersion,
                     allocations: [
                         { participant: account, asset: 'ytest.usd', amount: '0' },
-                        { participant: appSessionPartner as Address, asset: 'ytest.usd', amount: payeeBalance },
+                        { participant: partnerAddress as Address, asset: 'ytest.usd', amount: payeeBalance },
                     ],
                 });
-                webSocketService.send(withdrawMsg);
+
+                // For multi-party mode, get CLOB co-signature for the pre-close withdraw
+                if (isMultiPartyMode && clobInfo?.authenticated) {
+                    const msgJson = JSON.parse(withdrawMsg);
+                    const clobSig = await getCLOBSignature(msgJson);
+                    if (clobSig) {
+                        msgJson.sig.push(clobSig);
+                        webSocketService.send(JSON.stringify(msgJson));
+                    } else {
+                        console.warn('Failed to get CLOB signature for pre-close withdraw, sending anyway');
+                        webSocketService.send(withdrawMsg);
+                    }
+                } else {
+                    webSocketService.send(withdrawMsg);
+                }
+
                 currentPayerBal = '0';
                 setPayerBalance('0');
                 setAppSessionVersion(currentVersion);
@@ -1689,25 +1707,12 @@ export default function YellowWorkshop() {
 
             webSocketService.addMessageListener(handleResponse);
 
-<<<<<<< HEAD
-            // Determine partner address for allocations
-            const partnerAddress = isMultiPartyMode && clobInfo ? clobInfo.address : appSessionPartner;
-
-            // Final allocations when closing - return all to owner
-            const closeMsg = await createCloseAppSessionMessage(messageSigner, {
-                app_session_id: appSessionId as `0x${string}`,
-                allocations: [
-                    { participant: account, asset: 'ytest.usd', amount: '100' },
-                    { participant: partnerAddress as Address, asset: 'ytest.usd', amount: '0' },
-            // Final allocations when closing - use current balances (sum must equal session total)
-=======
-            // Close with final allocations (payer already withdrawn to 0)
->>>>>>> da1d28c9813693799764e3c0fc85bcd941e493b2
+            // Close with final allocations (payer already withdrawn to 0 if applicable)
             const closeMsg = await createCloseAppSessionMessage(messageSigner, {
                 app_session_id: appSessionId as `0x${string}`,
                 allocations: [
                     { participant: account, asset: 'ytest.usd', amount: currentPayerBal },
-                    { participant: appSessionPartner as Address, asset: 'ytest.usd', amount: payeeBalance },
+                    { participant: partnerAddress as Address, asset: 'ytest.usd', amount: payeeBalance },
                 ],
             });
 
@@ -1735,7 +1740,7 @@ export default function YellowWorkshop() {
             setAppSessionStatus('active');
             setIsAppSessionLoading(false);
         }
-    }, [sessionKey, appSessionId, account, appSessionPartner, payerBalance, payeeBalance, appSessionVersion]);
+    }, [sessionKey, appSessionId, account, appSessionPartner, payerBalance, payeeBalance, appSessionVersion, isMultiPartyMode, clobInfo]);
 
     // Refresh / recover app sessions from ClearNode
     const handleRefreshAppSessions = useCallback(async () => {
@@ -2165,7 +2170,6 @@ export default function YellowWorkshop() {
                                     )}
                                 </div>
 
-<<<<<<< HEAD
                                 <div className="p-4 rounded-lg bg-zinc-900/50 border border-zinc-700">
                                     <div className="text-sm text-zinc-400 mb-1">Channel Balance</div>
                                     <div className="font-semibold">{channelBalance} ytest.usd</div>
@@ -2253,19 +2257,6 @@ export default function YellowWorkshop() {
                                     apps.yellow.com
                                 </a>
                             </div>
-=======
-                        {/* Deposit ytest.usd */}
-                        <div className="mb-6 p-4 rounded-lg bg-zinc-900/30 border border-zinc-800">
-                            <label className="block text-xs text-zinc-500 mb-2 uppercase tracking-wide font-bold">Step 0: Fund Ledger (ytest.usd)</label>
-                            <button
-                                onClick={() => handleDeposit(BigInt(10000000000000000))}
-                                disabled={isChannelLoading}
-                                className="w-full px-4 py-1.5 rounded-md text-sm font-bold bg-zinc-100 hover:bg-white text-black transition-all disabled:opacity-50"
-                            >
-                                {isChannelLoading ? 'Processing...' : 'Deposit 0.01 ytest.usd'}
-                            </button>
-                            <p className="text-[10px] text-zinc-500 mt-1">Moves funds from Wallet → Unified Balance</p>
->>>>>>> d2cfae9b76773a2d40511aba6ee1d08691c9f8f6
                         </div>
                     </details>
                 )}

@@ -1,17 +1,20 @@
+require('dotenv').config();
 const WebSocket = require('ws');
 const { createHash } = require('crypto');
 const { privateKeyToAccount, generatePrivateKey } = require('viem/accounts');
 const { createWalletClient, http, keccak256, toBytes, hexToBytes, bytesToHex, stringToHex } = require('viem');
 const { sepolia } = require('viem/chains');
 const http_module = require('http');
+const { createECDSAMessageSigner: sdkCreateECDSAMessageSigner } = require('@erc7824/nitrolite');
+const { createMarketRouter } = require('./server/market/api');
 
 // ==================== CONFIGURATION ====================
 const CLEARNODE_WS_URL = process.env.CLEARNODE_WS_URL || 'wss://clearnet-sandbox.yellow.com/ws';
-const CLOB_PRIVATE_KEY = process.env.CLOB_PRIVATE_KEY || generatePrivateKey();
+const CLOB_PRIVATE_KEY = process.env.CLOB_PRIVATE_KEY || process.env.PRIVATE_KEY || generatePrivateKey();
 const SERVER_PORT = process.env.SERVER_PORT || 3001;
 const SESSION_DURATION = 3600; // 1 hour
 const AUTH_SCOPE = 'yellow-workshop.app';
-const APP_NAME = 'Yellow Workshop CLOB';
+const APP_NAME = 'Yellow Workshop';
 
 // ==================== CLOB WALLET SETUP ====================
 const clobAccount = privateKeyToAccount(CLOB_PRIVATE_KEY);
@@ -36,15 +39,8 @@ function generateSessionKeyPair() {
 }
 
 // ==================== MESSAGE SIGNING ====================
-// ECDSA message signer for session key
-async function createECDSAMessageSigner(privateKey) {
-    const account = privateKeyToAccount(privateKey);
-    return async (payload) => {
-        const message = JSON.stringify(payload);
-        const signature = await account.signMessage({ message });
-        return signature;
-    };
-}
+// Use SDK's createECDSAMessageSigner for compatible signatures
+// (raw keccak256 + ECDSA, NOT EIP-191 signMessage)
 
 // ==================== RPC MESSAGE UTILITIES ====================
 function generateRequestId() {
@@ -266,13 +262,13 @@ async function handleMessage(data) {
 
 // ==================== SIGNING API ====================
 
-// Sign a message payload with CLOB session key
+// Sign a message payload with CLOB session key (using SDK-compatible signer)
 async function signPayload(payload) {
     if (!sessionKey) {
         throw new Error('CLOB not authenticated');
     }
 
-    const signer = await createECDSAMessageSigner(sessionKey.privateKey);
+    const signer = sdkCreateECDSAMessageSigner(sessionKey.privateKey);
     const signature = await signer(payload);
     return signature;
 }
@@ -324,6 +320,13 @@ async function handleSignRequest(req, res, body) {
     }
 }
 
+// ==================== MARKET ROUTER ====================
+const handleMarketRequest = createMarketRouter({
+    statePath: require('path').join(__dirname, 'data', 'market-state.json'),
+    clobAddress: clobAccount.address,
+    ammLiquidity: 500,
+});
+
 // ==================== HTTP SERVER ====================
 const httpServer = http_module.createServer((req, res) => {
     // CORS headers
@@ -365,6 +368,23 @@ const httpServer = http_module.createServer((req, res) => {
         return;
     }
 
+    // Market API routes (/api/market/*)
+    if (req.url.startsWith('/api/market')) {
+        if (req.method === 'GET') {
+            handleMarketRequest(req, res, req.url, null);
+            return;
+        }
+        let body = '';
+        req.on('data', chunk => { body += chunk; });
+        req.on('end', () => {
+            if (!handleMarketRequest(req, res, req.url, body)) {
+                res.writeHead(404, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Market route not found' }));
+            }
+        });
+        return;
+    }
+
     res.writeHead(404, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Not found' }));
 });
@@ -375,6 +395,7 @@ httpServer.listen(SERVER_PORT, () => {
     console.log(`Status endpoint: http://localhost:${SERVER_PORT}/status`);
     console.log(`CLOB address endpoint: http://localhost:${SERVER_PORT}/clob-address`);
     console.log(`Sign endpoint: POST http://localhost:${SERVER_PORT}/api/sign`);
+    console.log(`Market API:   http://localhost:${SERVER_PORT}/api/market/*`);
     console.log('');
 
     // Connect to Yellow Network

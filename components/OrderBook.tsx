@@ -2,116 +2,83 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { cn } from "./utils";
+import { fetchOrderBook, fetchAllOrderBooks } from "@/lib/yellow/market/marketClient";
+import type { OrderBookLevel } from "@/lib/yellow/market/types";
 
 type BookRow = { price: number; shares: number; total: number };
 
-const DEFAULT_MID_CENTS = 50;
-const perturb = (value: number, pct: number) =>
-  Math.max(0, value * (1 + (Math.random() - 0.5) * pct));
-const round2 = (n: number) => Math.round(n * 100) / 100;
+const CORNER_LABELS = ["000", "001", "010", "011", "100", "101", "110", "111"];
+const CORNER_DESCRIPTIONS: Record<string, string> = {
+  "000": "Kha No, US No, Isr No",
+  "001": "Kha No, US No, Isr Yes",
+  "010": "Kha No, US Yes, Isr No",
+  "011": "Kha No, US Yes, Isr Yes",
+  "100": "Kha Yes, US No, Isr No",
+  "101": "Kha Yes, US No, Isr Yes",
+  "110": "Kha Yes, US Yes, Isr No",
+  "111": "Kha Yes, US Yes, Isr Yes",
+};
 
-/** Deterministic so server and client match (avoids hydration error). */
-function buildBookFromMid(midCents: number): { asks: BookRow[]; bids: BookRow[] } {
-  const asks: BookRow[] = [];
-  for (let i = 1; i <= 6; i++) {
-    const cents = midCents + i;
-    const price = cents / 100;
-    const shares = 1000 - (i - 1) * 120;
-    asks.push({ price, shares, total: round2(shares * price) });
-  }
-  asks.sort((a, b) => b.price - a.price);
-  const bids: BookRow[] = [];
-  for (let i = 1; i <= 5; i++) {
-    const cents = Math.max(1, midCents - i);
-    const price = cents / 100;
-    const shares = 4500 - (i - 1) * 800;
-    bids.push({ price, shares, total: round2(shares * price) });
-  }
-  bids.sort((a, b) => b.price - a.price);
-  return { asks, bids };
+function levelsToRows(levels: OrderBookLevel[]): BookRow[] {
+  return levels.map((l) => ({
+    price: l.price,
+    shares: l.quantity,
+    total: Math.round(l.quantity * l.price * 100) / 100,
+  }));
 }
 
 interface OrderBookProps {
   avgPriceCents?: number | null;
   volume?: number;
+  /** Which corner to show, e.g. "000". If omitted, shows a corner picker. */
+  selectedCorner?: string;
 }
 
-export const OrderBook = ({ avgPriceCents, volume = 166140452 }: OrderBookProps) => {
-  const midCents = avgPriceCents ?? DEFAULT_MID_CENTS;
+export const OrderBook = ({ avgPriceCents, volume = 0, selectedCorner: controlledCorner }: OrderBookProps) => {
   const [isExpanded, setIsExpanded] = useState(true);
-  const [asks, setAsks] = useState<BookRow[]>(() => buildBookFromMid(midCents).asks);
-  const [bids, setBids] = useState<BookRow[]>(() => buildBookFromMid(midCents).bids);
-  const [lastPrice, setLastPrice] = useState(midCents);
+  const [corner, setCorner] = useState(controlledCorner || "000");
+  const [asks, setAsks] = useState<BookRow[]>([]);
+  const [bids, setBids] = useState<BookRow[]>([]);
+  const [ammPrice, setAmmPrice] = useState<number | null>(null);
   const [lastTouched, setLastTouched] = useState<"ask" | "bid" | null>(null);
+  const [isLive, setIsLive] = useState(false);
 
+  // Sync controlled corner prop
   useEffect(() => {
-    const { asks: newAsks, bids: newBids } = buildBookFromMid(midCents);
-    setAsks(newAsks);
-    setBids(newBids);
-    setLastPrice(midCents);
-  }, [midCents]);
+    if (controlledCorner) setCorner(controlledCorner);
+  }, [controlledCorner]);
 
-  const simulateTrade = useCallback(() => {
-    setAsks((prev) => {
-      const next = prev.map((r) => ({ ...r }));
-      const i = Math.floor(Math.random() * next.length);
-      const row = next[i];
-      const fill = row.shares * (0.02 + Math.random() * 0.08);
-      row.shares = round2(Math.max(1, row.shares - fill));
-      row.total = round2(row.shares * row.price * 100) / 100;
-      return next;
-    });
-    setLastTouched("ask");
-    setTimeout(() => setLastTouched(null), 400);
-  }, []);
+  // Poll real order book data
+  const fetchData = useCallback(async () => {
+    try {
+      const data = await fetchOrderBook(corner);
+      const newAsks = levelsToRows(data.asks);
+      const newBids = levelsToRows(data.bids);
 
-  const simulateBidTrade = useCallback(() => {
-    setBids((prev) => {
-      const next = prev.map((r) => ({ ...r }));
-      const i = Math.floor(Math.random() * next.length);
-      const row = next[i];
-      const fill = row.shares * (0.02 + Math.random() * 0.06);
-      row.shares = round2(Math.max(1, row.shares - fill));
-      row.total = round2(row.shares * row.price * 100) / 100;
-      return next;
-    });
-    setLastTouched("bid");
-    setTimeout(() => setLastTouched(null), 400);
-  }, []);
+      // Sort asks descending, bids descending
+      newAsks.sort((a, b) => b.price - a.price);
+      newBids.sort((a, b) => b.price - a.price);
 
-  const simulateNewOrder = useCallback(() => {
-    const side = Math.random() > 0.5 ? "ask" : "bid";
-    if (side === "ask") {
-      setAsks((prev) => {
-        const next = prev.map((r) => ({ ...r }));
-        const i = Math.floor(Math.random() * next.length);
-        next[i].shares = round2(perturb(next[i].shares, 0.15));
-        next[i].total = round2(next[i].shares * next[i].price * 100) / 100;
-        return next;
-      });
-      setLastTouched("ask");
-    } else {
-      setBids((prev) => {
-        const next = prev.map((r) => ({ ...r }));
-        const i = Math.floor(Math.random() * next.length);
-        next[i].shares = round2(perturb(next[i].shares, 0.12));
-        next[i].total = round2(next[i].shares * next[i].price * 100) / 100;
-        return next;
-      });
-      setLastTouched("bid");
+      setAsks(newAsks);
+      setBids(newBids);
+      setAmmPrice(data.ammPrice || null);
+      setIsLive(true);
+    } catch {
+      setIsLive(false);
+      setAsks([]);
+      setBids([]);
     }
-    setTimeout(() => setLastTouched(null), 400);
-  }, []);
+  }, [corner]);
 
   useEffect(() => {
-    if (!isExpanded) return;
-    const actions = [simulateTrade, simulateBidTrade, simulateNewOrder];
-    const id = setInterval(() => {
-      actions[Math.floor(Math.random() * actions.length)]!();
-      setLastPrice((p) => (Math.random() > 0.6 ? p : p === 2 ? 3 : 2));
-    }, 1800 + Math.random() * 1400);
+    fetchData();
+    const id = setInterval(fetchData, 3000); // Poll every 3s
     return () => clearInterval(id);
-  }, [isExpanded, simulateTrade, simulateBidTrade, simulateNewOrder]);
+  }, [fetchData]);
+
+  const spread = asks.length && bids.length
+    ? Math.round((asks[asks.length - 1]!.price - bids[0]!.price) * 100)
+    : 0;
 
   const maxDepth = Math.max(
     ...asks.map((a) => a.total),
@@ -121,7 +88,7 @@ export const OrderBook = ({ avgPriceCents, volume = 166140452 }: OrderBookProps)
 
   return (
     <div className="max-w-4xl rounded-3xl border border-white/5 bg-white/5 p-1 backdrop-blur-xl">
-      {/* Header - click to minimise/expand */}
+      {/* Header */}
       <button
         type="button"
         onClick={() => setIsExpanded((e) => !e)}
@@ -130,9 +97,17 @@ export const OrderBook = ({ avgPriceCents, volume = 166140452 }: OrderBookProps)
           isExpanded ? "border-b border-white/5" : "rounded-b-3xl"
         )}
       >
-        <h2 className="text-lg font-bold text-white">Order Book</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-bold text-white">Order Book</h2>
+          {isLive && (
+            <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              LIVE
+            </span>
+          )}
+        </div>
         <span className="flex items-center gap-1.5 text-sm text-white/50 tabular-nums">
-          <span>${volume.toLocaleString()} vol.</span>
+          <span>${(volume || 0).toLocaleString()} vol.</span>
           <svg
             className={cn("w-4 h-4 transition-transform", isExpanded && "rotate-180")}
             fill="none"
@@ -147,74 +122,113 @@ export const OrderBook = ({ avgPriceCents, volume = 166140452 }: OrderBookProps)
 
       {isExpanded && (
         <>
-      {/* Table header */}
-      <div className="grid grid-cols-[1fr_auto_auto] gap-4 px-6 pt-4 pb-2 text-[10px] font-black uppercase tracking-widest text-white/40">
-        <div className="pl-8">Price</div>
-        <div className="text-right w-20">Shares</div>
-        <div className="text-right w-24">Total</div>
-      </div>
-
-      {/* Asks */}
-      <div
-        className={cn(
-          "relative px-6 transition-colors duration-300",
-          lastTouched === "ask" && "bg-rose-500/5 rounded-lg"
-        )}
-      >
-        <div className="flex items-center py-1.5">
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold text-white bg-rose-500/90">Asks</span>
-        </div>
-        <div className="space-y-0">
-          {asks.map((row) => (
-            <div
-              key={row.price}
-              className="relative grid grid-cols-[1fr_auto_auto] gap-4 py-1.5 items-center text-sm group hover:bg-white/5 rounded"
-            >
-              <div
-                className="absolute left-0 top-0 bottom-0 rounded-r bg-rose-500/20 max-w-full transition-[width] duration-300"
-                style={{ width: `${(row.total / maxDepth) * 100}%` }}
-              />
-              <div className="relative pl-8 font-semibold text-rose-400">{Math.round(row.price * 100)}¢</div>
-              <div className="relative text-right w-20 text-white/70 tabular-nums">{row.shares.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
-              <div className="relative text-right w-24 text-white/70 tabular-nums">${row.total.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
+          {/* Corner selector */}
+          {!controlledCorner && (
+            <div className="flex flex-wrap gap-1.5 px-6 pt-4">
+              {CORNER_LABELS.map((label) => (
+                <button
+                  key={label}
+                  onClick={() => setCorner(label)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all",
+                    corner === label
+                      ? "bg-white/15 text-white border border-white/20"
+                      : "bg-white/5 text-white/30 hover:bg-white/10 hover:text-white/50 border border-transparent"
+                  )}
+                  title={CORNER_DESCRIPTIONS[label]}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
+          )}
 
-      {/* Divider + Last / Spread (Last = avg/mid; spread = best ask − best bid) */}
-      <div className="flex items-center justify-between px-6 py-2 border-y border-white/5 text-xs text-white/50">
-        <span>Last: {lastPrice}¢</span>
-        <span>Spread: {asks.length && bids.length ? Math.round((asks[asks.length - 1]!.price - bids[0]!.price) * 100) : 1}¢</span>
-      </div>
+          {/* Corner description + AMM price */}
+          <div className="flex items-center justify-between px-6 pt-3 pb-1">
+            <span className="text-[11px] font-bold text-white/40">
+              {CORNER_DESCRIPTIONS[corner]}
+            </span>
+            {ammPrice != null && (
+              <span className="text-[11px] font-bold text-blue-400">
+                AMM: {Math.round(ammPrice * 100)}¢
+              </span>
+            )}
+          </div>
 
-      {/* Bids */}
-      <div
-        className={cn(
-          "relative px-6 pb-4 transition-colors duration-300",
-          lastTouched === "bid" && "bg-emerald-500/5 rounded-lg"
-        )}
-      >
-        <div className="flex items-center py-1.5">
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold text-white bg-emerald-500/90">Bids</span>
-        </div>
-        <div className="space-y-0">
-          {bids.map((row) => (
-            <div
-              key={row.price}
-              className="relative grid grid-cols-[1fr_auto_auto] gap-4 py-1.5 items-center text-sm group hover:bg-white/5 rounded"
-            >
-              <div
-                className="absolute left-0 top-0 bottom-0 rounded-r bg-emerald-500/20 max-w-full transition-[width] duration-300"
-                style={{ width: `${(row.total / maxDepth) * 100}%` }}
-              />
-              <div className="relative pl-8 font-semibold text-emerald-400">{Math.round(row.price * 100)}¢</div>
-              <div className="relative text-right w-20 text-white/70 tabular-nums">{row.shares.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
-              <div className="relative text-right w-24 text-white/70 tabular-nums">${row.total.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
+          {/* Table header */}
+          <div className="grid grid-cols-[1fr_auto_auto] gap-4 px-6 pt-2 pb-2 text-[10px] font-black uppercase tracking-widest text-white/40">
+            <div className="pl-8">Price</div>
+            <div className="text-right w-20">Shares</div>
+            <div className="text-right w-24">Total</div>
+          </div>
+
+          {/* Asks */}
+          <div
+            className={cn(
+              "relative px-6 transition-colors duration-300",
+              lastTouched === "ask" && "bg-rose-500/5 rounded-lg"
+            )}
+          >
+            <div className="flex items-center py-1.5">
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold text-white bg-rose-500/90">Asks</span>
             </div>
-          ))}
-        </div>
-      </div>
+            <div className="space-y-0">
+              {asks.map((row) => (
+                <div
+                  key={row.price}
+                  className="relative grid grid-cols-[1fr_auto_auto] gap-4 py-1.5 items-center text-sm group hover:bg-white/5 rounded"
+                >
+                  <div
+                    className="absolute left-0 top-0 bottom-0 rounded-r bg-rose-500/20 max-w-full transition-[width] duration-300"
+                    style={{ width: `${(row.total / maxDepth) * 100}%` }}
+                  />
+                  <div className="relative pl-8 font-semibold text-rose-400">{Math.round(row.price * 100)}¢</div>
+                  <div className="relative text-right w-20 text-white/70 tabular-nums">{row.shares.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
+                  <div className="relative text-right w-24 text-white/70 tabular-nums">${row.total.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
+                </div>
+              ))}
+              {asks.length === 0 && (
+                <div className="py-3 text-center text-xs text-white/20">No asks</div>
+              )}
+            </div>
+          </div>
+
+          {/* Divider + Spread */}
+          <div className="flex items-center justify-between px-6 py-2 border-y border-white/5 text-xs text-white/50">
+            <span>Mid: {ammPrice != null ? Math.round(ammPrice * 100) : "—"}¢</span>
+            <span>Spread: {Math.abs(spread)}¢</span>
+          </div>
+
+          {/* Bids */}
+          <div
+            className={cn(
+              "relative px-6 pb-4 transition-colors duration-300",
+              lastTouched === "bid" && "bg-emerald-500/5 rounded-lg"
+            )}
+          >
+            <div className="flex items-center py-1.5">
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold text-white bg-emerald-500/90">Bids</span>
+            </div>
+            <div className="space-y-0">
+              {bids.map((row) => (
+                <div
+                  key={row.price}
+                  className="relative grid grid-cols-[1fr_auto_auto] gap-4 py-1.5 items-center text-sm group hover:bg-white/5 rounded"
+                >
+                  <div
+                    className="absolute left-0 top-0 bottom-0 rounded-r bg-emerald-500/20 max-w-full transition-[width] duration-300"
+                    style={{ width: `${(row.total / maxDepth) * 100}%` }}
+                  />
+                  <div className="relative pl-8 font-semibold text-emerald-400">{Math.round(row.price * 100)}¢</div>
+                  <div className="relative text-right w-20 text-white/70 tabular-nums">{row.shares.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
+                  <div className="relative text-right w-24 text-white/70 tabular-nums">${row.total.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
+                </div>
+              ))}
+              {bids.length === 0 && (
+                <div className="py-3 text-center text-xs text-white/20">No bids</div>
+              )}
+            </div>
+          </div>
         </>
       )}
     </div>
