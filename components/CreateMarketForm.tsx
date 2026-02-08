@@ -24,6 +24,12 @@ export const CreateMarketForm: React.FC<CreateMarketFormProps> = ({
     const [error, setError] = useState<Error | null>(null);
     const [receiverAddresses, setReceiverAddresses] = useState<readonly `0x${string}`[] | null>(null);
 
+    // Frontend-only state for additional market details
+    const [market1, setMarket1] = useState('');
+    const [market2, setMarket2] = useState('');
+    const [market3, setMarket3] = useState('');
+    const [resolutionDate, setResolutionDate] = useState('');
+
     // Market creation on SwapRouter
     const {
         writeContract,
@@ -181,7 +187,7 @@ export const CreateMarketForm: React.FC<CreateMarketFormProps> = ({
         <form onSubmit={handleSubmit} className="space-y-6">
             {/* Market Name Input */}
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-white mb-2">
                     Market Name
                 </label>
                 <div className="flex items-stretch border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
@@ -209,9 +215,73 @@ export const CreateMarketForm: React.FC<CreateMarketFormProps> = ({
                 )}
             </div>
 
+            {/* Market Event Inputs (Frontend Only) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label className="block text-sm font-medium text-white mb-2">Market 1</label>
+                    <input
+                        type="text"
+                        value={market1}
+                        onChange={(e) => setMarket1(e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        placeholder="e.g. Event A"
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-white mb-2">Market 2</label>
+                    <input
+                        type="text"
+                        value={market2}
+                        onChange={(e) => setMarket2(e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        placeholder="e.g. Event B"
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-white mb-2">Market 3</label>
+                    <input
+                        type="text"
+                        value={market3}
+                        onChange={(e) => setMarket3(e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        placeholder="e.g. Event C"
+                    />
+                </div>
+            </div>
+
+            {/* Resolution Date Input (Frontend Only) */}
+            <div>
+                <style jsx>{`
+                    input[type="date"]::-webkit-calendar-picker-indicator {
+                        background: transparent;
+                        bottom: 0;
+                        color: transparent;
+                        cursor: pointer;
+                        height: auto;
+                        left: 0;
+                        position: absolute;
+                        right: 0;
+                        top: 0;
+                        width: auto;
+                    }
+                `}</style>
+                <label className="block text-sm font-medium text-white mb-2">Resolution Date</label>
+                <div className="relative">
+                    <input
+                        type="date"
+                        min={new Date().toISOString().split('T')[0]}
+                        value={resolutionDate}
+                        onChange={(e) => setResolutionDate(e.target.value)}
+                        onKeyDown={(e) => e.preventDefault()}
+                        onClick={(e) => e.currentTarget.showPicker()}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none cursor-pointer"
+                    />
+                </div>
+            </div>
+
             {/* SwapRouter Address */}
             <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-white mb-2">
                     SwapRouter Address
                 </label>
                 <input

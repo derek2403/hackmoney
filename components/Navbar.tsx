@@ -2,9 +2,10 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Search, ChevronDown, ChevronUp, X, Wallet, Trophy, Gift, Code, Users, Moon } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, X, Wallet, Trophy, Gift, Code, Users, Moon, Copy, Check } from "lucide-react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useAccount, useDisconnect } from "wagmi";
+import { useAccount, useDisconnect, useEnsName, useEnsAvatar } from "wagmi";
+import { ENS_CHAIN_ID } from "../lib/networkConfig";
 
 const NAV_LINKS = [
   { label: "Trade", href: "#" },
@@ -44,6 +45,8 @@ export interface NavbarProps {
   onDepositToSession?: (amount: number) => Promise<boolean>;
   /** Request faucet tokens. */
   onRequestFaucet?: () => Promise<void>;
+  /** Close the current Yellow app session. */
+  onCloseSession?: () => Promise<void>;
 }
 
 export const Navbar = ({
@@ -57,13 +60,23 @@ export const Navbar = ({
   onCreateSession,
   onDepositToSession,
   onRequestFaucet,
+  onCloseSession,
 }: NavbarProps) => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [depositOpen, setDepositOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [depositAmount, setDepositAmount] = useState("100");
   const [isDepositing, setIsDepositing] = useState(false);
-  useAccount();
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyAddress = (addr: string) => {
+    navigator.clipboard.writeText(addr);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  const { address } = useAccount();
+  const { data: ensName } = useEnsName({ address, chainId: ENS_CHAIN_ID });
+  const { data: ensAvatar } = useEnsAvatar({ name: ensName!, chainId: ENS_CHAIN_ID });
   const { disconnect } = useDisconnect();
   const profileRef = useRef<HTMLDivElement>(null);
 
@@ -147,7 +160,7 @@ export const Navbar = ({
               <div className="flex flex-col items-center">
                 <span className="text-xs font-medium text-zinc-500">Cash</span>
                 <span className="text-base font-bold text-emerald-400" title={`${Math.floor(cash).toLocaleString()} ytest.usd`}>
-                  {cash > 0 ? `$${String(Math.floor(cash)).slice(-4)}` : "$0"}
+                  {cash > 0 ? `$${String(Math.floor(cash-1)).slice(-4)}` : "$0"}
                 </span>
               </div>
             </div>
@@ -186,12 +199,12 @@ export const Navbar = ({
                             onClick={() => setProfileOpen(!profileOpen)}
                             className="flex items-center gap-2.5 rounded-lg border border-white/10 bg-white/10 px-3 py-1.5 text-sm font-semibold text-white transition-all hover:bg-white/15 active:scale-95"
                           >
-                            {account.ensAvatar ? (
-                              <img src={account.ensAvatar} alt="" className="h-7 w-7 rounded-full" />
+                            {ensAvatar ? (
+                              <img src={ensAvatar} alt="" className="h-7 w-7 rounded-full" />
                             ) : (
                               <div className="h-7 w-7 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500" />
                             )}
-                            {account.displayName}
+                            {ensName || account.displayName}
                             {profileOpen ? <ChevronUp className="h-3.5 w-3.5 text-zinc-400" /> : <ChevronDown className="h-3.5 w-3.5 text-zinc-400" />}
                           </button>
 
@@ -200,14 +213,27 @@ export const Navbar = ({
                             <div className="absolute right-0 top-full mt-3 w-[260px] rounded-2xl border border-white/10 bg-[#1a1a1c] shadow-2xl shadow-black/60 z-50 overflow-hidden">
                               {/* Profile header */}
                               <div className="flex items-center gap-3 px-5 pt-5 pb-4">
-                                {account.ensAvatar ? (
-                                  <img src={account.ensAvatar} alt="" className="h-10 w-10 rounded-full" />
+                                {ensAvatar ? (
+                                  <img src={ensAvatar} alt="" className="h-10 w-10 rounded-full" />
                                 ) : (
                                   <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500" />
                                 )}
                                 <div className="min-w-0">
-                                  <p className="text-sm font-bold text-white truncate">{account.ensName || account.displayName}</p>
-                                  <p className="text-xs text-zinc-500 font-mono">{account.displayName}</p>
+                                  <p className="text-sm font-bold text-white truncate">{ensName || account.displayName}</p>
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-xs text-zinc-500 font-mono">{account.address ? `${account.address.slice(0, 6)}...${account.address.slice(-4)}` : account.displayName}</p>
+                                    {account.address && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleCopyAddress(account.address);
+                                        }}
+                                        className="text-zinc-500 hover:text-white transition-colors"
+                                      >
+                                        {copied ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
+                                      </button>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
 
@@ -225,11 +251,10 @@ export const Navbar = ({
                               <div className="px-5 py-3">
                                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Trading Session</p>
                                 <div className="flex items-center gap-2 mt-1">
-                                  <span className={`h-2 w-2 rounded-full ${
-                                    appSessionStatus === "active" ? "bg-emerald-400" :
+                                  <span className={`h-2 w-2 rounded-full ${appSessionStatus === "active" ? "bg-emerald-400" :
                                     appSessionStatus === "creating" ? "bg-yellow-400 animate-pulse" :
-                                    "bg-zinc-600"
-                                  }`} />
+                                      "bg-zinc-600"
+                                    }`} />
                                   <span className="text-sm text-zinc-400 capitalize">
                                     {appSessionStatus === "none" ? "Not started" : appSessionStatus}
                                   </span>
@@ -283,10 +308,24 @@ export const Navbar = ({
 
                               <div className="border-t border-white/5" />
 
-                              {/* Logout */}
+                              {/* Close Session + Logout */}
                               <div className="py-2">
+                                {appSessionStatus === "active" && onCloseSession && (
+                                  <button
+                                    onClick={async () => {
+                                      await onCloseSession();
+                                      setProfileOpen(false);
+                                    }}
+                                    className="w-full px-5 py-2.5 text-sm font-semibold text-yellow-400 hover:bg-yellow-500/10 transition-colors text-left"
+                                  >
+                                    Close Session
+                                  </button>
+                                )}
                                 <button
-                                  onClick={() => {
+                                  onClick={async () => {
+                                    if (appSessionStatus === "active" && onCloseSession) {
+                                      await onCloseSession();
+                                    }
                                     disconnect();
                                     setProfileOpen(false);
                                   }}
@@ -387,8 +426,8 @@ export const Navbar = ({
                   {isDepositing || isSessionLoading
                     ? "Processing..."
                     : appSessionStatus === "active"
-                    ? "Deposit"
-                    : "Create Session & Deposit"
+                      ? "Deposit"
+                      : "Create Session & Deposit"
                   }
                 </button>
 

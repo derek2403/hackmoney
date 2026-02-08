@@ -5,6 +5,7 @@ import '@rainbow-me/rainbowkit/styles.css';
 import {
   getDefaultConfig,
   RainbowKitProvider,
+  darkTheme,
 } from '@rainbow-me/rainbowkit';
 import { WagmiProvider } from 'wagmi';
 import {
@@ -14,7 +15,7 @@ import {
 import { chains } from './networkConfig';
 
 const config = getDefaultConfig({
-  appName: 'PolygonAkindo',
+  appName: 'OnlyTruth',
   projectId: 'YOUR_PROJECT_ID', // Get your projectId from https://cloud.walletconnect.com/
   chains,
   ssr: true,
@@ -26,7 +27,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider>
+        <RainbowKitProvider theme={darkTheme()}>
           {children}
         </RainbowKitProvider>
       </QueryClientProvider>

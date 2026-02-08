@@ -212,6 +212,17 @@ export function useYellowSession() {
     // Server token
     const [serverToken, setServerToken] = useState<`0x${string}`>(YTEST_USD_TOKEN);
 
+    // Ref for beforeunload — needs sync access to latest session values
+    const unloadDataRef = useRef({
+        sessionKeyPrivate: null as string | null,
+        appSessionId: null as string | null,
+        payerBalance: '0',
+        payeeBalance: '0',
+        appSessionVersion: 1,
+        account: null as Address | null,
+        appSessionStatus: 'none' as string,
+    });
+
     // ==================== CONNECT WALLET ====================
     const connectWallet = useCallback(async () => {
         if (typeof window === 'undefined' || !window.ethereum) {
@@ -273,6 +284,41 @@ export function useYellowSession() {
         return () => { cancelled = true; clearInterval(interval); };
     }, []);
 
+    // ==================== SYNC UNLOAD REF + BEFOREUNLOAD HANDLER ====================
+    useEffect(() => {
+        unloadDataRef.current = {
+            sessionKeyPrivate: sessionKey?.privateKey ?? null,
+            appSessionId,
+            payerBalance,
+            payeeBalance,
+            appSessionVersion,
+            account,
+            appSessionStatus,
+        };
+    }, [sessionKey, appSessionId, payerBalance, payeeBalance, appSessionVersion, account, appSessionStatus]);
+
+    useEffect(() => {
+        const handleBeforeUnload = () => {
+            const d = unloadDataRef.current;
+            if (d.appSessionStatus !== 'active' || !d.appSessionId || !d.sessionKeyPrivate || !d.account) return;
+
+            const payload = {
+                userSessionKeyPrivate: d.sessionKeyPrivate,
+                appSessionId: d.appSessionId,
+                payerBalance: d.payerBalance,
+                payeeBalance: d.payeeBalance,
+                appSessionVersion: d.appSessionVersion,
+                userAddress: d.account,
+            };
+
+            const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+            navigator.sendBeacon(`${CLOB_SERVER_URL}/api/close-yellow-session`, blob);
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, []);
+
     // ==================== AUTO-AUTH ====================
     useEffect(() => {
         if (account && sessionKey && wsStatus === 'Connected' && !isAuthenticated && !isAuthAttempted) {
@@ -288,7 +334,7 @@ export function useYellowSession() {
                 address: account, session_key: sessionKey.address,
                 expires_at: BigInt(Math.floor(Date.now() / 1000) + SESSION_DURATION),
                 scope: AUTH_SCOPE, application: APP_NAME,
-                allowances: [{ asset: 'ytest.usd', amount: '100000000' }],
+                allowances: [{ asset: 'ytest.usd', amount: '999999999999999' }],
             };
             createAuthRequestMessage(authParams).then((p) => webSocketService.send(p));
         }
@@ -313,7 +359,7 @@ export function useYellowSession() {
                 const authParams = {
                     scope: AUTH_SCOPE, application: APP_NAME, participant: sessionKey.address,
                     session_key: sessionKey.address, expires_at: BigInt(sessionExpireTimestamp),
-                    allowances: [{ asset: 'ytest.usd', amount: '100000000' }],
+                    allowances: [{ asset: 'ytest.usd', amount: '999999999999999' }],
                 };
                 try {
                     const signer = createEIP712AuthMessageSigner(walletClient, authParams, getAuthDomain());

@@ -3,6 +3,7 @@ pragma solidity ^0.8.28;
 
 import "./OutcomeToken.sol";
 import "./CornerReceiver.sol";
+import "@openzeppelin/contracts/proxy/Clones.sol";
 
 /**
  * @title SwapRouter
@@ -51,12 +52,20 @@ contract SwapRouter {
     error MarketNotFound();
     error InvalidCorner();
 
+    // Master implementations for cloning
+    address public immutable tokenImplementation;
+    address public immutable receiverImplementation;
+
     constructor() {
         owner = msg.sender;
+
+        // Deploy master implementations once
+        tokenImplementation = address(new OutcomeToken());
+        receiverImplementation = address(new CornerReceiver());
     }
 
     /**
-     * @notice Create a new market with 8 corner tokens and receivers
+     * @notice Create a new market with 8 corner tokens and receivers using Clones
      * @param marketName Unique market identifier (e.g., "abc")
      * @return tokens Array of 8 OutcomeToken addresses
      * @return receivers Array of 8 CornerReceiver addresses
@@ -71,7 +80,7 @@ contract SwapRouter {
         for (uint256 i = 0; i < 8; i++) {
             string memory corner = CORNERS[i];
 
-            // Deploy OutcomeToken
+            // 1. Clone OutcomeToken
             string memory tokenName = string.concat(
                 "Market ",
                 marketName,
@@ -80,22 +89,26 @@ contract SwapRouter {
             );
             string memory tokenSymbol = string.concat(marketName, "-", corner);
 
-            OutcomeToken token = new OutcomeToken(
+            address tokenAddr = Clones.clone(tokenImplementation);
+            OutcomeToken(tokenAddr).initialize(
                 tokenName,
                 tokenSymbol,
                 address(this)
             );
-            tokens[i] = address(token);
-            cornerTokens[marketName][corner] = address(token);
 
-            // Deploy CornerReceiver
-            CornerReceiver receiver = new CornerReceiver(
+            tokens[i] = tokenAddr;
+            cornerTokens[marketName][corner] = tokenAddr;
+
+            // 2. Clone CornerReceiver
+            address receiverAddr = Clones.clone(receiverImplementation);
+            CornerReceiver(payable(receiverAddr)).initialize(
                 address(this),
                 marketName,
                 corner
             );
-            receivers[i] = address(receiver);
-            cornerReceivers[marketName][corner] = address(receiver);
+
+            receivers[i] = receiverAddr;
+            cornerReceivers[marketName][corner] = receiverAddr;
         }
 
         emit MarketCreated(marketName, tokens, receivers);

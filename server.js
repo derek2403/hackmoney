@@ -5,7 +5,11 @@ const { privateKeyToAccount, generatePrivateKey } = require('viem/accounts');
 const { createWalletClient, http, keccak256, toBytes, hexToBytes, bytesToHex, stringToHex } = require('viem');
 const { sepolia } = require('viem/chains');
 const http_module = require('http');
-const { createECDSAMessageSigner: sdkCreateECDSAMessageSigner } = require('@erc7824/nitrolite');
+const {
+    createECDSAMessageSigner: sdkCreateECDSAMessageSigner,
+    createSubmitAppStateMessage,
+    createCloseAppSessionMessage,
+} = require('@erc7824/nitrolite');
 const { createMarketRouter } = require('./server/market/api');
 const { startENSListener } = require('./server/market/ensListener');
 
@@ -31,6 +35,8 @@ let sessionKey = null;
 let isAuthenticated = false;
 let pendingRequests = new Map();
 let sessionExpireTimestamp = '';
+let authRetryCount = 0;
+const MAX_AUTH_RETRIES = 5;
 
 // ==================== SESSION KEY UTILITIES ====================
 function generateSessionKeyPair() {
@@ -75,9 +81,10 @@ function connectToYellow() {
     wsConnection.on('open', () => {
         console.log('✓ WebSocket Connected to Yellow Network');
         wsStatus = 'connected';
+        authRetryCount = 0;
 
-        // Start authentication flow
-        startAuthentication();
+        // Delay before auth — clearnode may not be ready immediately after handshake
+        setTimeout(() => startAuthentication(), 1500);
     });
 
     wsConnection.on('message', async (data) => {
@@ -130,7 +137,7 @@ async function startAuthentication() {
         scope: AUTH_SCOPE,
         application: APP_NAME,
         allowances: [
-            { asset: 'ytest.usd', amount: '1000000' },
+            { asset: 'ytest.usd', amount: '999999999999999' },
         ],
     };
 
@@ -182,7 +189,7 @@ async function handleAuthChallenge(response) {
         session_key: sessionKey.address,
         expires_at: BigInt(sessionExpireTimestamp),
         allowances: [
-            { asset: 'ytest.usd', amount: '1000000' },
+            { asset: 'ytest.usd', amount: '999999999999999' },
         ],
     };
 
@@ -247,6 +254,17 @@ async function handleMessage(data) {
 
             case 'error':
                 console.error('RPC Error:', params);
+                // Retry auth if challenge generation failed
+                if (!isAuthenticated && params?.error === 'failed to generate challenge') {
+                    authRetryCount++;
+                    if (authRetryCount <= MAX_AUTH_RETRIES) {
+                        const delay = authRetryCount * 2000;
+                        console.log(`Retrying authentication in ${delay}ms (attempt ${authRetryCount}/${MAX_AUTH_RETRIES})...`);
+                        setTimeout(() => startAuthentication(), delay);
+                    } else {
+                        console.error('Max auth retries reached. Will retry on next reconnect.');
+                    }
+                }
                 break;
 
             default:
@@ -321,6 +339,63 @@ async function handleSignRequest(req, res, body) {
     }
 }
 
+// ==================== CLOSE YELLOW SESSION (called via sendBeacon on page unload) ====================
+async function handleCloseYellowSession(body) {
+    const data = typeof body === 'string' ? JSON.parse(body) : body;
+    const { userSessionKeyPrivate, appSessionId, payerBalance, payeeBalance, appSessionVersion, userAddress } = data;
+
+    if (!userSessionKeyPrivate || !appSessionId || !userAddress) {
+        throw new Error('Missing required fields');
+    }
+    if (!isAuthenticated || !sessionKey) {
+        throw new Error('CLOB not authenticated');
+    }
+
+    const userSigner = sdkCreateECDSAMessageSigner(userSessionKeyPrivate);
+    const clobSigner = sdkCreateECDSAMessageSigner(sessionKey.privateKey);
+
+    let currentVersion = parseInt(appSessionVersion) || 1;
+    let currentPayerBal = String(payerBalance || '0');
+
+    // Step 1: Withdraw remaining balance if any
+    if (parseFloat(currentPayerBal) > 0) {
+        currentVersion += 1;
+        const withdrawMsg = await createSubmitAppStateMessage(userSigner, {
+            app_session_id: appSessionId,
+            intent: 'withdraw',
+            version: currentVersion,
+            allocations: [
+                { participant: userAddress, asset: 'ytest.usd', amount: '0' },
+                { participant: clobAccount.address, asset: 'ytest.usd', amount: String(payeeBalance || '0') },
+            ],
+        });
+
+        const msgJson = JSON.parse(withdrawMsg);
+        const clobSig = await clobSigner(msgJson.req);
+        msgJson.sig.push(clobSig);
+        sendMessage(msgJson);
+
+        currentPayerBal = '0';
+        await new Promise(r => setTimeout(r, 1500));
+    }
+
+    // Step 2: Close session
+    const closeMsg = await createCloseAppSessionMessage(userSigner, {
+        app_session_id: appSessionId,
+        allocations: [
+            { participant: userAddress, asset: 'ytest.usd', amount: currentPayerBal },
+            { participant: clobAccount.address, asset: 'ytest.usd', amount: String(payeeBalance || '0') },
+        ],
+    });
+
+    const closeMsgJson = JSON.parse(closeMsg);
+    const clobSig = await clobSigner(closeMsgJson.req);
+    closeMsgJson.sig.push(clobSig);
+    sendMessage(closeMsgJson);
+
+    console.log(`[CloseSession] Initiated close for session ${appSessionId}, user ${userAddress}`);
+}
+
 // ==================== MARKET ROUTER ====================
 const handleMarketRequest = createMarketRouter({
     statePath: require('path').join(__dirname, 'data', 'market-state.json'),
@@ -366,6 +441,23 @@ const httpServer = http_module.createServer((req, res) => {
         let body = '';
         req.on('data', chunk => { body += chunk; });
         req.on('end', () => handleSignRequest(req, res, body));
+        return;
+    }
+
+    // Close Yellow session (called via sendBeacon on page unload)
+    if (req.method === 'POST' && req.url === '/api/close-yellow-session') {
+        let body = '';
+        req.on('data', chunk => { body += chunk; });
+        req.on('end', () => {
+            // Respond immediately since this may be a sendBeacon
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true }));
+
+            // Process close asynchronously
+            handleCloseYellowSession(body).catch(err => {
+                console.error('[CloseSession] Error:', err.message);
+            });
+        });
         return;
     }
 

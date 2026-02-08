@@ -18,7 +18,7 @@
     "status": "open",
     "resolution": null,
     "winningCorner": null,
-    "totalVolume": 1070.9,
+    "totalVolume": 1492.75,
     "createdAt": 1770535663934
   },
   "amm": {
@@ -37,36 +37,36 @@
   },
   "balances": {
     "0x41Db99b9A098Af28A06C0af238799c08076Af2f7": {
-      "100": 0,
-      "101": 0,
-      "110": 43.33333333333334,
-      "111": 0,
-      "000": 93.75,
-      "001": 20.833333333333336,
-      "010": 85,
-      "011": 16.666666666666668
+      "100": 700,
+      "101": 56.666666666666664,
+      "110": 95.41666666666669,
+      "111": 18.071428571428573,
+      "000": 96.875,
+      "001": 22.916666666666668,
+      "010": 87.5,
+      "011": 18.333333333333336
     },
-    "0xMaker": {
-      "100": 150,
+    "0x9fD3e7A1c5B8d2F6a4E0b9C3a7D5e1F8b2C4a6D9": {
+      "100": 50,
       "101": 150,
       "110": 150,
       "111": 150,
       "000": 150,
-      "001": 162.5,
+      "001": 160.41666666666666,
       "010": 150,
-      "011": 163.33333333333334
+      "011": 161.66666666666669
     },
     "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6": {
-      "100": 0,
-      "101": 50,
-      "110": 433.3333333333333,
-      "111": 4.263256414560601e-14,
-      "000": 381.25,
+      "100": 15,
+      "101": 500,
+      "110": 491.6666666666667,
+      "111": 428.57142857142856,
+      "000": 500,
       "001": 500,
-      "010": 465,
+      "010": 500,
       "011": 500
     },
-    "0xAlice": {
+    "0x7Fc98a2E4D3b6C1f9A5e8B0d2F4a7C3E6b9D1f5A": {
       "100": 0,
       "101": 0,
       "110": 0,
@@ -76,7 +76,7 @@
       "010": 0,
       "011": 0
     },
-    "0xBob": {
+    "0x2aB4d8F1e6C3a9D5b7E0f2A8c4D6e1B3f9C5a7D2": {
       "100": 0,
       "101": 0,
       "110": 0,
@@ -86,7 +86,7 @@
       "010": 0,
       "011": 20
     },
-    "0xCharlie": {
+    "0x5eC7a3B9d1F6e8A4c0D2b5F3a9E7c1D4b6A8f2E5": {
       "100": 0,
       "101": 0,
       "110": 33.333333333333336,
@@ -97,16 +97,16 @@
       "011": 0
     },
     "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd": {
-      "100": 550,
-      "101": 500,
+      "100": 350,
+      "101": 493.3333333333333,
       "110": 0,
-      "111": 496.42857142857144,
+      "111": 549.7857142857142,
       "000": 0,
       "001": 0,
       "010": 0,
       "011": 0
     },
-    "0x8cA2f29c522ACa3Cd": {
+    "0x4bE2d6C8a3F1e5B9d7A4c0F6b2E8a1D3f5C9a7B4": {
       "100": 0,
       "101": 0,
       "110": 0,
@@ -116,7 +116,7 @@
       "010": 0,
       "011": 0
     },
-    "0xTrader3": {
+    "0x1fB7c2E6a9D3e8A5b4F1d0C7a6B3e5D9f2A8c4B1": {
       "100": 0,
       "101": 0,
       "110": 30,
@@ -126,10 +126,40 @@
       "010": 0,
       "011": 0
     },
-    "0xTrader2": {
-      "100": 0,
+    "0x6eD4a8B3f1C5e9A2d7F6b0E4a3C8d1B5f9A2e7D3": {
+      "100": 35,
       "101": 0,
       "110": 10,
+      "111": 0,
+      "000": 0,
+      "001": 0,
+      "010": 0,
+      "011": 0
+    },
+    "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266": {
+      "100": 0,
+      "101": 0,
+      "110": 0,
+      "111": 0,
+      "000": 0,
+      "001": 0,
+      "010": 0,
+      "011": 0
+    },
+    "0xA2e5F8d1B4c7a3D6e9B2f0A5c8D1e4F7b3A6d9C2": {
+      "100": -35,
+      "101": 0,
+      "110": 0,
+      "111": 0,
+      "000": 0,
+      "001": 0,
+      "010": 0,
+      "011": 0
+    },
+    "0xB3d9E5a1C7f4b8D2e6A3c0F5b1E7d4A9f2C8a6B3": {
+      "100": 50,
+      "101": 0,
+      "110": 0,
       "111": 0,
       "000": 0,
       "001": 0,
@@ -141,22 +171,31 @@
     "100": {
       "buys": [
         {
-          "id": 21,
-          "user": "0xTrader2",
+          "id": 300,
+          "user": "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6",
           "side": "buy",
           "price": 0.03,
-          "quantity": 40,
-          "filled": 0,
-          "timestamp": 1770535670920
+          "quantity": 500,
+          "filled": 15,
+          "timestamp": 1770556305783
         },
         {
-          "id": 30,
-          "user": "0xTrader3",
+          "id": 244,
+          "user": "0x1fB7c2E6a9D3e8A5b4F1d0C7a6B3e5D9f2A8c4B1",
           "side": "buy",
           "price": 0.02,
           "quantity": 60,
           "filled": 0,
-          "timestamp": 1770535671046
+          "timestamp": 1770535670940
+        },
+        {
+          "id": 245,
+          "user": "0x3cA9e5D2f8B1a4C7d6E3b0F9a2D5c8E1b7A4f3D6",
+          "side": "buy",
+          "price": 0.01,
+          "quantity": 100,
+          "filled": 0,
+          "timestamp": 1770535670950
         }
       ],
       "sells": []
@@ -164,37 +203,208 @@
     "101": {
       "buys": [
         {
-          "id": 22,
-          "user": "0xTrader1",
+          "id": 302,
+          "user": "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6",
+          "side": "buy",
+          "price": 0.09,
+          "quantity": 500,
+          "filled": 0,
+          "timestamp": 1770556305783
+        },
+        {
+          "id": 248,
+          "user": "0x3cA9e5D2f8B1a4C7d6E3b0F9a2D5c8E1b7A4f3D6",
+          "side": "buy",
+          "price": 0.08,
+          "quantity": 20,
+          "filled": 0,
+          "timestamp": 1770535670934
+        },
+        {
+          "id": 249,
+          "user": "0xB3d9E5a1C7f4b8D2e6A3c0F5b1E7d4A9f2C8a6B3",
           "side": "buy",
           "price": 0.07,
           "quantity": 25,
           "filled": 0,
-          "timestamp": 1770535670934
+          "timestamp": 1770535670938
+        },
+        {
+          "id": 250,
+          "user": "0x1fB7c2E6a9D3e8A5b4F1d0C7a6B3e5D9f2A8c4B1",
+          "side": "buy",
+          "price": 0.05,
+          "quantity": 40,
+          "filled": 0,
+          "timestamp": 1770535670942
+        },
+        {
+          "id": 251,
+          "user": "0x6eD4a8B3f1C5e9A2d7F6b0E4a3C8d1B5f9A2e7D3",
+          "side": "buy",
+          "price": 0.04,
+          "quantity": 50,
+          "filled": 0,
+          "timestamp": 1770535670946
+        },
+        {
+          "id": 252,
+          "user": "0xC6a4D1e8B2f5A9c3D7b0E6a4F1d8B5e2C9a3D6f7",
+          "side": "buy",
+          "price": 0.03,
+          "quantity": 65,
+          "filled": 0,
+          "timestamp": 1770535670950
+        },
+        {
+          "id": 253,
+          "user": "0x8bF1e3A7d5C2a9B6f4E8d0A1c7B3e6D9f5A2c8B4",
+          "side": "buy",
+          "price": 0.02,
+          "quantity": 80,
+          "filled": 0,
+          "timestamp": 1770535670954
         }
       ],
       "sells": [
         {
-          "id": 14,
+          "id": 39,
+          "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
+          "side": "sell",
+          "price": 0.12,
+          "quantity": 100,
+          "filled": 6.666666666666666,
+          "timestamp": 1770535671250
+        },
+        {
+          "id": 303,
           "user": "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6",
           "side": "sell",
-          "price": 0.1,
+          "price": 0.12,
           "quantity": 500,
-          "filled": 450,
-          "timestamp": 1770535670834
+          "filled": 0,
+          "timestamp": 1770556305783
+        },
+        {
+          "id": 40,
+          "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
+          "side": "sell",
+          "price": 0.15,
+          "quantity": 80,
+          "filled": 0,
+          "timestamp": 1770535671260
+        },
+        {
+          "id": 41,
+          "user": "0x9fD3e7A1c5B8d2F6a4E0b9C3a7D5e1F8b2C4a6D9",
+          "side": "sell",
+          "price": 0.18,
+          "quantity": 50,
+          "filled": 0,
+          "timestamp": 1770535671270
+        },
+        {
+          "id": 254,
+          "user": "0xA2e5F8d1B4c7a3D6e9B2f0A5c8D1e4F7b3A6d9C2",
+          "side": "sell",
+          "price": 0.22,
+          "quantity": 35,
+          "filled": 0,
+          "timestamp": 1770535671280
+        },
+        {
+          "id": 255,
+          "user": "0xD7a3C6e9B1f4A8d2E5b7C0a3F9d6B2e8A4c1D5f7",
+          "side": "sell",
+          "price": 0.27,
+          "quantity": 30,
+          "filled": 0,
+          "timestamp": 1770535671290
         }
       ]
     },
     "110": {
       "buys": [
         {
-          "id": 29,
-          "user": "0xTrader2",
+          "id": 304,
+          "user": "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6",
+          "side": "buy",
+          "price": 0.1,
+          "quantity": 500,
+          "filled": 0,
+          "timestamp": 1770556305783
+        },
+        {
+          "id": 256,
+          "user": "0x6eD4a8B3f1C5e9A2d7F6b0E4a3C8d1B5f9A2e7D3",
+          "side": "buy",
+          "price": 0.09,
+          "quantity": 15,
+          "filled": 0,
+          "timestamp": 1770535671031
+        },
+        {
+          "id": 257,
+          "user": "0xE1b8D4f2A9c5e7B3a6F0d1C8a4E2b9D5f3A7c6B1",
           "side": "buy",
           "price": 0.07,
           "quantity": 25,
-          "filled": 10,
-          "timestamp": 1770535671031
+          "filled": 0,
+          "timestamp": 1770535671040
+        },
+        {
+          "id": 258,
+          "user": "0x3cA9e5D2f8B1a4C7d6E3b0F9a2D5c8E1b7A4f3D6",
+          "side": "buy",
+          "price": 0.05,
+          "quantity": 35,
+          "filled": 0,
+          "timestamp": 1770535671050
+        },
+        {
+          "id": 259,
+          "user": "0x1fB7c2E6a9D3e8A5b4F1d0C7a6B3e5D9f2A8c4B1",
+          "side": "buy",
+          "price": 0.04,
+          "quantity": 50,
+          "filled": 0,
+          "timestamp": 1770535671060
+        },
+        {
+          "id": 260,
+          "user": "0xF5c2A8d6E3b9f1C4a7D0e5B2f8A3d9C6e1B4a7F5",
+          "side": "buy",
+          "price": 0.03,
+          "quantity": 60,
+          "filled": 0,
+          "timestamp": 1770535671070
+        },
+        {
+          "id": 261,
+          "user": "0xB3d9E5a1C7f4b8D2e6A3c0F5b1E7d4A9f2C8a6B3",
+          "side": "buy",
+          "price": 0.02,
+          "quantity": 75,
+          "filled": 0,
+          "timestamp": 1770535671080
+        },
+        {
+          "id": 1,
+          "user": "0x41Db99b9A098Af28A06C0af238799c08076Af2f7",
+          "side": "buy",
+          "price": 0.01,
+          "quantity": 10,
+          "filled": 0,
+          "timestamp": 1770555713470
+        },
+        {
+          "id": 2,
+          "user": "0x41Db99b9A098Af28A06C0af238799c08076Af2f7",
+          "side": "buy",
+          "price": 0.01,
+          "quantity": 100,
+          "filled": 0,
+          "timestamp": 1770555725140
         }
       ],
       "sells": [
@@ -204,16 +414,61 @@
           "side": "sell",
           "price": 0.12,
           "quantity": 500,
-          "filled": 66.66666666666667,
+          "filled": 118.75,
           "timestamp": 1770535670834
+        },
+        {
+          "id": 45,
+          "user": "0x9fD3e7A1c5B8d2F6a4E0b9C3a7D5e1F8b2C4a6D9",
+          "side": "sell",
+          "price": 0.15,
+          "quantity": 50,
+          "filled": 0,
+          "timestamp": 1770535671280
+        },
+        {
+          "id": 46,
+          "user": "0x1fB7c2E6a9D3e8A5b4F1d0C7a6B3e5D9f2A8c4B1",
+          "side": "sell",
+          "price": 0.18,
+          "quantity": 20,
+          "filled": 0,
+          "timestamp": 1770535671290
+        },
+        {
+          "id": 47,
+          "user": "0x9fD3e7A1c5B8d2F6a4E0b9C3a7D5e1F8b2C4a6D9",
+          "side": "sell",
+          "price": 0.22,
+          "quantity": 40,
+          "filled": 0,
+          "timestamp": 1770535671300
+        },
+        {
+          "id": 262,
+          "user": "0xA2e5F8d1B4c7a3D6e9B2f0A5c8D1e4F7b3A6d9C2",
+          "side": "sell",
+          "price": 0.27,
+          "quantity": 30,
+          "filled": 0,
+          "timestamp": 1770535671310
+        },
+        {
+          "id": 263,
+          "user": "0xD7a3C6e9B1f4A8d2E5b7C0a3F9d6B2e8A4c1D5f7",
+          "side": "sell",
+          "price": 0.32,
+          "quantity": 25,
+          "filled": 0,
+          "timestamp": 1770535671320
         }
       ]
     },
     "111": {
       "buys": [
         {
-          "id": 24,
-          "user": "0xTrader2",
+          "id": 264,
+          "user": "0x6eD4a8B3f1C5e9A2d7F6b0E4a3C8d1B5f9A2e7D3",
           "side": "buy",
           "price": 0.24,
           "quantity": 20,
@@ -221,36 +476,199 @@
           "timestamp": 1770535670962
         },
         {
-          "id": 28,
-          "user": "0xTrader1",
+          "id": 305,
+          "user": "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6",
+          "side": "buy",
+          "price": 0.24,
+          "quantity": 500,
+          "filled": 0,
+          "timestamp": 1770556305783
+        },
+        {
+          "id": 265,
+          "user": "0x3cA9e5D2f8B1a4C7d6E3b0F9a2D5c8E1b7A4f3D6",
           "side": "buy",
           "price": 0.2,
           "quantity": 40,
           "filled": 0,
-          "timestamp": 1770535671018
+          "timestamp": 1770535670970
+        },
+        {
+          "id": 266,
+          "user": "0x1fB7c2E6a9D3e8A5b4F1d0C7a6B3e5D9f2A8c4B1",
+          "side": "buy",
+          "price": 0.18,
+          "quantity": 30,
+          "filled": 0,
+          "timestamp": 1770535670978
+        },
+        {
+          "id": 267,
+          "user": "0xF5c2A8d6E3b9f1C4a7D0e5B2f8A3d9C6e1B4a7F5",
+          "side": "buy",
+          "price": 0.15,
+          "quantity": 50,
+          "filled": 0,
+          "timestamp": 1770535670986
+        },
+        {
+          "id": 268,
+          "user": "0xB3d9E5a1C7f4b8D2e6A3c0F5b1E7d4A9f2C8a6B3",
+          "side": "buy",
+          "price": 0.12,
+          "quantity": 35,
+          "filled": 0,
+          "timestamp": 1770535670994
+        },
+        {
+          "id": 269,
+          "user": "0xC6a4D1e8B2f5A9c3D7b0E6a4F1d8B5e2C9a3D6f7",
+          "side": "buy",
+          "price": 0.09,
+          "quantity": 45,
+          "filled": 0,
+          "timestamp": 1770535671002
+        },
+        {
+          "id": 270,
+          "user": "0x8bF1e3A7d5C2a9B6f4E8d0A1c7B3e6D9f5A2c8B4",
+          "side": "buy",
+          "price": 0.06,
+          "quantity": 60,
+          "filled": 0,
+          "timestamp": 1770535671010
         }
       ],
-      "sells": []
+      "sells": [
+        {
+          "id": 306,
+          "user": "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6",
+          "side": "sell",
+          "price": 0.28,
+          "quantity": 500,
+          "filled": 71.42857142857142,
+          "timestamp": 1770556305783
+        },
+        {
+          "id": 51,
+          "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
+          "side": "sell",
+          "price": 0.3,
+          "quantity": 100,
+          "filled": 9.49999999999999,
+          "timestamp": 1770535671320
+        },
+        {
+          "id": 52,
+          "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
+          "side": "sell",
+          "price": 0.35,
+          "quantity": 80,
+          "filled": 0,
+          "timestamp": 1770535671330
+        },
+        {
+          "id": 53,
+          "user": "0x9fD3e7A1c5B8d2F6a4E0b9C3a7D5e1F8b2C4a6D9",
+          "side": "sell",
+          "price": 0.4,
+          "quantity": 50,
+          "filled": 0,
+          "timestamp": 1770535671340
+        },
+        {
+          "id": 271,
+          "user": "0xA2e5F8d1B4c7a3D6e9B2f0A5c8D1e4F7b3A6d9C2",
+          "side": "sell",
+          "price": 0.45,
+          "quantity": 35,
+          "filled": 0,
+          "timestamp": 1770535671350
+        },
+        {
+          "id": 272,
+          "user": "0xD7a3C6e9B1f4A8d2E5b7C0a3F9d6B2e8A4c1D5f7",
+          "side": "sell",
+          "price": 0.5,
+          "quantity": 30,
+          "filled": 0,
+          "timestamp": 1770535671360
+        },
+        {
+          "id": 273,
+          "user": "0xE1b8D4f2A9c5e7B3a6F0d1C8a4E2b9D5f3A7c6B1",
+          "side": "sell",
+          "price": 0.55,
+          "quantity": 25,
+          "filled": 0,
+          "timestamp": 1770535671370
+        }
+      ]
     },
     "000": {
       "buys": [
         {
-          "id": 17,
-          "user": "0xTrader1",
+          "id": 200,
+          "user": "0x3cA9e5D2f8B1a4C7d6E3b0F9a2D5c8E1b7A4f3D6",
           "side": "buy",
-          "price": 0.06,
-          "quantity": 30,
+          "price": 0.07,
+          "quantity": 25,
           "filled": 0,
           "timestamp": 1770535670865
         },
         {
-          "id": 25,
-          "user": "0xTrader3",
+          "id": 201,
+          "user": "0xB3d9E5a1C7f4b8D2e6A3c0F5b1E7d4A9f2C8a6B3",
+          "side": "buy",
+          "price": 0.06,
+          "quantity": 35,
+          "filled": 0,
+          "timestamp": 1770535670870
+        },
+        {
+          "id": 307,
+          "user": "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6",
+          "side": "buy",
+          "price": 0.06,
+          "quantity": 500,
+          "filled": 0,
+          "timestamp": 1770556305783
+        },
+        {
+          "id": 202,
+          "user": "0x1fB7c2E6a9D3e8A5b4F1d0C7a6B3e5D9f2A8c4B1",
           "side": "buy",
           "price": 0.05,
           "quantity": 50,
           "filled": 0,
-          "timestamp": 1770535670976
+          "timestamp": 1770535670876
+        },
+        {
+          "id": 203,
+          "user": "0xC6a4D1e8B2f5A9c3D7b0E6a4F1d8B5e2C9a3D6f7",
+          "side": "buy",
+          "price": 0.04,
+          "quantity": 65,
+          "filled": 0,
+          "timestamp": 1770535670880
+        },
+        {
+          "id": 204,
+          "user": "0x8bF1e3A7d5C2a9B6f4E8d0A1c7B3e6D9f5A2c8B4",
+          "side": "buy",
+          "price": 0.03,
+          "quantity": 45,
+          "filled": 0,
+          "timestamp": 1770535670890
+        },
+        {
+          "id": 205,
+          "user": "0x0aD6b4E9c2F8a1D5e3B7f6A0c9D4b2E8a5F1c3D7",
+          "side": "buy",
+          "price": 0.02,
+          "quantity": 80,
+          "filled": 0,
+          "timestamp": 1770535670900
         }
       ],
       "sells": [
@@ -260,16 +678,61 @@
           "side": "sell",
           "price": 0.08,
           "quantity": 500,
-          "filled": 118.75,
+          "filled": 121.875,
           "timestamp": 1770535670834
+        },
+        {
+          "id": 206,
+          "user": "0xA2e5F8d1B4c7a3D6e9B2f0A5c8D1e4F7b3A6d9C2",
+          "side": "sell",
+          "price": 0.1,
+          "quantity": 45,
+          "filled": 0,
+          "timestamp": 1770535670950
+        },
+        {
+          "id": 207,
+          "user": "0xD7a3C6e9B1f4A8d2E5b7C0a3F9d6B2e8A4c1D5f7",
+          "side": "sell",
+          "price": 0.13,
+          "quantity": 55,
+          "filled": 0,
+          "timestamp": 1770535670960
+        },
+        {
+          "id": 208,
+          "user": "0x9fD3e7A1c5B8d2F6a4E0b9C3a7D5e1F8b2C4a6D9",
+          "side": "sell",
+          "price": 0.16,
+          "quantity": 40,
+          "filled": 0,
+          "timestamp": 1770535670970
+        },
+        {
+          "id": 209,
+          "user": "0xE1b8D4f2A9c5e7B3a6F0d1C8a4E2b9D5f3A7c6B1",
+          "side": "sell",
+          "price": 0.2,
+          "quantity": 30,
+          "filled": 0,
+          "timestamp": 1770535670980
+        },
+        {
+          "id": 210,
+          "user": "0xF5c2A8d6E3b9f1C4a7D0e5B2f8A3d9C6e1B4a7F5",
+          "side": "sell",
+          "price": 0.25,
+          "quantity": 25,
+          "filled": 0,
+          "timestamp": 1770535670990
         }
       ]
     },
     "001": {
       "buys": [
         {
-          "id": 18,
-          "user": "0xTrader2",
+          "id": 211,
+          "user": "0x6eD4a8B3f1C5e9A2d7F6b0E4a3C8d1B5f9A2e7D3",
           "side": "buy",
           "price": 0.1,
           "quantity": 25,
@@ -277,23 +740,68 @@
           "timestamp": 1770535670878
         },
         {
-          "id": 26,
-          "user": "0xTrader1",
+          "id": 308,
+          "user": "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6",
+          "side": "buy",
+          "price": 0.1,
+          "quantity": 500,
+          "filled": 0,
+          "timestamp": 1770556305783
+        },
+        {
+          "id": 212,
+          "user": "0x3cA9e5D2f8B1a4C7d6E3b0F9a2D5c8E1b7A4f3D6",
           "side": "buy",
           "price": 0.08,
           "quantity": 30,
           "filled": 0,
-          "timestamp": 1770535670990
+          "timestamp": 1770535670882
+        },
+        {
+          "id": 213,
+          "user": "0xB3d9E5a1C7f4b8D2e6A3c0F5b1E7d4A9f2C8a6B3",
+          "side": "buy",
+          "price": 0.06,
+          "quantity": 40,
+          "filled": 0,
+          "timestamp": 1770535670886
+        },
+        {
+          "id": 214,
+          "user": "0xC6a4D1e8B2f5A9c3D7b0E6a4F1d8B5e2C9a3D6f7",
+          "side": "buy",
+          "price": 0.05,
+          "quantity": 50,
+          "filled": 0,
+          "timestamp": 1770535670890
+        },
+        {
+          "id": 215,
+          "user": "0x8bF1e3A7d5C2a9B6f4E8d0A1c7B3e6D9f5A2c8B4",
+          "side": "buy",
+          "price": 0.03,
+          "quantity": 65,
+          "filled": 0,
+          "timestamp": 1770535670894
+        },
+        {
+          "id": 216,
+          "user": "0x0aD6b4E9c2F8a1D5e3B7f6A0c9D4b2E8a5F1c3D7",
+          "side": "buy",
+          "price": 0.02,
+          "quantity": 85,
+          "filled": 0,
+          "timestamp": 1770535670898
         }
       ],
       "sells": [
         {
           "id": 2,
-          "user": "0xMaker",
+          "user": "0x9fD3e7A1c5B8d2F6a4E0b9C3a7D5e1F8b2C4a6D9",
           "side": "sell",
           "price": 0.12,
           "quantity": 50,
-          "filled": 37.5,
+          "filled": 39.583333333333336,
           "timestamp": 1770535670690
         },
         {
@@ -304,19 +812,109 @@
           "quantity": 500,
           "filled": 0,
           "timestamp": 1770535670834
+        },
+        {
+          "id": 217,
+          "user": "0xA2e5F8d1B4c7a3D6e9B2f0A5c8D1e4F7b3A6d9C2",
+          "side": "sell",
+          "price": 0.15,
+          "quantity": 40,
+          "filled": 0,
+          "timestamp": 1770535670940
+        },
+        {
+          "id": 218,
+          "user": "0xD7a3C6e9B1f4A8d2E5b7C0a3F9d6B2e8A4c1D5f7",
+          "side": "sell",
+          "price": 0.18,
+          "quantity": 50,
+          "filled": 0,
+          "timestamp": 1770535670950
+        },
+        {
+          "id": 219,
+          "user": "0xE1b8D4f2A9c5e7B3a6F0d1C8a4E2b9D5f3A7c6B1",
+          "side": "sell",
+          "price": 0.22,
+          "quantity": 35,
+          "filled": 0,
+          "timestamp": 1770535670960
+        },
+        {
+          "id": 220,
+          "user": "0xF5c2A8d6E3b9f1C4a7D0e5B2f8A3d9C6e1B4a7F5",
+          "side": "sell",
+          "price": 0.27,
+          "quantity": 30,
+          "filled": 0,
+          "timestamp": 1770535670970
         }
       ]
     },
     "010": {
       "buys": [
         {
-          "id": 19,
-          "user": "0xTrader1",
+          "id": 221,
+          "user": "0x3cA9e5D2f8B1a4C7d6E3b0F9a2D5c8E1b7A4f3D6",
           "side": "buy",
           "price": 0.08,
           "quantity": 20,
           "filled": 0,
           "timestamp": 1770535670893
+        },
+        {
+          "id": 309,
+          "user": "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6",
+          "side": "buy",
+          "price": 0.08,
+          "quantity": 500,
+          "filled": 0,
+          "timestamp": 1770556305783
+        },
+        {
+          "id": 222,
+          "user": "0xB3d9E5a1C7f4b8D2e6A3c0F5b1E7d4A9f2C8a6B3",
+          "side": "buy",
+          "price": 0.07,
+          "quantity": 30,
+          "filled": 0,
+          "timestamp": 1770535670897
+        },
+        {
+          "id": 223,
+          "user": "0x1fB7c2E6a9D3e8A5b4F1d0C7a6B3e5D9f2A8c4B1",
+          "side": "buy",
+          "price": 0.05,
+          "quantity": 45,
+          "filled": 0,
+          "timestamp": 1770535670901
+        },
+        {
+          "id": 224,
+          "user": "0xC6a4D1e8B2f5A9c3D7b0E6a4F1d8B5e2C9a3D6f7",
+          "side": "buy",
+          "price": 0.04,
+          "quantity": 55,
+          "filled": 0,
+          "timestamp": 1770535670905
+        },
+        {
+          "id": 225,
+          "user": "0x8bF1e3A7d5C2a9B6f4E8d0A1c7B3e6D9f5A2c8B4",
+          "side": "buy",
+          "price": 0.03,
+          "quantity": 70,
+          "filled": 0,
+          "timestamp": 1770535670909
+        },
+        {
+          "id": 226,
+          "user": "0x0aD6b4E9c2F8a1D5e3B7f6A0c9D4b2E8a5F1c3D7",
+          "side": "buy",
+          "price": 0.02,
+          "quantity": 85,
+          "filled": 0,
+          "timestamp": 1770535670913
         }
       ],
       "sells": [
@@ -326,16 +924,61 @@
           "side": "sell",
           "price": 0.1,
           "quantity": 500,
-          "filled": 35,
+          "filled": 37.5,
           "timestamp": 1770535670834
+        },
+        {
+          "id": 227,
+          "user": "0xA2e5F8d1B4c7a3D6e9B2f0A5c8D1e4F7b3A6d9C2",
+          "side": "sell",
+          "price": 0.13,
+          "quantity": 40,
+          "filled": 0,
+          "timestamp": 1770535670940
+        },
+        {
+          "id": 228,
+          "user": "0xD7a3C6e9B1f4A8d2E5b7C0a3F9d6B2e8A4c1D5f7",
+          "side": "sell",
+          "price": 0.16,
+          "quantity": 45,
+          "filled": 0,
+          "timestamp": 1770535670950
+        },
+        {
+          "id": 229,
+          "user": "0x9fD3e7A1c5B8d2F6a4E0b9C3a7D5e1F8b2C4a6D9",
+          "side": "sell",
+          "price": 0.19,
+          "quantity": 35,
+          "filled": 0,
+          "timestamp": 1770535670960
+        },
+        {
+          "id": 230,
+          "user": "0xE1b8D4f2A9c5e7B3a6F0d1C8a4E2b9D5f3A7c6B1",
+          "side": "sell",
+          "price": 0.23,
+          "quantity": 30,
+          "filled": 0,
+          "timestamp": 1770535670970
+        },
+        {
+          "id": 231,
+          "user": "0xF5c2A8d6E3b9f1C4a7D0e5B2f8A3d9C6e1B4a7F5",
+          "side": "sell",
+          "price": 0.28,
+          "quantity": 25,
+          "filled": 0,
+          "timestamp": 1770535670980
         }
       ]
     },
     "011": {
       "buys": [
         {
-          "id": 20,
-          "user": "0xTrader3",
+          "id": 232,
+          "user": "0x1fB7c2E6a9D3e8A5b4F1d0C7a6B3e5D9f2A8c4B1",
           "side": "buy",
           "price": 0.12,
           "quantity": 35,
@@ -343,23 +986,68 @@
           "timestamp": 1770535670906
         },
         {
-          "id": 27,
-          "user": "0xTrader2",
+          "id": 310,
+          "user": "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6",
+          "side": "buy",
+          "price": 0.12,
+          "quantity": 500,
+          "filled": 0,
+          "timestamp": 1770556305783
+        },
+        {
+          "id": 233,
+          "user": "0x6eD4a8B3f1C5e9A2d7F6b0E4a3C8d1B5f9A2e7D3",
           "side": "buy",
           "price": 0.1,
           "quantity": 20,
           "filled": 0,
-          "timestamp": 1770535671004
+          "timestamp": 1770535670910
+        },
+        {
+          "id": 234,
+          "user": "0xB3d9E5a1C7f4b8D2e6A3c0F5b1E7d4A9f2C8a6B3",
+          "side": "buy",
+          "price": 0.08,
+          "quantity": 40,
+          "filled": 0,
+          "timestamp": 1770535670914
+        },
+        {
+          "id": 235,
+          "user": "0xC6a4D1e8B2f5A9c3D7b0E6a4F1d8B5e2C9a3D6f7",
+          "side": "buy",
+          "price": 0.06,
+          "quantity": 35,
+          "filled": 0,
+          "timestamp": 1770535670918
+        },
+        {
+          "id": 236,
+          "user": "0x8bF1e3A7d5C2a9B6f4E8d0A1c7B3e6D9f5A2c8B4",
+          "side": "buy",
+          "price": 0.04,
+          "quantity": 50,
+          "filled": 0,
+          "timestamp": 1770535670922
+        },
+        {
+          "id": 237,
+          "user": "0x0aD6b4E9c2F8a1D5e3B7f6A0c9D4b2E8a5F1c3D7",
+          "side": "buy",
+          "price": 0.03,
+          "quantity": 65,
+          "filled": 0,
+          "timestamp": 1770535670926
         }
       ],
       "sells": [
         {
           "id": 4,
-          "user": "0xMaker",
+          "user": "0x9fD3e7A1c5B8d2F6a4E0b9C3a7D5e1F8b2C4a6D9",
           "side": "sell",
           "price": 0.15,
           "quantity": 50,
-          "filled": 36.66666666666667,
+          "filled": 38.333333333333336,
           "timestamp": 1770535670738
         },
         {
@@ -370,6 +1058,42 @@
           "quantity": 500,
           "filled": 0,
           "timestamp": 1770535670834
+        },
+        {
+          "id": 238,
+          "user": "0xA2e5F8d1B4c7a3D6e9B2f0A5c8D1e4F7b3A6d9C2",
+          "side": "sell",
+          "price": 0.18,
+          "quantity": 35,
+          "filled": 0,
+          "timestamp": 1770535670940
+        },
+        {
+          "id": 239,
+          "user": "0xD7a3C6e9B1f4A8d2E5b7C0a3F9d6B2e8A4c1D5f7",
+          "side": "sell",
+          "price": 0.22,
+          "quantity": 40,
+          "filled": 0,
+          "timestamp": 1770535670950
+        },
+        {
+          "id": 240,
+          "user": "0xE1b8D4f2A9c5e7B3a6F0d1C8a4E2b9D5f3A7c6B1",
+          "side": "sell",
+          "price": 0.26,
+          "quantity": 30,
+          "filled": 0,
+          "timestamp": 1770535670960
+        },
+        {
+          "id": 241,
+          "user": "0xF5c2A8d6E3b9f1C4a7D0e5B2f8A3d9C6e1B4a7F5",
+          "side": "sell",
+          "price": 0.31,
+          "quantity": 25,
+          "filled": 0,
+          "timestamp": 1770535670970
         }
       ]
     }
@@ -378,7 +1102,7 @@
     {
       "id": 1,
       "timestamp": 1770535671061,
-      "user": "0xAlice",
+      "user": "0x7Fc98a2E4D3b6C1f9A5e8B0d2F4a7C3E6b9D1f5A",
       "type": "buy-corner",
       "description": "corner buy",
       "amount": 5,
@@ -388,7 +1112,7 @@
     {
       "id": 2,
       "timestamp": 1770535671094,
-      "user": "0xBob",
+      "user": "0x2aB4d8F1e6C3a9D5b7E0f2A8c4D6e1B3f9C5a7D2",
       "type": "buy-corner",
       "description": "corner buy",
       "amount": 3,
@@ -398,7 +1122,7 @@
     {
       "id": 3,
       "timestamp": 1770535671125,
-      "user": "0xAlice",
+      "user": "0x7Fc98a2E4D3b6C1f9A5e8B0d2F4a7C3E6b9D1f5A",
       "type": "buy-corner",
       "description": "corner buy",
       "amount": 2,
@@ -408,7 +1132,7 @@
     {
       "id": 4,
       "timestamp": 1770535671157,
-      "user": "0xCharlie",
+      "user": "0x5eC7a3B9d1F6e8A4c0D2b5F3a9E7c1D4b6A8f2E5",
       "type": "buy-corner",
       "description": "corner buy",
       "amount": 4,
@@ -418,7 +1142,7 @@
     {
       "id": 5,
       "timestamp": 1770535671190,
-      "user": "0xBob",
+      "user": "0x2aB4d8F1e6C3a9D5b7E0f2A8c4D6e1B3f9C5a7D2",
       "type": "buy-corner",
       "description": "corner buy",
       "amount": 6,
@@ -448,7 +1172,7 @@
     {
       "id": 8,
       "timestamp": 1770546680521,
-      "user": "0x8cA2f29c522ACa3Cd",
+      "user": "0x4bE2d6C8a3F1e5B9d7A4c0F6b2E8a1D3f5C9a7B4",
       "type": "buy-corner",
       "description": "corner buy",
       "amount": 10,
@@ -664,19 +1388,169 @@
       "amount": 1,
       "shares": 10,
       "fills": 1
+    },
+    {
+      "id": 1,
+      "timestamp": 1770554347439,
+      "user": "0x41Db99b9A098Af28A06C0af238799c08076Af2f7",
+      "type": "buy-slice",
+      "description": "slice buy",
+      "amount": 0.5,
+      "shares": 5,
+      "fills": 1
+    },
+    {
+      "id": 1,
+      "timestamp": 1770555476661,
+      "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 10,
+      "shares": 35.71428571428571,
+      "fills": 1
+    },
+    {
+      "id": 2,
+      "timestamp": 1770555524026,
+      "user": "0x41Db99b9A098Af28A06C0af238799c08076Af2f7",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 5,
+      "shares": 49.166666666666664,
+      "fills": 2
+    },
+    {
+      "id": 1,
+      "timestamp": 1770555651447,
+      "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 10,
+      "shares": 35.71428571428571,
+      "fills": 1
+    },
+    {
+      "id": 2,
+      "timestamp": 1770556114166,
+      "user": "0x41Db99b9A098Af28A06C0af238799c08076Af2f7",
+      "type": "buy-marginal",
+      "description": "marginal buy",
+      "amount": 1,
+      "shares": 9.375,
+      "fills": 4
+    },
+    {
+      "id": 3,
+      "timestamp": 1770556271481,
+      "user": "0x41Db99b9A098Af28A06C0af238799c08076Af2f7",
+      "type": "buy-marginal",
+      "description": "marginal buy",
+      "amount": 10,
+      "shares": 102.46536796536796,
+      "fills": 5
+    },
+    {
+      "id": 4,
+      "timestamp": 1770556286174,
+      "user": "0x41Db99b9A098Af28A06C0af238799c08076Af2f7",
+      "type": "buy-marginal",
+      "description": "marginal buy",
+      "amount": 11,
+      "shares": 104.71320346320347,
+      "fills": 6
+    },
+    {
+      "id": 1,
+      "timestamp": 1770556318972,
+      "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 10,
+      "shares": 35.71428571428571,
+      "fills": 1
+    },
+    {
+      "id": 1,
+      "timestamp": 1770556425695,
+      "user": "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 10,
+      "shares": 35.71428571428571,
+      "fills": 1
+    },
+    {
+      "id": 1,
+      "timestamp": 1770556910610,
+      "user": "0x41Db99b9A098Af28A06C0af238799c08076Af2f7",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 1,
+      "shares": 8.333333333333334,
+      "fills": 1
+    },
+    {
+      "id": 1,
+      "timestamp": 1770558088643,
+      "user": "0x41Db99b9A098Af28A06C0af238799c08076Af2f7",
+      "type": "sell-corner",
+      "description": "corner sell",
+      "amount": -3.3500000000000005,
+      "shares": 100,
+      "fills": 3
+    },
+    {
+      "id": 2,
+      "timestamp": 1770558181934,
+      "user": "0x41Db99b9A098Af28A06C0af238799c08076Af2f7",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 100,
+      "shares": 200,
+      "fills": 1
+    },
+    {
+      "id": 3,
+      "timestamp": 1770558185508,
+      "user": "0x41Db99b9A098Af28A06C0af238799c08076Af2f7",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 100,
+      "shares": 200,
+      "fills": 1
+    },
+    {
+      "id": 4,
+      "timestamp": 1770558188650,
+      "user": "0x41Db99b9A098Af28A06C0af238799c08076Af2f7",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 100,
+      "shares": 200,
+      "fills": 1
+    },
+    {
+      "id": 5,
+      "timestamp": 1770558192950,
+      "user": "0x41Db99b9A098Af28A06C0af238799c08076Af2f7",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 50,
+      "shares": 100,
+      "fills": 1
     }
   ],
   "sessions": {
     "0x41Db99b9A098Af28A06C0af238799c08076Af2f7": {
-      "sessionId": "0x8faab38a3b421ed6988b2eb7f1dd3e710814ac56c8bc3cd82eda2ead92000a72",
-      "userBalance": 19998470
+      "userBalance": 10000000,
+      "sessionId": "0x15e2e9ae67414b53ee570eaf2e20724ba3b39a6b0a3cbfb1c5c42e8809ef2405"
     },
     "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd": {
-      "userBalance": 222.5,
+      "userBalance": 263.8,
       "sessionId": "0xb4b186042685212dffdc8e8a1ea3f7f6404dc1d472714f30ccb153f533b1d760"
     },
-    "0xMaker": {
-      "userBalance": 9.5
+    "0x9fD3e7A1c5B8d2F6a4E0b9C3a7D5e1F8b2C4a6D9": {
+      "userBalance": 10
     }
   }
 }

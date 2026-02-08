@@ -15,17 +15,22 @@ interface ISwapRouter {
  * @dev Deployed per corner - knows its market name and corner
  */
 contract CornerReceiver {
-    ISwapRouter public immutable router;
+    ISwapRouter public router;
     string public marketName;
     string public corner;
 
     error TransferFailed();
 
-    constructor(
+    bool public initialized;
+
+    function initialize(
         address router_,
         string memory marketName_,
         string memory corner_
-    ) {
+    ) external {
+        if (initialized) revert("Already initialized");
+        initialized = true;
+
         router = ISwapRouter(router_);
         marketName = marketName_;
         corner = corner_;
