@@ -8,6 +8,7 @@ import {
   probabilitySumForOutcomeIds,
   selectionsToOutcomeIds,
   selectedOutcomeIdsToSelections,
+  outcomesFromPrices,
 } from "@/lib/selectedOdds";
 import { MarketHeader } from "../components/MarketHeader";
 import { Visualizations } from "../components/Visualizations";
@@ -61,12 +62,19 @@ export default function Home() {
     [selectedOutcomeIds]
   );
 
+  const liveOutcomes = useMemo(() => {
+    if (marketData?.corners && marketData.corners.length === 8) {
+      return outcomesFromPrices(marketData.corners);
+    }
+    return undefined;
+  }, [marketData?.corners]);
+
   const avgPriceCents = useMemo(
     () =>
       selectedOutcomeIds.length > 0
-        ? probabilitySumForOutcomeIds(selectedOutcomeIds)
+        ? probabilitySumForOutcomeIds(selectedOutcomeIds, liveOutcomes)
         : null,
-    [selectedOutcomeIds]
+    [selectedOutcomeIds, liveOutcomes]
   );
 
   const handleToggleOutcome = (outcomeId: number) => {
@@ -515,32 +523,25 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* Tab Content */}
-                  <div className="px-8 py-6">
-                    {bottomTab === "Rules" && <MarketRules />}
-                    {bottomTab === "History" && (
-                      <p className="text-sm text-white/30 py-4">No trade history yet.</p>
-                    )}
-                    {bottomTab === "Activity" && (
-                      <div className="divide-y divide-white/[0.04]">
-                        {RECENT_TRADES.map((trade, idx) => (
-                          <div key={idx} className="flex items-center justify-between py-4 hover:bg-white/[0.02] transition-colors">
-                            <div className="flex items-center gap-4">
-                              <span className="text-[10px] font-black text-white/20 w-16">{trade.time}</span>
-                              <span className="text-xs font-bold text-white/40 font-mono">{trade.user}</span>
-                            </div>
-                            <div className="flex items-center gap-4">
-                              <span className="text-xs font-bold text-white/50">{trade.market}</span>
-                              <span className={cn("text-xs font-black", trade.color)}>{trade.side}</span>
-                              <span className="text-sm font-black text-white w-20 text-right">{trade.amount}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+              <Visualizations
+                activeView={view}
+                selections={selections}
+                selectedOutcomeIds={selectedOutcomeIds}
+                onToggleOutcome={handleToggleOutcome}
+                onSelectionChange={(s: Record<number, string | null>) => {
+                  const ids = selectionsToOutcomeIds(s);
+                  setSelectedOutcomeIds(ids.length === 8 ? [] : ids);
+                }}
+                volume={volume}
+                liveCornerPrices={marketData?.corners ?? null}
+                liveMarginals={marketData?.marginals ?? null}
+              />
+              <OrderBook avgPriceCents={avgPriceCents} volume={volume} />
+              <MarketPositions
+                userAddress={yellow.account ?? null}
+                refreshKey={refreshKey}
+              />
+              <MarketRules />
             </div>
 
             {/* Sidebar */}

@@ -18,7 +18,7 @@ export interface MarketPrices {
   marginals: MarginalPrice[];
   b: number;
   totalVolume: number;
-  status: "open" | "resolved";
+  status: "seeding" | "open" | "resolved";
 }
 
 export interface OrderBookLevel {
@@ -111,7 +111,7 @@ export interface MarketState {
   market: {
     id: string;
     events: { index: number; description: string }[];
-    status: "open" | "resolved";
+    status: "seeding" | "open" | "resolved";
     resolution: string | null;
     winningCorner: number | null;
     totalVolume: number;

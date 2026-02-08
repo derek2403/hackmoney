@@ -1,9 +1,19 @@
 /**
  * Joint outcomes and "For The Win" probability for the 3-question market.
  * Used by Visualizations (Selected Odds card) and TradeSidebar (Avg. Price / to-win).
+ *
+ * Probabilities can come from live order book prices via `outcomesFromPrices()`.
  */
 
-export const JOINT_OUTCOMES = [
+export type JointOutcome = {
+  id: number;
+  outcomes: readonly [boolean, boolean, boolean];
+  description: string;
+  probability: number; // 0–100
+};
+
+/** Static fallback probabilities (used when no live data available). */
+export const JOINT_OUTCOMES: JointOutcome[] = [
   { id: 1, outcomes: [false, false, false], description: "Khamenei No, US No, Israel No", probability: 6.00 },
   { id: 2, outcomes: [false, false, true], description: "Khamenei No, US No, Israel Yes", probability: 6.00 },
   { id: 3, outcomes: [false, true, false], description: "Khamenei No, US Yes, Israel No", probability: 9.00 },
@@ -12,9 +22,29 @@ export const JOINT_OUTCOMES = [
   { id: 6, outcomes: [true, false, true], description: "Khamenei Yes, US No, Israel Yes", probability: 14.00 },
   { id: 7, outcomes: [true, true, false], description: "Khamenei Yes, US Yes, Israel No", probability: 21.00 },
   { id: 8, outcomes: [true, true, true], description: "Khamenei Yes, US Yes, Israel Yes", probability: 21.00 },
-] as const;
+];
 
-type Outcome = (typeof JOINT_OUTCOMES)[number];
+/**
+ * Create outcomes array from live corner prices.
+ * Corner prices are 0-1 (e.g. 0.28 = 28%). Converts to 0-100 for display.
+ * @param prices Array of 8 corner prices indexed 0-7, or objects with {label, price}.
+ */
+export function outcomesFromPrices(
+  prices: { label: string; price: number }[] | number[]
+): JointOutcome[] {
+  return JOINT_OUTCOMES.map((o, i) => {
+    let price: number;
+    if (Array.isArray(prices) && prices.length > 0 && typeof prices[0] === 'number') {
+      price = (prices as number[])[i] ?? 0;
+    } else {
+      const p = (prices as { label: string; price: number }[])[i];
+      price = p?.price ?? 0;
+    }
+    return { ...o, probability: price * 100 };
+  });
+}
+
+type Outcome = JointOutcome;
 
 export function doesOutcomeMatch(
   outcome: Outcome,
@@ -32,21 +62,25 @@ export function doesOutcomeMatch(
 
 /** Returns the "For The Win" percentage (0–100) for the current selections, or null if none. */
 export function calculateSelectedMarketProbability(
-  selections: Record<number, string | null>
+  selections: Record<number, string | null>,
+  outcomes: JointOutcome[] = JOINT_OUTCOMES
 ): number | null {
   const hasSelection = Object.values(selections).some((s) => s !== null);
   if (!hasSelection) return null;
   let total = 0;
-  for (const outcome of JOINT_OUTCOMES) {
+  for (const outcome of outcomes) {
     if (doesOutcomeMatch(outcome, selections)) total += outcome.probability;
   }
   return total;
 }
 
 /** Sum of probabilities for the given outcome ids (for multi-select). */
-export function probabilitySumForOutcomeIds(ids: number[]): number {
+export function probabilitySumForOutcomeIds(
+  ids: number[],
+  outcomes: JointOutcome[] = JOINT_OUTCOMES
+): number {
   let sum = 0;
-  for (const outcome of JOINT_OUTCOMES) {
+  for (const outcome of outcomes) {
     if (ids.includes(outcome.id)) sum += outcome.probability;
   }
   return sum;
@@ -64,8 +98,11 @@ export function outcomeIdToSelections(id: number): Record<number, string | null>
 }
 
 /** Return outcome ids that match the given selections (for sidebar → table sync). */
-export function selectionsToOutcomeIds(selections: Record<number, string | null>): number[] {
-  return JOINT_OUTCOMES.filter((o) => doesOutcomeMatch(o, selections)).map((o) => o.id);
+export function selectionsToOutcomeIds(
+  selections: Record<number, string | null>,
+  outcomes: JointOutcome[] = JOINT_OUTCOMES
+): number[] {
+  return outcomes.filter((o) => doesOutcomeMatch(o, selections)).map((o) => o.id);
 }
 
 /** For multi-select: derive Yes/No/Any per question from selected outcome ids. */
