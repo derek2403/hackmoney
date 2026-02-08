@@ -341,7 +341,6 @@ export const TradeSidebar = ({
             <div className="flex items-center justify-between gap-4">
               <div className="flex flex-col gap-0.5 shrink-0">
                 <span className="text-sm font-black tracking-widest text-white/40 uppercase">Amount</span>
-                <p className="text-xs font-bold"><span className="text-white/40">Balance</span> <span className="text-white">${String(Math.floor(userBalance - 1)).slice(-4)}</span></p>
               </div>
               <div className="flex-1 min-w-0 flex items-baseline gap-1 justify-end pr-1 overflow-hidden">
                 <span className="text-3xl font-bold text-white shrink-0">$</span>

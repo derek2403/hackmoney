@@ -45,6 +45,14 @@ export const JointMarket3D: React.FC<JointMarket3DProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
+  const onSelectionChangeRef = useRef(onSelectionChange);
+  const selectionsRef = useRef(selections);
+
+  // Keep refs up to date
+  useEffect(() => {
+    onSelectionChangeRef.current = onSelectionChange;
+    selectionsRef.current = selections;
+  });
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -117,7 +125,19 @@ export const JointMarket3D: React.FC<JointMarket3DProps> = ({
     const cubeSize = 1; // edge length of each small cube
     const maxProb = outcomes.reduce((m, o) => Math.max(m, o.probability), 0.0001);
 
-    const glassColor = new THREE.Color(0xffffff);
+    // Heatmap color function: maps probability (0-100) to a color gradient
+    // Low probability: dark blue/purple, High probability: bright cyan/blue
+    function probabilityToColor(probability: number, maxProb: number): THREE.Color {
+      const normalized = probability / maxProb; // 0 to 1
+
+      // Color gradient: dark blue -> bright cyan
+      // Using HSL interpolation for smooth gradient
+      const hue = 200; // Blue hue
+      const saturation = 70 + (normalized * 30); // 70% to 100%
+      const lightness = 20 + (normalized * 60); // 20% to 80%
+
+      return new THREE.Color(`hsl(${hue}, ${saturation}%, ${lightness}%)`);
+    }
 
     type CubeEntry = {
       mesh: THREE.Mesh;
@@ -163,14 +183,17 @@ export const JointMarket3D: React.FC<JointMarket3DProps> = ({
         segments,
         cornerRadius
       );
-      const opacity = 0.25 + 0.1 * (outcome.probability / maxProb); // 0.25–0.35
+
+      // Heatmap color based on probability
+      const cubeColor = probabilityToColor(outcome.probability, maxProb);
+      const opacity = 0.35 + 0.5 * (outcome.probability / maxProb); // 0.35–0.85 (more visible range)
 
       const mat = new THREE.MeshPhysicalMaterial({
-        color: glassColor.clone(),
+        color: cubeColor,
         transparent: true,
         opacity,
         roughness: 0.25,
-        transmission: 1,
+        transmission: 0.6, // Reduced transmission for more color visibility
         thickness: 0.4,
         clearcoat: 0.3,
         ior: 1.4,
@@ -190,10 +213,10 @@ export const JointMarket3D: React.FC<JointMarket3DProps> = ({
         material: mat,
         basePosition,
         target: {
-          transmission: 1,
+          transmission: 0.6,
           opacity,
           roughness: 0.25,
-          color: glassColor.clone(),
+          color: cubeColor.clone(),
         },
       });
     });
@@ -268,45 +291,58 @@ export const JointMarket3D: React.FC<JointMarket3DProps> = ({
     labelX.style.color = "rgba(255,255,255,1)"; // text-white
     labelX.style.textTransform = "none"; // Override uppercase for readable market names
     labelX.style.letterSpacing = "normal"; // Remove wide letter spacing
-    
+
     const labelY = makeLabel("B: US strikes");
     labelY.style.fontSize = "14px"; // text-sm equivalent
     labelY.style.fontWeight = "700"; // font-bold
     labelY.style.color = "rgba(255,255,255,1)"; // text-white
     labelY.style.textTransform = "none"; // Override uppercase for readable market names
     labelY.style.letterSpacing = "normal"; // Remove wide letter spacing
-    
+
     const labelZ = makeLabel("C: Israel next strikes");
     labelZ.style.fontSize = "14px"; // text-sm equivalent
     labelZ.style.fontWeight = "700"; // font-bold
     labelZ.style.color = "rgba(255,255,255,1)"; // text-white
     labelZ.style.textTransform = "none"; // Override uppercase for readable market names
     labelZ.style.letterSpacing = "normal"; // Remove wide letter spacing
-    
-    // Origin label ("no" at the intersection of all three axes)
-    const labelOrigin = makeLabel("NO");
-    labelOrigin.style.fontSize = "14px"; // text-sm equivalent
-    labelOrigin.style.fontWeight = "700"; // font-bold
-    labelOrigin.style.color = "rgba(161,161,170,1)"; // text-zinc-500
-    labelOrigin.style.textTransform = "none";
-    labelOrigin.style.letterSpacing = "normal"; // Remove wide letter spacing
-    
+
+    // Yes labels at positive axis ends
+    const labelXYes = makeLabel("Yes");
+    labelXYes.style.fontSize = "13px";
+    labelXYes.style.fontWeight = "700";
+    labelXYes.style.color = "rgba(161,161,170,1)";
+    labelXYes.style.textTransform = "capitalize";
+
+    const labelYYes = makeLabel("Yes");
+    labelYYes.style.fontSize = "13px";
+    labelYYes.style.fontWeight = "700";
+    labelYYes.style.color = "rgba(161,161,170,1)";
+    labelYYes.style.textTransform = "capitalize";
+
+    const labelZYes = makeLabel("Yes");
+    labelZYes.style.fontSize = "13px";
+    labelZYes.style.fontWeight = "700";
+    labelZYes.style.color = "rgba(161,161,170,1)";
+    labelZYes.style.textTransform = "capitalize";
+
     const labelAnchors: LabelAnchor[] = [
-      // Origin label at the intersection of all three axes
-      { el: labelOrigin, localPosition: new THREE.Vector3(-axisOffset, -axisOffset, -axisOffset) },
-      // X-axis label (close to the axis line, near the middle)
-      { el: labelX, localPosition: new THREE.Vector3(axisLength * 0.6, -axisOffset, -axisOffset) },
-      // Y-axis label (close to the axis line, near the middle)
-      { el: labelY, localPosition: new THREE.Vector3(-axisOffset, axisLength * 0.6, -axisOffset) },
-      // Z-axis label (close to the axis line, near the middle)
-      { el: labelZ, localPosition: new THREE.Vector3(-axisOffset, -axisOffset, axisLength * 0.6) },
+      // Axis name labels (positioned along the middle of each axis)
+      { el: labelX, localPosition: new THREE.Vector3(axisLength * 0.3, -axisOffset - 0.5, -axisOffset) },
+      { el: labelY, localPosition: new THREE.Vector3(-axisOffset - 0.5, axisLength * 0.3, -axisOffset) },
+      { el: labelZ, localPosition: new THREE.Vector3(-axisOffset, -axisOffset - 0.5, axisLength * 0.3) },
+
+      // Yes labels at positive ends of each axis
+      { el: labelXYes, localPosition: new THREE.Vector3(axisLength / 2 + 0.7, -axisOffset, -axisOffset) },
+      { el: labelYYes, localPosition: new THREE.Vector3(-axisOffset, axisLength / 2 + 0.7, -axisOffset) },
+      { el: labelZYes, localPosition: new THREE.Vector3(-axisOffset, -axisOffset, axisLength / 2 + 0.7) },
     ];
 
     // Tooltip & selection
     let hovered: THREE.Mesh | null = null;
     
     // Helper: find which outcomes match current selections (can be multiple)
-    function findMatchingOutcomeIds(selections: Record<number, string | null> | undefined): Set<number> {
+    function findMatchingOutcomeIds(): Set<number> {
+      const selections = selectionsRef.current;
       const matchingIds = new Set<number>();
       if (!selections) return matchingIds;
       const hasAnySelection = Object.values(selections).some((s) => s !== null && s !== "Any");
@@ -317,10 +353,10 @@ export const JointMarket3D: React.FC<JointMarket3DProps> = ({
         for (let qId = 1; qId <= 3; qId++) {
           const selection = selections[qId];
           if (selection === null || selection === "Any") continue;
-          
+
           const outcomeValue = qId === 1 ? outcome.aYes : qId === 2 ? outcome.bYes : outcome.cYes;
           const isYes = selection === "Yes";
-          
+
           if (isYes !== outcomeValue) {
             matches = false;
             break;
@@ -331,7 +367,7 @@ export const JointMarket3D: React.FC<JointMarket3DProps> = ({
       return matchingIds;
     }
 
-    let selectedOutcomeIds = new Set<number>(findMatchingOutcomeIds(selections));
+    let selectedOutcomeIds = new Set<number>(findMatchingOutcomeIds());
     const tooltip = tooltipRef.current;
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
@@ -417,16 +453,17 @@ export const JointMarket3D: React.FC<JointMarket3DProps> = ({
           entry.mesh.castShadow = true;
           entry.mesh.receiveShadow = true;
         } else {
-          const glassOpacity = 0.25 + 0.1 * (entry.outcome.probability / maxProb);
+          const glassOpacity = 0.35 + 0.5 * (entry.outcome.probability / maxProb);
+          const cubeColor = probabilityToColor(entry.outcome.probability, maxProb);
           entry.target = {
-            transmission: 1,
+            transmission: 0.6,
             opacity: glassOpacity,
             roughness: 0.25,
             metalness: 0.0,
             clearcoat: 0.3,
             clearcoatRoughness: 0.3,
             thickness: 0.4,
-            color: glassColor.clone(),
+            color: cubeColor,
           };
         }
         material.needsUpdate = true;
@@ -443,9 +480,9 @@ export const JointMarket3D: React.FC<JointMarket3DProps> = ({
         if (!hasDragged && selectedOutcomeIds.size > 0) {
           selectedOutcomeIds.clear();
           updateMaterialsForSelection(selectedOutcomeIds);
-          
-          if (onSelectionChange) {
-            onSelectionChange({
+
+          if (onSelectionChangeRef.current) {
+            onSelectionChangeRef.current({
               1: null,
               2: null,
               3: null,
@@ -471,26 +508,26 @@ export const JointMarket3D: React.FC<JointMarket3DProps> = ({
 
       // Propagate selection change up to sync TradeSidebar
       // When multiple cubes selected, compute union: if all agree → Yes/No, else → "Any"
-      if (onSelectionChange) {
+      if (onSelectionChangeRef.current) {
         if (selectedOutcomeIds.size === 0) {
-          onSelectionChange({
+          onSelectionChangeRef.current({
             1: null,
             2: null,
             3: null,
           });
         } else {
           const selectedOutcomes = outcomes.filter((o) => selectedOutcomeIds.has(o.id));
-          
+
           // For each question, check if all selected outcomes agree
           const newSelections: Record<number, string | null> = { 1: null, 2: null, 3: null };
-          
+
           for (let qId = 1; qId <= 3; qId++) {
-            const values = selectedOutcomes.map((o) => 
+            const values = selectedOutcomes.map((o) =>
               qId === 1 ? o.aYes : qId === 2 ? o.bYes : o.cYes
             );
             const allTrue = values.every((v) => v === true);
             const allFalse = values.every((v) => v === false);
-            
+
             if (allTrue) {
               newSelections[qId] = "Yes";
             } else if (allFalse) {
@@ -500,8 +537,8 @@ export const JointMarket3D: React.FC<JointMarket3DProps> = ({
               newSelections[qId] = "Any";
             }
           }
-          
-          onSelectionChange(newSelections);
+
+          onSelectionChangeRef.current(newSelections);
         }
       }
     }
@@ -529,9 +566,7 @@ export const JointMarket3D: React.FC<JointMarket3DProps> = ({
     function handlePointerMove(event: MouseEvent) {
       if (!isDragging) return;
       const deltaX = event.clientX - lastX;
-      const deltaY = event.clientY - lastY;
       lastX = event.clientX;
-      lastY = event.clientY;
 
       // Check if user moved significantly (more than 3 pixels)
       const totalMovement = Math.abs(event.clientX - dragStartX) + Math.abs(event.clientY - dragStartY);
@@ -559,16 +594,13 @@ export const JointMarket3D: React.FC<JointMarket3DProps> = ({
 
     // Animation loop (lerp materials; rotation only changes on user drag)
     let frameId: number;
-    let lastTime = performance.now();
     const animate = () => {
       const now = performance.now();
-      const delta = (now - lastTime) / 1000;
-      lastTime = now;
 
       // Sync selectedOutcomeIds with current selections prop (if changed externally)
-      const currentMatchingIds = findMatchingOutcomeIds(selections);
+      const currentMatchingIds = findMatchingOutcomeIds();
       // Compare sets by size and content
-      if (currentMatchingIds.size !== selectedOutcomeIds.size || 
+      if (currentMatchingIds.size !== selectedOutcomeIds.size ||
           ![...currentMatchingIds].every(id => selectedOutcomeIds.has(id))) {
         selectedOutcomeIds = new Set(currentMatchingIds);
         updateMaterialsForSelection(selectedOutcomeIds);
@@ -697,7 +729,7 @@ export const JointMarket3D: React.FC<JointMarket3DProps> = ({
       container.removeChild(labelContainer);
       renderer.dispose();
     };
-  }, [outcomes, selections, onSelectionChange]);
+  }, [outcomes]);
 
   return (
     <div

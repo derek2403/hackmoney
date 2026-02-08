@@ -547,6 +547,59 @@ function handleGetPositions(address) {
 }
 
 /**
+ * Liquidate all of a user's share positions at current market prices.
+ * Credits the USD value back to their session balance and zeros out shares.
+ */
+function handleLiquidate(body) {
+  if (!marketState) return { error: 'No market exists' };
+
+  const { user } = body;
+  if (!user) return { error: 'Missing user address' };
+
+  ensureUserBalance(marketState, user);
+  const balances = marketState.balances[user];
+
+  let totalValue = 0;
+  const liquidated = [];
+
+  for (let i = 0; i < 8; i++) {
+    const label = cornerLabel(i);
+    const qty = balances[label] || 0;
+    if (qty <= 0) continue;
+
+    const price = bestAskPrice(marketState.orders[label]) || (1 / 8);
+    const value = qty * price;
+    totalValue += value;
+
+    liquidated.push({ corner: label, shares: qty, price, value });
+
+    // Zero out the user's shares
+    balances[label] = 0;
+  }
+
+  // Credit the total value to the user's USD balance
+  if (totalValue > 0) {
+    creditUserUsd(marketState, user, totalValue);
+    recordTrade(marketState, {
+      user,
+      type: 'liquidate',
+      description: 'Liquidated all positions on session close',
+      amount: totalValue,
+      shares: liquidated.reduce((s, l) => s + l.shares, 0),
+      fills: liquidated.length,
+    });
+    persist();
+  }
+
+  return {
+    success: true,
+    totalValue: Math.round(totalValue * 10000) / 10000,
+    liquidated,
+    newUsdBalance: Math.round(getUserUsdBalance(marketState, user) * 100) / 100,
+  };
+}
+
+/**
  * Resolve the market.
  */
 function handleResolve(body) {
@@ -700,6 +753,8 @@ function createMarketRouter(opts = {}) {
           result = handleResolve(data);
         } else if (route === '/session') {
           result = handleRegisterSession(data);
+        } else if (route === '/liquidate') {
+          result = handleLiquidate(data);
         } else {
           return false;
         }
