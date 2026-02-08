@@ -12,7 +12,7 @@ import {
 import { MarketHeader } from "../components/MarketHeader";
 import { Visualizations } from "../components/Visualizations";
 import { TradeSidebar } from "../components/TradeSidebar";
-import Galaxy from "../components/Galaxy";
+
 import { OrderBook } from "../components/OrderBook";
 import { MarketRules } from "../components/MarketRules";
 import { SidebarFeed } from "../components/SidebarFeed";
@@ -80,7 +80,7 @@ export default function IranWar() {
           setPortfolioValue(p.totalShareValue);
           setServerUsdBalance(p.usdBalance ?? 0);
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }, [yellow.account, refreshKey]);
 
@@ -144,7 +144,7 @@ export default function IranWar() {
         user: yellow.account,
         sessionId: yellow.appSessionId,
         userBalance: yellow.payerBalance,
-      }).catch(() => {});
+      }).catch(() => { });
     }
   }, [yellow.appSessionStatus, yellow.account, yellow.appSessionId, yellow.payerBalance]);
 
@@ -178,7 +178,7 @@ export default function IranWar() {
         console.warn("Failed to send instant payment for trade — session may be out of sync");
       }
       if (yellow.account) {
-        await registerSession({ user: yellow.account, userBalance: yellow.payerBalance - cost }).catch(() => {});
+        await registerSession({ user: yellow.account, userBalance: yellow.payerBalance - cost }).catch(() => { });
       }
     }
 
@@ -197,7 +197,7 @@ export default function IranWar() {
         console.warn("Failed to receive instant payment for sale");
       }
       if (yellow.account) {
-        await registerSession({ user: yellow.account, userBalance: yellow.payerBalance + revenue }).catch(() => {});
+        await registerSession({ user: yellow.account, userBalance: yellow.payerBalance + revenue }).catch(() => { });
       }
     }
 
@@ -222,15 +222,7 @@ export default function IranWar() {
         <style>{`html, body { scrollbar-width: none; -ms-overflow-style: none; } html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }`}</style>
       </Head>
 
-      {/* Galaxy background */}
-      <div className="fixed inset-0 z-0 pointer-events-none" style={{ width: "100%", height: "100%" }}>
-        <Galaxy
-          mouseRepulsion={false} mouseInteraction={false} density={0.7}
-          glowIntensity={0.2} saturation={0.4} hueShift={140}
-          twinkleIntensity={0.9} rotationSpeed={0.05} repulsionStrength={8}
-          autoCenterRepulsion={0} starSpeed={0.3} speed={0.3}
-        />
-      </div>
+
       {/* Dark overlay for content readability */}
       <div className="fixed inset-0 z-0 pointer-events-none bg-[#0a0a0b]/40" />
       <div className="fixed inset-0 z-0 pointer-events-none bg-black/40" />
