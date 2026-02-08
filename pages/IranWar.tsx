@@ -54,23 +54,31 @@ export default function IranWar() {
   }, [wagmiAddress, yellow.account, yellow.connectWallet]);
 
   // Auto-create trading session with full ledger balance once authenticated + CLOB ready
-  const autoSessionTriggered = useRef(false);
+  // Manual session creation flow:
+  // 1. User clicks "Request Faucet" -> requesting faucet + setting isWaitingForFunds = true
+  // 2. Once ledger balance > 0 and isWaitingForFunds = true -> create session
+  const [isWaitingForFunds, setIsWaitingForFunds] = useState(false);
   const ledgerNum = parseFloat(yellow.ledgerBalance) || 0;
+
   useEffect(() => {
     if (
-      yellow.isAuthenticated &&
-      yellow.clobInfo?.authenticated &&
-      yellow.account &&
+      isWaitingForFunds &&
+      ledgerNum > 0 &&
       yellow.appSessionStatus === 'none' &&
-      !yellow.isSessionLoading &&
-      !autoSessionTriggered.current &&
-      ledgerNum > 0
+      !yellow.isSessionLoading
     ) {
-      autoSessionTriggered.current = true;
-      console.log('[IranWar] Auto-creating trading session with full ledger balance:', ledgerNum);
+      console.log('[IranWar] Funds received, creating session...');
+      // Small delay to ensure balance is fully propagated/usable if needed, 
+      // or just call it immediately.
       yellow.createAppSession(ledgerNum);
+      setIsWaitingForFunds(false);
     }
-  }, [yellow.isAuthenticated, yellow.clobInfo?.authenticated, yellow.account, yellow.appSessionStatus, yellow.isSessionLoading, yellow.createAppSession, ledgerNum]);
+  }, [ledgerNum, isWaitingForFunds, yellow.appSessionStatus, yellow.isSessionLoading, yellow.createAppSession]);
+
+  const handleRequestFaucetAndCreateSession = useCallback(async () => {
+    await yellow.requestFaucet();
+    setIsWaitingForFunds(true);
+  }, [yellow.requestFaucet]);
 
   // Fetch portfolio value + server-tracked USD balance
   useEffect(() => {
@@ -238,7 +246,7 @@ export default function IranWar() {
           isSessionLoading={yellow.isSessionLoading}
           onCreateSession={handleNavbarCreateSession}
           onDepositToSession={handleNavbarDeposit}
-          onRequestFaucet={yellow.requestFaucet}
+          onRequestFaucet={handleRequestFaucetAndCreateSession}
           onCloseSession={yellow.closeSession}
         />
 
