@@ -6,7 +6,7 @@ import { cn } from "./utils";
 import { fetchOrderBook, fetchAllOrderBooks } from "@/lib/yellow/market/marketClient";
 import type { OrderBookLevel } from "@/lib/yellow/market/types";
 
-type BookRow = { price: number; shares: number; total: number; isVamm?: boolean };
+type BookRow = { price: number; shares: number; total: number; isAmm: boolean; isVamm?: boolean };
 
 const CORNER_LABELS = ["000", "001", "010", "011", "100", "101", "110", "111"];
 const CORNER_DISPLAY: Record<string, string> = {
@@ -35,6 +35,7 @@ function levelsToRows(levels: OrderBookLevel[]): BookRow[] {
     price: l.price,
     shares: l.quantity,
     total: Math.round(l.quantity * l.price * 100) / 100,
+    isAmm: l.isAmm ?? false,
   }));
 }
 
@@ -45,9 +46,11 @@ interface OrderBookProps {
   selectedCorner?: string;
   /** Render as an inline table without card wrapper (for side-by-side layout). */
   inline?: boolean;
+  /** Increment to trigger a re-fetch (e.g. after a trade). */
+  refreshKey?: number;
 }
 
-export const OrderBook = ({ avgPriceCents, volume = 0, selectedCorner: controlledCorner, inline = false }: OrderBookProps) => {
+export const OrderBook = ({ avgPriceCents, volume = 0, selectedCorner: controlledCorner, inline = false, refreshKey }: OrderBookProps) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [corner, setCorner] = useState(controlledCorner || "000");
   const [asks, setAsks] = useState<BookRow[]>([]);
@@ -85,9 +88,7 @@ export const OrderBook = ({ avgPriceCents, volume = 0, selectedCorner: controlle
 
   useEffect(() => {
     fetchData();
-    const id = setInterval(fetchData, 3000); // Poll every 3s
-    return () => clearInterval(id);
-  }, [fetchData]);
+  }, [fetchData, refreshKey]);
 
   const spread = asks.length && bids.length
     ? Math.round((asks[asks.length - 1]!.price - bids[0]!.price) * 100)
@@ -190,7 +191,7 @@ export const OrderBook = ({ avgPriceCents, volume = 0, selectedCorner: controlle
 
       {/* Table header */}
       <div className="grid grid-cols-[1fr_auto_auto] gap-3 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white/40">
-        <div>Price</div>
+        <div className="pl-2">Price</div>
         <div className="text-right w-20">Share</div>
         <div className="text-right w-24">Total</div>
       </div>
@@ -206,7 +207,7 @@ export const OrderBook = ({ avgPriceCents, volume = 0, selectedCorner: controlle
               className={cn("absolute left-0 top-0 bottom-0 transition-[width] duration-500", row.isVamm ? "bg-amber-500/20" : "bg-rose-500/15")}
               style={{ width: `${(askCumulative[idx]! / maxCumulative) * 100}%` }}
             />
-            <div className="relative flex items-center gap-1.5">
+            <div className="relative flex items-center gap-1.5 pl-2">
               <span className={cn("font-semibold tabular-nums", row.isVamm ? "text-amber-400" : "text-rose-400")}>{Math.round(row.price * 100)}¢</span>
               {row.isVamm && <Bot className="h-3 w-3 text-amber-400" />}
             </div>
@@ -218,7 +219,7 @@ export const OrderBook = ({ avgPriceCents, volume = 0, selectedCorner: controlle
 
       {/* Spread line */}
       <div className="flex items-center justify-between px-4 py-2.5 border-y border-white/15 text-xs text-white/50">
-        <span>Last: {lastPrice != null ? `${lastPrice}¢` : "—"}</span>
+        <span className="pl-2">Last: {lastPrice != null ? `${lastPrice}¢` : "—"}</span>
         <span>Spread: {Math.abs(inlineSpread)}¢</span>
       </div>
 
@@ -233,7 +234,7 @@ export const OrderBook = ({ avgPriceCents, volume = 0, selectedCorner: controlle
               className={cn("absolute left-0 top-0 bottom-0 transition-[width] duration-500", row.isVamm ? "bg-amber-500/20" : "bg-emerald-500/15")}
               style={{ width: `${(bidCumulative[idx]! / maxCumulative) * 100}%` }}
             />
-            <div className="relative flex items-center gap-1.5">
+            <div className="relative flex items-center gap-1.5 pl-2">
               <span className={cn("font-semibold tabular-nums", row.isVamm ? "text-amber-400" : "text-emerald-400")}>{Math.round(row.price * 100)}¢</span>
               {row.isVamm && <Bot className="h-3 w-3 text-amber-400" />}
             </div>
@@ -337,13 +338,22 @@ export const OrderBook = ({ avgPriceCents, volume = 0, selectedCorner: controlle
               {asks.map((row) => (
                 <div
                   key={row.price}
-                  className="relative grid grid-cols-[1fr_auto_auto] gap-4 py-1.5 items-center text-sm group hover:bg-white/5 rounded"
+                  className={cn(
+                    "relative grid grid-cols-[1fr_auto_auto] gap-4 py-1.5 items-center text-sm group hover:bg-white/5 rounded",
+                    row.isAmm && "border-l-2 border-blue-400/60"
+                  )}
                 >
                   <div
-                    className="absolute left-0 top-0 bottom-0 rounded-r bg-rose-500/20 max-w-full transition-[width] duration-300"
+                    className={cn(
+                      "absolute left-0 top-0 bottom-0 rounded-r max-w-full transition-[width] duration-300",
+                      row.isAmm ? "bg-blue-500/15" : "bg-rose-500/20"
+                    )}
                     style={{ width: `${(row.total / maxDepth) * 100}%` }}
                   />
-                  <div className="relative pl-8 font-semibold text-rose-400">{Math.round(row.price * 100)}¢</div>
+                  <div className={cn("relative pl-8 font-semibold", row.isAmm ? "text-blue-400" : "text-rose-400")}>
+                    {Math.round(row.price * 100)}¢
+                    {row.isAmm && <span className="ml-1.5 text-[9px] font-bold text-blue-400/70">AMM</span>}
+                  </div>
                   <div className="relative text-right w-20 text-white/70 tabular-nums">{row.shares.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
                   <div className="relative text-right w-24 text-white/70 tabular-nums">${row.total.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
                 </div>
@@ -374,13 +384,22 @@ export const OrderBook = ({ avgPriceCents, volume = 0, selectedCorner: controlle
               {bids.map((row) => (
                 <div
                   key={row.price}
-                  className="relative grid grid-cols-[1fr_auto_auto] gap-4 py-1.5 items-center text-sm group hover:bg-white/5 rounded"
+                  className={cn(
+                    "relative grid grid-cols-[1fr_auto_auto] gap-4 py-1.5 items-center text-sm group hover:bg-white/5 rounded",
+                    row.isAmm && "border-l-2 border-blue-400/60"
+                  )}
                 >
                   <div
-                    className="absolute left-0 top-0 bottom-0 rounded-r bg-emerald-500/20 max-w-full transition-[width] duration-300"
+                    className={cn(
+                      "absolute left-0 top-0 bottom-0 rounded-r max-w-full transition-[width] duration-300",
+                      row.isAmm ? "bg-blue-500/15" : "bg-emerald-500/20"
+                    )}
                     style={{ width: `${(row.total / maxDepth) * 100}%` }}
                   />
-                  <div className="relative pl-8 font-semibold text-emerald-400">{Math.round(row.price * 100)}¢</div>
+                  <div className={cn("relative pl-8 font-semibold", row.isAmm ? "text-blue-400" : "text-emerald-400")}>
+                    {Math.round(row.price * 100)}¢
+                    {row.isAmm && <span className="ml-1.5 text-[9px] font-bold text-blue-400/70">AMM</span>}
+                  </div>
                   <div className="relative text-right w-20 text-white/70 tabular-nums">{row.shares.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
                   <div className="relative text-right w-24 text-white/70 tabular-nums">${row.total.toLocaleString("en-US", { minimumFractionDigits: 2 })}</div>
                 </div>

@@ -4,21 +4,13 @@ import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { Search, ChevronDown, ChevronUp, Plus, X, Wallet, CreditCard, ArrowLeftRight, Zap, Trophy, Gift, Code, Users, Moon } from "lucide-react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import { useAccount, useBalance, useDisconnect } from "wagmi";
-import { formatUnits } from "viem";
+import { useAccount, useDisconnect } from "wagmi";
 
 const NAV_LINKS = [
   { label: "Trade", href: "#" },
   { label: "Analytics", href: "#", hasDropdown: true },
   { label: "Portfolio", href: "#" },
   { label: "Earn", href: "#" },
-];
-
-const DEPOSIT_OPTIONS = [
-  { icon: Wallet, label: "Wallet", sub: "Instant", limit: "", logos: [] },
-  { icon: ArrowLeftRight, label: "Transfer Crypto", sub: "No limit · Instant", limit: "", logos: ["ETH", "USDC", "USDT", "DAI"] },
-  { icon: CreditCard, label: "Deposit with Card", sub: "$20,000 · 5 min", limit: "", logos: ["VISA", "MC"] },
-  { icon: Zap, label: "Connect Exchange", sub: "No limit · 2 min", limit: "", logos: ["CB", "BN"] },
 ];
 
 const PROFILE_MENU = [
@@ -29,25 +21,53 @@ const PROFILE_MENU = [
   { icon: Moon, label: "Dark mode", action: null, toggle: true },
 ];
 
-const PROFILE_LINKS = [
-  { label: "Accuracy" },
-  { label: "Support" },
-  { label: "Documentation" },
-  { label: "Terms of Use" },
-];
+const PROFILE_LINKS: { label: string }[] = [];
 
-export const Navbar = () => {
+export interface NavbarProps {
+  /** Total value of shares user holds in the market. */
+  portfolioValue?: number;
+  /** ytest.usd available in the Yellow app session (tradable cash). */
+  cash?: number;
+  /** ytest.usd on the Yellow Network ledger (available to deposit). */
+  ledgerBalance?: string;
+  /** Whether Yellow WebSocket auth is complete. */
+  isYellowAuthenticated?: boolean;
+  /** Whether CLOB server is authenticated and ready. */
+  isClobReady?: boolean;
+  /** Yellow app session status. */
+  appSessionStatus?: 'none' | 'creating' | 'active' | 'closing' | 'closed';
+  /** Session loading indicator. */
+  isSessionLoading?: boolean;
+  /** Create a new app session with this initial ytest.usd amount. */
+  onCreateSession?: (amount: number) => Promise<void>;
+  /** Deposit more ytest.usd into an existing session. */
+  onDepositToSession?: (amount: number) => Promise<boolean>;
+  /** Request faucet tokens. */
+  onRequestFaucet?: () => Promise<void>;
+}
+
+export const Navbar = ({
+  portfolioValue = 0,
+  cash = 0,
+  ledgerBalance = "0",
+  isYellowAuthenticated = false,
+  isClobReady = false,
+  appSessionStatus = "none",
+  isSessionLoading = false,
+  onCreateSession,
+  onDepositToSession,
+  onRequestFaucet,
+}: NavbarProps) => {
   const [searchOpen, setSearchOpen] = useState(false);
   const [depositOpen, setDepositOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [depositAmount, setDepositAmount] = useState("100");
+  const [isDepositing, setIsDepositing] = useState(false);
   const { address, isConnected } = useAccount();
-  const { data: balanceData } = useBalance({ address });
   const { disconnect } = useDisconnect();
   const profileRef = useRef<HTMLDivElement>(null);
 
-  const cashDisplay = balanceData
-    ? `$${parseFloat(formatUnits(balanceData.value, balanceData.decimals)).toFixed(2)}`
-    : "$0.00";
+  const ledgerNum = parseFloat(ledgerBalance) || 0;
 
   // Close dropdowns on outside click
   useEffect(() => {
@@ -59,6 +79,24 @@ export const Navbar = () => {
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
+
+  const handleDeposit = async () => {
+    const amt = parseFloat(depositAmount);
+    if (isNaN(amt) || amt <= 0) return;
+    setIsDepositing(true);
+    try {
+      if (appSessionStatus === "active" && onDepositToSession) {
+        await onDepositToSession(amt);
+      } else if (onCreateSession) {
+        await onCreateSession(amt);
+      }
+      setDepositOpen(false);
+    } catch (err) {
+      console.error("Deposit failed:", err);
+    } finally {
+      setIsDepositing(false);
+    }
+  };
 
   return (
     <>
@@ -101,12 +139,16 @@ export const Navbar = () => {
             <div className="flex items-center gap-6 px-4">
               <div className="flex flex-col items-center">
                 <span className="text-xs font-medium text-zinc-500">Portfolio</span>
-                <span className="text-base font-bold text-emerald-400">$0.00</span>
+                <span className="text-base font-bold text-emerald-400">
+                  ${portfolioValue.toFixed(2)}
+                </span>
               </div>
               <div className="h-7 w-px bg-white/10" />
               <div className="flex flex-col items-center">
                 <span className="text-xs font-medium text-zinc-500">Cash</span>
-                <span className="text-base font-bold text-emerald-400">{cashDisplay}</span>
+                <span className="text-base font-bold text-emerald-400" title={`${Math.floor(cash).toLocaleString()} ytest.usd`}>
+                  {cash > 0 ? `$${String(Math.floor(cash)).slice(-4)}` : "$0"}
+                </span>
               </div>
             </div>
 
@@ -179,8 +221,42 @@ export const Navbar = () => {
 
                               <div className="border-t border-white/5" />
 
+                              {/* Ledger balance */}
+                              <div className="px-5 py-3">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Ledger (Off-Chain)</p>
+                                <p className="text-lg font-bold text-yellow-400">{ledgerNum.toLocaleString()} <span className="text-sm text-zinc-500">ytest.usd</span></p>
+                              </div>
+
+                              <div className="border-t border-white/5" />
+
+                              {/* Session info */}
+                              <div className="px-5 py-3">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Trading Session</p>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className={`h-2 w-2 rounded-full ${
+                                    appSessionStatus === "active" ? "bg-emerald-400" :
+                                    appSessionStatus === "creating" ? "bg-yellow-400 animate-pulse" :
+                                    "bg-zinc-600"
+                                  }`} />
+                                  <span className="text-sm text-zinc-400 capitalize">
+                                    {appSessionStatus === "none" ? "Not started" : appSessionStatus}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="border-t border-white/5" />
+
                               {/* Menu items */}
                               <div className="py-2">
+                                {onRequestFaucet && (
+                                  <button
+                                    onClick={() => { onRequestFaucet(); setProfileOpen(false); }}
+                                    className="flex items-center gap-3 w-full px-5 py-2.5 text-sm text-yellow-400 hover:bg-white/5 transition-colors"
+                                  >
+                                    <Gift className="h-4 w-4" />
+                                    Request Faucet
+                                  </button>
+                                )}
                                 {PROFILE_MENU.map((item) => (
                                   <button
                                     key={item.label}
@@ -247,52 +323,90 @@ export const Navbar = () => {
           <div className="relative w-[440px] rounded-2xl border border-white/10 bg-[#1a1a1c] shadow-2xl shadow-black/60 overflow-hidden">
             <div className="flex items-center justify-between px-6 pt-5 pb-4">
               <div>
-                <h3 className="text-lg font-bold text-white">Deposit</h3>
-                <p className="text-sm text-zinc-500">Truth Balance: {cashDisplay}</p>
+                <h3 className="text-lg font-bold text-white">
+                  {appSessionStatus === "active" ? "Deposit to Session" : "Create Trading Session"}
+                </h3>
+                <p className="text-sm text-zinc-500">
+                  Ledger: {ledgerNum.toLocaleString()} ytest.usd
+                </p>
               </div>
               <button onClick={() => setDepositOpen(false)} className="p-1.5 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-colors">
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="px-4 pb-4 space-y-2">
-              <button className="flex items-center justify-between w-full rounded-xl border border-white/10 bg-white/5 px-4 py-4 hover:bg-white/[0.08] transition-colors text-left">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500/20">
-                    <Wallet className="h-5 w-5 text-orange-400" />
-                  </div>
-                  <div>
-                    <span className="text-sm font-bold text-white">Wallet ({address ? `...${address.slice(-4)}` : ""})</span>
-                    <p className="text-xs text-zinc-500">{cashDisplay} · Instant</p>
+            {!isYellowAuthenticated || !isClobReady ? (
+              <div className="px-6 pb-6">
+                <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-4 text-center">
+                  <Wallet className="h-8 w-8 text-yellow-400 mx-auto mb-2" />
+                  <p className="text-sm font-bold text-yellow-400">
+                    {!isYellowAuthenticated ? "Authenticating with Yellow Network..." : "Connecting to CLOB server..."}
+                  </p>
+                  <p className="text-xs text-zinc-500 mt-1">Please wait while we establish a secure connection.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="px-6 pb-6 space-y-4">
+                {/* Amount input */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
+                    Amount (ytest.usd)
+                  </label>
+                  <input
+                    type="text"
+                    value={depositAmount}
+                    onChange={(e) => setDepositAmount(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-2xl font-bold text-white outline-none focus:border-emerald-500/50 transition-colors text-right"
+                    placeholder="100"
+                  />
+                  <div className="flex items-center justify-end gap-2 pt-1">
+                    {[100, 500, 1000].map((v) => (
+                      <button
+                        key={v}
+                        onClick={() => setDepositAmount(String(v))}
+                        className="px-3 py-1 rounded-lg text-[11px] font-bold text-zinc-400 bg-white/5 hover:bg-white/10 hover:text-white transition-colors"
+                      >
+                        {v.toLocaleString()}
+                      </button>
+                    ))}
+                    <button
+                      onClick={() => setDepositAmount(String(Math.floor(ledgerNum)))}
+                      className="px-3 py-1 rounded-lg text-[11px] font-bold text-zinc-400 bg-white/5 hover:bg-white/10 hover:text-white transition-colors"
+                    >
+                      Max
+                    </button>
                   </div>
                 </div>
-              </button>
 
-              <div className="text-center text-xs text-zinc-600 py-1">more</div>
-
-              {DEPOSIT_OPTIONS.slice(1).map((opt) => (
-                <button key={opt.label} className="flex items-center justify-between w-full rounded-xl border border-white/10 bg-white/[0.02] px-4 py-4 hover:bg-white/5 transition-colors text-left">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/5">
-                      <opt.icon className="h-5 w-5 text-zinc-400" />
-                    </div>
-                    <div>
-                      <span className="text-sm font-bold text-white">{opt.label}</span>
-                      <p className="text-xs text-zinc-500">{opt.sub}</p>
-                    </div>
+                {/* Current session info */}
+                {appSessionStatus === "active" && (
+                  <div className="flex items-center justify-between rounded-xl bg-white/5 border border-white/5 px-4 py-3">
+                    <span className="text-xs font-bold text-zinc-500">Session Active</span>
+                    <span className="text-xs font-bold text-emerald-400">Deposit adds to existing session</span>
                   </div>
-                  {opt.logos.length > 0 && (
-                    <div className="flex items-center gap-1">
-                      {opt.logos.map((l) => (
-                        <div key={l} className="h-6 w-6 rounded-full bg-white/10 flex items-center justify-center text-[8px] font-bold text-zinc-400">
-                          {l}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                )}
+
+                {/* Deposit button */}
+                <button
+                  onClick={handleDeposit}
+                  disabled={isDepositing || isSessionLoading || parseFloat(depositAmount) <= 0}
+                  className="w-full rounded-xl bg-emerald-500 py-3.5 text-base font-bold text-white transition-all hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isDepositing || isSessionLoading
+                    ? "Processing..."
+                    : appSessionStatus === "active"
+                    ? "Deposit"
+                    : "Create Session & Deposit"
+                  }
                 </button>
-              ))}
-            </div>
+
+                {appSessionStatus !== "active" && (
+                  <p className="text-[11px] text-zinc-600 text-center">
+                    This creates a bilateral trading session with the CLOB server.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

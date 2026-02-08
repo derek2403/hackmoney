@@ -43,7 +43,8 @@ contract SwapRouter {
         string indexed marketName,
         string corner,
         address indexed buyer,
-        uint256 amount
+        uint256 amount,
+        address indexed token
     );
 
     error MarketAlreadyExists();
@@ -119,7 +120,7 @@ contract SwapRouter {
         // Mint tokens 1:1 with ETH (same decimals: 18)
         OutcomeToken(tokenAddr).mint(buyer, msg.value);
 
-        emit CornerPurchased(marketName, corner, buyer, msg.value);
+        emit CornerPurchased(marketName, corner, buyer, msg.value, tokenAddr);
     }
 
     /**

@@ -157,10 +157,18 @@ async function getCLOBSignature(message: any): Promise<string | null> {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'sign-create-session', message }),
         });
-        if (!r.ok) return null;
-        const { signature } = await r.json();
-        return signature;
-    } catch { return null; }
+        if (!r.ok) {
+            const errBody = await r.text();
+            console.error('[getCLOBSignature] Server error:', r.status, errBody);
+            return null;
+        }
+        const data = await r.json();
+        console.log('[getCLOBSignature] Response:', data);
+        return data.signature ?? null;
+    } catch (err) {
+        console.error('[getCLOBSignature] Fetch error:', err);
+        return null;
+    }
 }
 
 // ==================== HOOK ====================
@@ -244,12 +252,19 @@ export function useYellowSession() {
         return () => { webSocketService.removeStatusListener(setWsStatus); };
     }, []);
 
-    // ==================== CLOB POLLING ====================
+    // ==================== CLOB INFO (retry until authenticated, then stop) ====================
     useEffect(() => {
-        const check = async () => { const info = await fetchCLOBInfo(); setClobInfo(info); };
+        let cancelled = false;
+        const check = async () => {
+            const info = await fetchCLOBInfo();
+            if (cancelled) return;
+            setClobInfo(info);
+            if (!info?.authenticated) {
+                setTimeout(check, 3000);
+            }
+        };
         check();
-        const id = setInterval(check, 5000);
-        return () => clearInterval(id);
+        return () => { cancelled = true; };
     }, []);
 
     // ==================== AUTO-AUTH ====================
@@ -412,12 +427,15 @@ export function useYellowSession() {
 
             const msg = await createAppSessionMessage(messageSigner, { definition: appDefinition, allocations });
             const msgJson = JSON.parse(msg);
+            console.log('[createAppSession] Message to sign:', JSON.stringify(msgJson, null, 2));
+            console.log('[createAppSession] Has req?', !!msgJson.req, 'Keys:', Object.keys(msgJson));
             const clobSig = await getCLOBSignature(msgJson);
             if (clobSig) {
                 msgJson.sig.push(clobSig);
                 webSocketService.send(JSON.stringify(msgJson));
             } else {
-                alert('Failed to get CLOB co-signature');
+                console.error('[createAppSession] CLOB co-signature returned null');
+                alert('Failed to get CLOB co-signature — check browser console for details');
                 setAppSessionStatus('none');
                 setIsSessionLoading(false);
             }

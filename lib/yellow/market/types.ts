@@ -24,6 +24,7 @@ export interface MarketPrices {
 export interface OrderBookLevel {
   price: number;
   quantity: number;
+  isAmm?: boolean;
 }
 
 export interface OrderBookSnapshot {

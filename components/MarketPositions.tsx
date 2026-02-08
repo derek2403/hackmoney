@@ -39,8 +39,6 @@ export const MarketPositions = ({ userAddress, refreshKey }: MarketPositionsProp
 
   useEffect(() => {
     load();
-    const id = setInterval(load, 5000);
-    return () => clearInterval(id);
   }, [load, refreshKey]);
 
   const handleCancel = async (order: OpenOrder) => {

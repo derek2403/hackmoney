@@ -150,19 +150,22 @@ function matchAgainstBook(book, incomingSide, quantity, maxPrice) {
  * Get a snapshot of the book for the API.
  * Aggregates by price level.
  * @param {object} book
- * @returns {{ bids: {price, quantity}[], asks: {price, quantity}[] }}
+ * @param {string} [ammUser] - If provided, levels with this user's orders get isAmm: true
+ * @returns {{ bids: {price, quantity, isAmm}[], asks: {price, quantity, isAmm}[] }}
  */
-function getBookSnapshot(book) {
+function getBookSnapshot(book, ammUser) {
   const aggregate = (orders) => {
     const levels = new Map();
+    const ammAtLevel = new Set();
     for (const o of orders) {
       const remaining = o.quantity - o.filled;
       if (remaining <= 0) continue;
       const existing = levels.get(o.price) || 0;
       levels.set(o.price, existing + remaining);
+      if (ammUser && o.user === ammUser) ammAtLevel.add(o.price);
     }
     return Array.from(levels.entries())
-      .map(([price, quantity]) => ({ price, quantity: Math.round(quantity * 100) / 100 }))
+      .map(([price, quantity]) => ({ price, quantity: Math.round(quantity * 100) / 100, isAmm: ammAtLevel.has(price) }))
       .sort((a, b) => b.price - a.price);
   };
 

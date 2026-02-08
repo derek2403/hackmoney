@@ -16,9 +16,10 @@ import { OrderBook } from "../components/OrderBook";
 import { MarketRules } from "../components/MarketRules";
 import { SidebarFeed } from "../components/SidebarFeed";
 import { MarketPositions } from "../components/MarketPositions";
-import { fetchMarketPrices, registerSession, fundMarket } from "@/lib/yellow/market/marketClient";
+import { fetchMarketPrices, fetchPositions, registerSession, fundMarket } from "@/lib/yellow/market/marketClient";
 import type { MarketPrices } from "@/lib/yellow/market/types";
 import { useYellowSession } from "../hooks/useYellowSession";
+import { useAccount } from "wagmi";
 import { cn } from "../components/utils";
 
 const spaceGrotesk = Space_Grotesk({
@@ -29,6 +30,7 @@ const spaceGrotesk = Space_Grotesk({
 
 export default function IranWar() {
   const yellow = useYellowSession();
+  const { address: wagmiAddress } = useAccount();
 
   const [view, setView] = useState<"1D" | "2D" | "3D" | "Odds">("1D");
   const [selectedOutcomeIds, setSelectedOutcomeIds] = useState<number[]>([]);
@@ -39,6 +41,28 @@ export default function IranWar() {
   const [selectedMarket, setSelectedMarket] = useState(0);
   const [selected2DMarkets, setSelected2DMarkets] = useState<number[]>([]);
   const [selectedCorner, setSelectedCorner] = useState("000");
+  const [portfolioValue, setPortfolioValue] = useState(0);
+  const [serverUsdBalance, setServerUsdBalance] = useState(0);
+  const [orderBookCollapsed, setOrderBookCollapsed] = useState(false);
+
+  // Auto-connect Yellow session when wagmi wallet connects
+  useEffect(() => {
+    if (wagmiAddress && !yellow.account) {
+      yellow.connectWallet();
+    }
+  }, [wagmiAddress, yellow.account, yellow.connectWallet]);
+
+  // Fetch portfolio value + server-tracked USD balance
+  useEffect(() => {
+    if (yellow.account) {
+      fetchPositions(yellow.account)
+        .then((p) => {
+          setPortfolioValue(p.totalShareValue);
+          setServerUsdBalance(p.usdBalance ?? 0);
+        })
+        .catch(() => {});
+    }
+  }, [yellow.account, refreshKey]);
 
   const marketStatus = marketData?.status ?? "seeding";
 
@@ -89,8 +113,6 @@ export default function IranWar() {
 
   useEffect(() => {
     fetchPrices();
-    const id = setInterval(fetchPrices, 3000);
-    return () => clearInterval(id);
   }, [fetchPrices, refreshKey]);
 
   const volume = marketData?.totalVolume ?? 0;
@@ -127,31 +149,50 @@ export default function IranWar() {
 
   // ==================== BUY FLOW ====================
   const handlePostBuy = useCallback(async (cost: number) => {
-    if (yellow.appSessionStatus !== "active" || cost <= 0) return;
+    if (cost <= 0) return;
 
-    const ok = await yellow.sendPaymentToCLOB(cost);
-    if (!ok) {
-      console.warn("Failed to send instant payment for trade — session may be out of sync");
+    // If Yellow session is active, send instant payment
+    if (yellow.appSessionStatus === "active") {
+      const ok = await yellow.sendPaymentToCLOB(cost);
+      if (!ok) {
+        console.warn("Failed to send instant payment for trade — session may be out of sync");
+      }
+      if (yellow.account) {
+        await registerSession({ user: yellow.account, userBalance: yellow.payerBalance - cost }).catch(() => {});
+      }
     }
 
-    if (yellow.account) {
-      await registerSession({ user: yellow.account, userBalance: yellow.payerBalance - cost }).catch(() => {});
-    }
+    // Refresh server-tracked balance
+    setRefreshKey((k) => k + 1);
   }, [yellow]);
 
   // ==================== SELL FLOW ====================
   const handlePostSell = useCallback(async (revenue: number) => {
-    if (yellow.appSessionStatus !== "active" || revenue <= 0) return;
+    if (revenue <= 0) return;
 
-    const ok = await yellow.receivePaymentFromCLOB(revenue);
-    if (!ok) {
-      console.warn("Failed to receive instant payment for sale");
+    // If Yellow session is active, receive instant payment
+    if (yellow.appSessionStatus === "active") {
+      const ok = await yellow.receivePaymentFromCLOB(revenue);
+      if (!ok) {
+        console.warn("Failed to receive instant payment for sale");
+      }
+      if (yellow.account) {
+        await registerSession({ user: yellow.account, userBalance: yellow.payerBalance + revenue }).catch(() => {});
+      }
     }
 
-    if (yellow.account) {
-      await registerSession({ user: yellow.account, userBalance: yellow.payerBalance + revenue }).catch(() => {});
-    }
+    // Refresh server-tracked balance
+    setRefreshKey((k) => k + 1);
   }, [yellow]);
+
+  // ==================== NAVBAR DEPOSIT HANDLER ====================
+  const handleNavbarCreateSession = useCallback(async (amount: number) => {
+    await yellow.createAppSession(amount);
+  }, [yellow.createAppSession]);
+
+  const handleNavbarDeposit = useCallback(async (amount: number) => {
+    return yellow.depositToSession(amount);
+  }, [yellow.depositToSession]);
 
   return (
     <div className={`${spaceGrotesk.className} relative min-h-screen bg-[#0a0a0b] text-white selection:bg-blue-500/30 selection:text-white overflow-x-hidden no-scrollbar`}>
@@ -175,7 +216,18 @@ export default function IranWar() {
       <div className="fixed inset-0 z-0 pointer-events-none bg-black/40" />
 
       <div className="relative z-10 flex min-h-screen flex-col">
-        <Navbar />
+        <Navbar
+          portfolioValue={portfolioValue}
+          cash={yellow.appSessionStatus === 'active' ? yellow.payerBalance : serverUsdBalance}
+          ledgerBalance={yellow.ledgerBalance}
+          isYellowAuthenticated={yellow.isAuthenticated}
+          isClobReady={!!yellow.clobInfo?.authenticated}
+          appSessionStatus={yellow.appSessionStatus}
+          isSessionLoading={yellow.isSessionLoading}
+          onCreateSession={handleNavbarCreateSession}
+          onDepositToSession={handleNavbarDeposit}
+          onRequestFaucet={yellow.requestFaucet}
+        />
 
         <main className="mx-auto flex-1 w-full max-w-[1440px] px-6 pt-4 pb-12">
           <div className="flex items-stretch gap-12">
@@ -194,12 +246,14 @@ export default function IranWar() {
                   onSelected2DMarketsChange={setSelected2DMarkets}
                   selectedCorner={selectedCorner}
                   onCornerChange={setSelectedCorner}
+                  orderBookCollapsed={orderBookCollapsed}
+                  onToggleOrderBook={() => setOrderBookCollapsed((v) => !v)}
                 />
 
                 {/* Chart + Order Book side by side (vertical line spans full height) */}
-                <div className="flex items-stretch">
+                <div className="flex items-stretch min-h-[520px]">
                   {/* Left: Chart / Visualizations */}
-                  <div className="flex-1 border-r border-white/[0.06] pl-6 pr-2 py-2 flex flex-col">
+                  <div className={cn("flex-1 pl-6 pr-2 py-2 flex flex-col", !orderBookCollapsed && "border-r border-white/[0.06]")}>
                     <div className="w-full flex-1 flex flex-col min-h-0">
                       <Visualizations
                         activeView={view}
@@ -218,10 +272,12 @@ export default function IranWar() {
                     </div>
                   </div>
 
-                  {/* Right: Order Book (inline) */}
-                  <div className="w-95 shrink-0">
-                    <OrderBook avgPriceCents={avgPriceCents} volume={volume} inline selectedCorner={selectedCorner} />
-                  </div>
+                  {/* Right: Order Book (inline) — collapsible */}
+                  {!orderBookCollapsed && (
+                    <div className="w-95 shrink-0">
+                      <OrderBook avgPriceCents={avgPriceCents} volume={volume} inline selectedCorner={selectedCorner} />
+                    </div>
+                  )}
                 </div>
 
 
@@ -277,7 +333,7 @@ export default function IranWar() {
                   forTheWinPercent={avgPriceCents}
                   userAddress={yellow.account ?? null}
                   liveMarginals={marketData?.marginals ?? null}
-                  userBalance={yellow.payerBalance}
+                  userBalance={yellow.appSessionStatus === 'active' ? yellow.payerBalance : serverUsdBalance}
                   onTradeComplete={handleTradeComplete}
                   onPostBuy={handlePostBuy}
                   onPostSell={handlePostSell}

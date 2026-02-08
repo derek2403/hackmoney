@@ -1,0 +1,8 @@
+{
+  "swapRouter": "0x3253fEae367C635E8Da901fb5D11Cff90C752C58",
+  "chainId": 11155111,
+  "rpcUrl": "https://ethereum-sepolia-rpc.publicnode.com",
+  "marketName": "iranwar",
+  "defaultBuyAmount": 10,
+  "pollIntervalMs": 5000
+}
