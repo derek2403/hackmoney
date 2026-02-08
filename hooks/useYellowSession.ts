@@ -50,8 +50,8 @@ interface SessionKey {
     address: Address;
 }
 
-const SESSION_KEY_STORAGE = 'yellow_market_session_key';
-const JWT_KEY = 'yellow_market_jwt_token';
+const SESSION_KEY_STORAGE = 'yellow_workshop_session_key';
+const JWT_KEY = 'yellow_workshop_jwt_token';
 
 const generateSessionKey = (): SessionKey => {
     const privateKey = generatePrivateKey();
@@ -152,21 +152,28 @@ async function fetchCLOBInfo(): Promise<CLOBInfo | null> {
 
 async function getCLOBSignature(message: any): Promise<string | null> {
     try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
         const r = await fetch(`${CLOB_SERVER_URL}/api/sign`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'sign-create-session', message }),
+            signal: controller.signal,
         });
+        clearTimeout(timeout);
         if (!r.ok) {
             const errBody = await r.text();
             console.error('[getCLOBSignature] Server error:', r.status, errBody);
             return null;
         }
         const data = await r.json();
-        console.log('[getCLOBSignature] Response:', data);
         return data.signature ?? null;
-    } catch (err) {
-        console.error('[getCLOBSignature] Fetch error:', err);
+    } catch (err: any) {
+        if (err.name === 'AbortError') {
+            console.error('[getCLOBSignature] Request timed out (8s)');
+        } else {
+            console.error('[getCLOBSignature] Fetch error:', err);
+        }
         return null;
     }
 }
@@ -252,19 +259,18 @@ export function useYellowSession() {
         return () => { webSocketService.removeStatusListener(setWsStatus); };
     }, []);
 
-    // ==================== CLOB INFO (retry until authenticated, then stop) ====================
+    // ==================== CLOB INFO (keep polling to track reconnections) ====================
     useEffect(() => {
         let cancelled = false;
         const check = async () => {
+            if (cancelled) return;
             const info = await fetchCLOBInfo();
             if (cancelled) return;
             setClobInfo(info);
-            if (!info?.authenticated) {
-                setTimeout(check, 3000);
-            }
         };
         check();
-        return () => { cancelled = true; };
+        const interval = setInterval(check, 5000);
+        return () => { cancelled = true; clearInterval(interval); };
     }, []);
 
     // ==================== AUTO-AUTH ====================
@@ -282,7 +288,7 @@ export function useYellowSession() {
                 address: account, session_key: sessionKey.address,
                 expires_at: BigInt(Math.floor(Date.now() / 1000) + SESSION_DURATION),
                 scope: AUTH_SCOPE, application: APP_NAME,
-                allowances: [{ asset: 'ytest.usd', amount: '1000000' }],
+                allowances: [{ asset: 'ytest.usd', amount: '100000000' }],
             };
             createAuthRequestMessage(authParams).then((p) => webSocketService.send(p));
         }
@@ -307,7 +313,7 @@ export function useYellowSession() {
                 const authParams = {
                     scope: AUTH_SCOPE, application: APP_NAME, participant: sessionKey.address,
                     session_key: sessionKey.address, expires_at: BigInt(sessionExpireTimestamp),
-                    allowances: [{ asset: 'ytest.usd', amount: '1000000' }],
+                    allowances: [{ asset: 'ytest.usd', amount: '100000000' }],
                 };
                 try {
                     const signer = createEIP712AuthMessageSigner(walletClient, authParams, getAuthDomain());
@@ -363,9 +369,15 @@ export function useYellowSession() {
             // Errors
             if (response.method === RPCMethod.Error) {
                 const msg = (response.params as any)?.error || 'Unknown error';
-                console.error('RPC Error:', msg);
+                console.error('[YellowSession] RPC Error:', msg);
                 if (msg.includes('auth') || msg.includes('expired') || msg.includes('jwt')) {
-                    removeJWT(); removeSessionKey(); setIsAuthAttempted(false);
+                    console.log('[YellowSession] Auth error — clearing JWT and re-authenticating...');
+                    removeJWT();
+                    setIsAuthenticated(false);
+                    setIsAuthAttempted(false);
+                }
+                if (msg.includes('missing signature')) {
+                    console.error('[YellowSession] Signature rejected — session key may be expired. Try resetting auth (resetAuth).');
                 }
             }
         };
@@ -403,21 +415,45 @@ export function useYellowSession() {
                 { participant: partnerAddress, asset: 'ytest.usd', amount: '0' },
             ];
 
+            // Safety timeout — clear loading state if no response in 20s
+            const safetyTimeout = setTimeout(() => {
+                console.error('[createAppSession] No response after 20s — clearing loading state');
+                webSocketService.removeMessageListener(handleResponse);
+                setAppSessionStatus('none');
+                setIsSessionLoading(false);
+            }, 20000);
+
             const handleResponse = async (data: unknown) => {
                 const response = parseAnyRPCResponse(JSON.stringify(data));
+                console.log('[createAppSession] WS response:', response.method, response.params);
+
                 if (response.method === RPCMethod.CreateAppSession) {
+                    clearTimeout(safetyTimeout);
                     const params = response.params as any;
                     if (params.appSessionId || params.app_session_id) {
                         const sid = params.appSessionId || params.app_session_id;
+                        console.log('[createAppSession] Session created:', sid);
                         setAppSessionId(sid);
                         setAppSessionStatus('active');
                         setAppSessionVersion(1);
                         setPayerBalance(String(initialAmount));
                         setPayeeBalance('0');
                     } else {
+                        console.error('[createAppSession] Error in response:', params);
                         alert(`Failed to create session: ${params.error || 'Unknown'}`);
                         setAppSessionStatus('none');
                     }
+                    setIsSessionLoading(false);
+                    webSocketService.removeMessageListener(handleResponse);
+                }
+
+                // Also catch error responses
+                if (response.method === RPCMethod.Error) {
+                    clearTimeout(safetyTimeout);
+                    const msg = (response.params as any)?.error || 'Unknown error';
+                    console.error('[createAppSession] RPC Error:', msg);
+                    alert(`Session creation error: ${msg}`);
+                    setAppSessionStatus('none');
                     setIsSessionLoading(false);
                     webSocketService.removeMessageListener(handleResponse);
                 }
@@ -425,17 +461,21 @@ export function useYellowSession() {
 
             webSocketService.addMessageListener(handleResponse);
 
+            console.log('[createAppSession] Creating message...');
             const msg = await createAppSessionMessage(messageSigner, { definition: appDefinition, allocations });
             const msgJson = JSON.parse(msg);
-            console.log('[createAppSession] Message to sign:', JSON.stringify(msgJson, null, 2));
-            console.log('[createAppSession] Has req?', !!msgJson.req, 'Keys:', Object.keys(msgJson));
+            console.log('[createAppSession] Getting CLOB co-signature...');
             const clobSig = await getCLOBSignature(msgJson);
             if (clobSig) {
                 msgJson.sig.push(clobSig);
+                console.log('[createAppSession] Sending with', msgJson.sig.length, 'signatures');
+                console.log('[createAppSession] sig[0] (user):', msgJson.sig[0]?.slice(0, 20) + '...');
+                console.log('[createAppSession] sig[1] (CLOB):', msgJson.sig[1]?.slice(0, 20) + '...');
                 webSocketService.send(JSON.stringify(msgJson));
+                console.log('[createAppSession] Sent! Waiting for response...');
             } else {
-                console.error('[createAppSession] CLOB co-signature returned null');
-                alert('Failed to get CLOB co-signature — check browser console for details');
+                console.error('[createAppSession] CLOB co-signature returned null — is CLOB server running?');
+                alert('Failed to get CLOB co-signature. Check that the server is running.');
                 setAppSessionStatus('none');
                 setIsSessionLoading(false);
             }
@@ -710,6 +750,21 @@ export function useYellowSession() {
         } catch { alert('Faucet request failed'); }
     }, [account]);
 
+    // ==================== RESET AUTH (force re-authentication) ====================
+    const resetAuth = useCallback(() => {
+        console.log('[resetAuth] Clearing session key and JWT, forcing re-auth...');
+        removeSessionKey();
+        removeJWT();
+        setIsAuthenticated(false);
+        setIsAuthAttempted(false);
+        setBalances(null);
+        // Generate fresh session key
+        const sk = generateSessionKey();
+        storeSessionKey(sk);
+        setSessionKey(sk);
+        // This will trigger the auto-auth useEffect
+    }, []);
+
     return {
         // Wallet
         account,
@@ -734,5 +789,6 @@ export function useYellowSession() {
         withdrawFromSession,
         closeSession,
         requestFaucet,
+        resetAuth,
     };
 }

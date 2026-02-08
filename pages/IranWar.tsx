@@ -1,5 +1,6 @@
 import Head from "next/head";
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import Link from "next/link";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Space_Grotesk } from "next/font/google";
 import { Navbar } from "../components/Navbar";
 import {
@@ -51,6 +52,25 @@ export default function IranWar() {
       yellow.connectWallet();
     }
   }, [wagmiAddress, yellow.account, yellow.connectWallet]);
+
+  // Auto-create trading session with full ledger balance once authenticated + CLOB ready
+  const autoSessionTriggered = useRef(false);
+  const ledgerNum = parseFloat(yellow.ledgerBalance) || 0;
+  useEffect(() => {
+    if (
+      yellow.isAuthenticated &&
+      yellow.clobInfo?.authenticated &&
+      yellow.account &&
+      yellow.appSessionStatus === 'none' &&
+      !yellow.isSessionLoading &&
+      !autoSessionTriggered.current &&
+      ledgerNum > 0
+    ) {
+      autoSessionTriggered.current = true;
+      console.log('[IranWar] Auto-creating trading session with full ledger balance:', ledgerNum);
+      yellow.createAppSession(ledgerNum);
+    }
+  }, [yellow.isAuthenticated, yellow.clobInfo?.authenticated, yellow.account, yellow.appSessionStatus, yellow.isSessionLoading, yellow.createAppSession, ledgerNum]);
 
   // Fetch portfolio value + server-tracked USD balance
   useEffect(() => {
@@ -218,7 +238,7 @@ export default function IranWar() {
       <div className="relative z-10 flex min-h-screen flex-col">
         <Navbar
           portfolioValue={portfolioValue}
-          cash={yellow.appSessionStatus === 'active' ? yellow.payerBalance : serverUsdBalance}
+          cash={yellow.appSessionStatus === 'active' ? yellow.payerBalance || 0 : ledgerNum}
           ledgerBalance={yellow.ledgerBalance}
           isYellowAuthenticated={yellow.isAuthenticated}
           isClobReady={!!yellow.clobInfo?.authenticated}

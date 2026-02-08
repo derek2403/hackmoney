@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Search, ChevronDown, ChevronUp, Plus, X, Wallet, CreditCard, ArrowLeftRight, Zap, Trophy, Gift, Code, Users, Moon } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, X, Wallet, Trophy, Gift, Code, Users, Moon } from "lucide-react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount, useDisconnect } from "wagmi";
 
@@ -63,7 +63,7 @@ export const Navbar = ({
   const [profileOpen, setProfileOpen] = useState(false);
   const [depositAmount, setDepositAmount] = useState("100");
   const [isDepositing, setIsDepositing] = useState(false);
-  const { address, isConnected } = useAccount();
+  useAccount();
   const { disconnect } = useDisconnect();
   const profileRef = useRef<HTMLDivElement>(null);
 
@@ -152,15 +152,7 @@ export const Navbar = ({
               </div>
             </div>
 
-            {isConnected && (
-              <button
-                onClick={() => setDepositOpen(true)}
-                className="flex items-center gap-1.5 rounded-lg border border-emerald-400/30 bg-emerald-500 px-4 py-1.5 text-sm font-semibold text-white transition-all hover:bg-emerald-400 active:scale-95"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Deposit
-              </button>
-            )}
+            {/* Deposit button hidden — session auto-starts on wallet connect */}
 
             <ConnectButton.Custom>
               {({ account, chain, openChainModal, openConnectModal, mounted }) => {
