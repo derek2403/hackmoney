@@ -18,7 +18,7 @@
     "status": "open",
     "resolution": null,
     "winningCorner": null,
-    "totalVolume": 1492.75,
+    "totalVolume": 1512.75,
     "createdAt": 1770535663934
   },
   "amm": {
@@ -39,7 +39,7 @@
     "0x41Db99b9A098Af28A06C0af238799c08076Af2f7": {
       "100": 700,
       "101": 56.666666666666664,
-      "110": 95.41666666666669,
+      "110": 178.75000000000003,
       "111": 18.071428571428573,
       "000": 96.875,
       "001": 22.916666666666668,
@@ -59,9 +59,9 @@
     "0x1C4e764e1748CFe74EC579fa7C83AB081df6D6C6": {
       "100": 15,
       "101": 500,
-      "110": 491.6666666666667,
+      "110": 408.33333333333337,
       "111": 428.57142857142856,
-      "000": 500,
+      "000": 375,
       "001": 500,
       "010": 500,
       "011": 500
@@ -172,6 +172,16 @@
       "110": 0,
       "111": 0,
       "000": 0,
+      "001": 0,
+      "010": 0,
+      "011": 0
+    },
+    "0xa6f7DF49e2D4B48Bc1EEA0886fB8798fb51046d7": {
+      "100": 0,
+      "101": 0,
+      "110": 0,
+      "111": 0,
+      "000": 125,
       "001": 0,
       "010": 0,
       "011": 0
@@ -424,7 +434,7 @@
           "side": "sell",
           "price": 0.12,
           "quantity": 500,
-          "filled": 118.75,
+          "filled": 202.08333333333334,
           "timestamp": 1770535670834
         },
         {
@@ -688,7 +698,7 @@
           "side": "sell",
           "price": 0.08,
           "quantity": 500,
-          "filled": 121.875,
+          "filled": 246.875,
           "timestamp": 1770535670834
         },
         {
@@ -1548,12 +1558,32 @@
       "amount": 50,
       "shares": 100,
       "fills": 1
+    },
+    {
+      "id": 1,
+      "timestamp": 1770565909186,
+      "user": "0x41Db99b9A098Af28A06C0af238799c08076Af2f7",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 10,
+      "shares": 83.33333333333334,
+      "fills": 1
+    },
+    {
+      "id": 2,
+      "timestamp": 1770566405548,
+      "user": "0xa6f7DF49e2D4B48Bc1EEA0886fB8798fb51046d7",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 10,
+      "shares": 125,
+      "fills": 1
     }
   ],
   "sessions": {
     "0x41Db99b9A098Af28A06C0af238799c08076Af2f7": {
-      "userBalance": 10000000,
-      "sessionId": "0x318326dcbce3174322b5989d4a12ee3d51ef0f41246d93bd88d6783f9862fbe6"
+      "userBalance": 19999990,
+      "sessionId": "0x2de79573e36abff69b68b580b3068ec2e8c02ecf68bb72681439420054629c33"
     },
     "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd": {
       "userBalance": 263.8,
@@ -1565,6 +1595,9 @@
     "0x9787cfF89D30bB6Ae87Aaad9B3a02E77B5caA8f1": {
       "sessionId": "0x07fd4f9221c68e87331f90f397f43c9ce16587b347bcd9e27605f5ca4419bbf9",
       "userBalance": 10000000
+    },
+    "0xa6f7DF49e2D4B48Bc1EEA0886fB8798fb51046d7": {
+      "userBalance": 0
     }
   }
 }
