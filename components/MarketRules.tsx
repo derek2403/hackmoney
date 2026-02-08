@@ -2,8 +2,8 @@ import React from "react";
 
 export const MarketRules = () => {
   return (
-    <div className="max-w-4xl p-1 rounded-3xl border border-white/5 bg-white/5 backdrop-blur-xl">
-      <div className="px-8 py-6 space-y-4 text-sm font-medium leading-relaxed text-white/50">
+    <div>
+      <div className="space-y-4 text-sm font-medium leading-relaxed text-white/50">
         <div>
           <span className="text-white block font-bold mb-1">Rules</span>
           <p>

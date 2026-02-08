@@ -38,7 +38,7 @@ export const TradeSidebar = ({ selections, onSelectionChange }: TradeSidebarProp
   };
 
   return (
-    <div className="w-[380px] shrink-0 space-y-4 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-2xl">
+    <div className="w-[380px] shrink-0 space-y-4 rounded-3xl border border-white/10 bg-white/3 p-6 shadow-2xl backdrop-blur-3xl ring-1 ring-inset ring-white/5">
       <div className="flex items-center justify-between">
         <div className="flex gap-4">
           {["Buy", "Sell"].map((tab) => (
@@ -61,7 +61,7 @@ export const TradeSidebar = ({ selections, onSelectionChange }: TradeSidebarProp
           <button className="flex items-center gap-1.5 text-lg font-bold text-white/40 group-hover:text-white transition-all cursor-pointer">
             {orderType} <span className="text-[10px] opacity-40 transition-transform group-hover:rotate-180">⌄</span>
           </button>
-          
+
           <div className="absolute right-0 top-full pt-2 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-200 z-50">
             <div className="w-32 overflow-hidden rounded-2xl border border-white/10 bg-[#1a1a1a]/90 backdrop-blur-3xl shadow-2xl">
               {["Market", "Limit"].map((type) => (
@@ -107,7 +107,7 @@ export const TradeSidebar = ({ selections, onSelectionChange }: TradeSidebarProp
                         : option === "No"
                         ? "bg-rose-500 shadow-lg shadow-rose-500/20 text-white"
                         : "bg-blue-500 shadow-lg shadow-blue-500/20 text-white"
-                      : "bg-white/5 text-white/30 hover:bg-white/10 border-white/5"
+                      : "bg-white/5 text-white/30 hover:bg-white/8 hover:text-white/50 border-white/5"
                   )}
                 >
                   {option}
@@ -180,7 +180,7 @@ export const TradeSidebar = ({ selections, onSelectionChange }: TradeSidebarProp
         )}
 
         <div className="pt-2">
-          <GooeyButton 
+          <GooeyButton
             label={`${activeTab} ${orderType}`}
             onClick={() => console.log(`Executing ${activeTab} ${orderType} order`)}
           />

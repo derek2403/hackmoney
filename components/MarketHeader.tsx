@@ -14,7 +14,7 @@ export const MarketHeader = ({ activeView, onViewChange, marketImage = "/Khamene
   const [isBookmarked, setIsBookmarked] = useState(false);
 
   return (
-    <div className="flex flex-col gap-8 rounded-3xl border border-white/5 bg-white/5 p-8 backdrop-blur-xl">
+    <div className="flex flex-col gap-8 p-8">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-6">
           <div className="h-16 w-16 overflow-hidden rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shadow-2xl">
