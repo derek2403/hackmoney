@@ -1,0 +1,96 @@
+{
+  "market": {
+    "id": "iran-war-2026",
+    "events": [
+      {
+        "index": 0,
+        "description": "Khamenei out as Supreme Leader of Iran by January 31?"
+      },
+      {
+        "index": 1,
+        "description": "US strikes Iran by January 31?"
+      },
+      {
+        "index": 2,
+        "description": "Israel next strikes Iran by January 31?"
+      }
+    ],
+    "status": "seeding",
+    "resolution": null,
+    "winningCorner": null,
+    "totalVolume": 400,
+    "createdAt": 1770535199025
+  },
+  "amm": {
+    "quantities": [
+      400,
+      400,
+      400,
+      400,
+      400,
+      400,
+      400,
+      400
+    ],
+    "alpha": 0.05,
+    "minB": 100
+  },
+  "balances": {
+    "0x41Db99b9A098Af28A06C0af238799c08076Af2f7": {
+      "100": 400,
+      "101": 400,
+      "110": 400,
+      "111": 400,
+      "000": 400,
+      "001": 400,
+      "010": 400,
+      "011": 400
+    }
+  },
+  "orders": {
+    "100": {
+      "buys": [],
+      "sells": []
+    },
+    "101": {
+      "buys": [],
+      "sells": []
+    },
+    "110": {
+      "buys": [],
+      "sells": []
+    },
+    "111": {
+      "buys": [],
+      "sells": [
+        {
+          "id": 1,
+          "user": "0x41Db99b9A098Af28A06C0af238799c08076Af2f7",
+          "side": "sell",
+          "price": 0.5,
+          "quantity": 400,
+          "filled": 0,
+          "timestamp": 1770535383419
+        }
+      ]
+    },
+    "000": {
+      "buys": [],
+      "sells": []
+    },
+    "001": {
+      "buys": [],
+      "sells": []
+    },
+    "010": {
+      "buys": [],
+      "sells": []
+    },
+    "011": {
+      "buys": [],
+      "sells": []
+    }
+  },
+  "trades": [],
+  "sessions": {}
+}

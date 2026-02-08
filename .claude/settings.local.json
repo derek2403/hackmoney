@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(*)",
+      "Bash(curl:*)",
+      "Bash(python3:*)"
+    ],
+    "defaultMode": "bypassPermissions"
+  }
+}

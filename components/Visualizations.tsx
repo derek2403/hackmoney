@@ -5,22 +5,30 @@ import { cn } from "./utils"
 import JointMarket3D from "./JointMarket3D"
 import ElectricBorder from "./ElectricBorder"
 import MarketPillSelector from "./MarketPillSelector"
+import {
+  JOINT_OUTCOMES,
+  doesOutcomeMatch,
+  probabilitySumForOutcomeIds,
+} from "@/lib/selectedOdds"
 
 const QUESTIONS = [
   {
     id: 1,
     text: "Khamenei out as Supreme Leader of Iran by January 31?",
-    image: "👳‍♂️",
+    image: "/Khamenei.jpg",
+    shortLabel: "Khamenei",
   },
   {
     id: 2,
     text: "US strikes Iran by January 31?",
-    image: "🇺🇸",
+    image: "/US%20Iran.jpg",
+    shortLabel: "US",
   },
   {
     id: 3,
     text: "Israel next strikes Iran by January 31?",
-    image: "🇮🇱",
+    image: "/israeliran.jpg",
+    shortLabel: "IL",
   },
 ];
 
@@ -71,57 +79,6 @@ function getHeatmapCellsFromOdds(
 /** Opacity: lower odds → very transparent; higher odds → very obvious/solid. */
 const heatmapOpacityByOdds = (pct: number) => 0.04 + (pct / 100) * 0.88;
 
-const JOINT_OUTCOMES = [
-  { id: 1, outcomes: [false, false, false], description: "Khamenei No, US No, Israel No", probability: 6.00 },
-  { id: 2, outcomes: [false, false, true], description: "Khamenei No, US No, Israel Yes", probability: 6.00 },
-  { id: 3, outcomes: [false, true, false], description: "Khamenei No, US Yes, Israel No", probability: 9.00 },
-  { id: 4, outcomes: [false, true, true], description: "Khamenei No, US Yes, Israel Yes", probability: 9.00 },
-  { id: 5, outcomes: [true, false, false], description: "Khamenei Yes, US No, Israel No", probability: 14.00 },
-  { id: 6, outcomes: [true, false, true], description: "Khamenei Yes, US No, Israel Yes", probability: 14.00 },
-  { id: 7, outcomes: [true, true, false], description: "Khamenei Yes, US Yes, Israel No", probability: 21.00 },
-  { id: 8, outcomes: [true, true, true], description: "Khamenei Yes, US Yes, Israel Yes", probability: 21.00 },
-];
-
-// Check if an outcome matches the user's selections
-const doesOutcomeMatch = (outcome: typeof JOINT_OUTCOMES[0], selections: Record<number, string | null>): boolean => {
-  let matches = true;
-  
-  // Check each question
-  for (let qId = 1; qId <= 3; qId++) {
-    const selection = selections[qId];
-    if (selection === null || selection === "Any") continue; // "Any" or null means match all
-    
-    const outcomeValue = outcome.outcomes[qId - 1];
-    const isYes = selection === "Yes";
-    
-    if (isYes && !outcomeValue) {
-      matches = false;
-      break;
-    } else if (!isYes && outcomeValue) {
-      matches = false;
-      break;
-    }
-  }
-  
-  return matches;
-};
-
-// Calculate probability for selected market
-const calculateSelectedMarketProbability = (selections: Record<number, string | null>): number | null => {
-  const hasSelection = Object.values(selections).some(s => s !== null);
-  if (!hasSelection) return null;
-
-  let totalProbability = 0;
-
-  for (const outcome of JOINT_OUTCOMES) {
-    if (doesOutcomeMatch(outcome, selections)) {
-      totalProbability += outcome.probability;
-    }
-  }
-
-  return totalProbability;
-};
-
 const chartConfig = {
   khamenei: { label: "Khamenei", color: "#f43f5e" },
   us_strikes: { label: "US", color: "#eab308" },
@@ -132,11 +89,14 @@ const chartConfig = {
 interface VisualizationsProps {
   activeView: "1D" | "2D" | "3D" | "Odds";
   selections: Record<number, string | null>;
-  onSelectionChange: (selections: Record<number, string | null>) => void;
+  selectedOutcomeIds: number[];
+  onToggleOutcome: (outcomeId: number) => void;
+  onSelectionChange?: (selections: Record<number, string | null>) => void;
+  volume: number;
 }
 
-export const Visualizations = ({ activeView, selections, onSelectionChange }: VisualizationsProps) => {
-  const [range, setRange] = useState<"1D" | "1M" | "ALL">("ALL");
+export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onToggleOutcome, onSelectionChange, volume }: VisualizationsProps) => {
+  const [range, setRange] = useState<"1D" | "1M" | "ALL">("1M");
   const [selectedMarketIds, setSelectedMarketIds] = useState<number[]>([]);
 
   const handleMarketSelect = (id: number) => {
@@ -148,9 +108,10 @@ export const Visualizations = ({ activeView, selections, onSelectionChange }: Vi
     });
   };
 
-  const selectedMarketProbability = useMemo(() => {
-    return calculateSelectedMarketProbability(selections);
-  }, [selections]);
+  const selectedMarketProbability =
+    selectedOutcomeIds.length > 0
+      ? probabilitySumForOutcomeIds(selectedOutcomeIds)
+      : null;
 
   const data = useMemo(() => {
     const noise = (val: number) => (Math.random() - 0.5) * val;
@@ -259,24 +220,35 @@ export const Visualizations = ({ activeView, selections, onSelectionChange }: Vi
                 <span className="text-sm font-black uppercase tracking-widest">Selected Odds</span>
               </div>
               <div className="flex items-center gap-6">
-                <div className="flex items-center gap-3 text-xs font-bold text-black/60">
-                  {QUESTIONS.map((q, idx) => {
-                    const selection = selections[q.id];
-                    if (!selection) return null;
-                    return (
-                      <div key={q.id} className="flex items-center gap-2">
-                        <span>{q.image}</span>
-                        <span className={cn(
-                          selection === "Yes" ? "text-emerald-600" : 
-                          selection === "No" ? "text-rose-600" : 
-                          "text-black/60"
-                        )}>
-                          {selection}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
+                {selectedOutcomeIds.length === 1 ? (
+                  <div className="flex items-center gap-3 text-xs font-bold text-black/60">
+                    {QUESTIONS.map((q) => {
+                      const selection = selections[q.id];
+                      if (!selection) return null;
+                      return (
+                        <div key={q.id} className="flex items-center gap-2">
+                          <img
+                            src={q.image}
+                            alt=""
+                            className="h-6 w-6 rounded-full object-cover border border-black/10 shrink-0"
+                          />
+                          <span className="text-black/50">{q.shortLabel}</span>
+                          <span className={cn(
+                            selection === "Yes" ? "text-emerald-600" :
+                            selection === "No" ? "text-rose-600" :
+                            "text-black/60"
+                          )}>
+                            {selection}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <span className="text-xs font-bold text-black/60">
+                    {selectedOutcomeIds.length} outcomes selected
+                  </span>
+                )}
                 <div className="text-right">
                   <div className="text-2xl font-black text-black">
                     {selectedMarketProbability.toFixed(2)}%
@@ -297,14 +269,23 @@ export const Visualizations = ({ activeView, selections, onSelectionChange }: Vi
               </thead>
               <tbody className="divide-y divide-white/5">
                 {JOINT_OUTCOMES.map((row) => {
-                  const isSelected = doesOutcomeMatch(row, selections);
+                  const isSelected = selectedOutcomeIds.includes(row.id);
                   return (
-                    <tr 
-                      key={row.id} 
+                    <tr
+                      key={row.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => onToggleOutcome(row.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onToggleOutcome(row.id);
+                        }
+                      }}
                       className={cn(
-                        "group transition-all",
-                        isSelected 
-                          ? "bg-white text-black shadow-xl shadow-white/20" 
+                        "group transition-all cursor-pointer",
+                        isSelected
+                          ? "bg-white text-black shadow-xl shadow-white/20"
                           : "hover:bg-white/[0.02]"
                       )}
                     >
@@ -480,7 +461,7 @@ export const Visualizations = ({ activeView, selections, onSelectionChange }: Vi
 
           <div className="mt-12 flex justify-between items-center border-t border-white/5 pt-8">
             <div className="flex flex-col gap-1">
-              <span className="text-[14px] font-black text-white">$166,140,452 vol</span>
+              <span className="text-[14px] font-black text-white tabular-nums">${volume.toLocaleString()} vol</span>
             </div>
             
             <div className="flex items-center gap-4 text-[11px] font-black text-white/30 tracking-widest uppercase">
@@ -554,7 +535,7 @@ export const Visualizations = ({ activeView, selections, onSelectionChange }: Vi
                               tabIndex={0}
                               onClick={() => {
                                 const thirdMarketId = [1, 2, 3].find((id) => id !== marketAId && id !== marketBId);
-                                onSelectionChange({
+                                onSelectionChange?.({
                                   ...selections,
                                   [marketAId]: cell.aYes ? "Yes" : "No",
                                   [marketBId]: cell.bYes ? "Yes" : "No",
@@ -565,7 +546,7 @@ export const Visualizations = ({ activeView, selections, onSelectionChange }: Vi
                                 if (e.key === "Enter" || e.key === " ") {
                                   e.preventDefault();
                                   const thirdMarketId = [1, 2, 3].find((id) => id !== marketAId && id !== marketBId);
-                                  onSelectionChange({
+                                  onSelectionChange?.({
                                     ...selections,
                                     [marketAId]: cell.aYes ? "Yes" : "No",
                                     [marketBId]: cell.bYes ? "Yes" : "No",
@@ -611,7 +592,7 @@ export const Visualizations = ({ activeView, selections, onSelectionChange }: Vi
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div className="flex flex-col gap-1">
-              <span className="text-[14px] font-black text-white">$166,140,452 vol</span>
+              <span className="text-[14px] font-black text-white tabular-nums">${volume.toLocaleString()} vol</span>
             </div>
           </div>
           <JointMarket3D selections={selections} onSelectionChange={onSelectionChange} />

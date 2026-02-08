@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "concurrently \"next dev\" \"node server.js\"",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
@@ -15,6 +15,7 @@
     "clsx": "^2.1.1",
     "@rainbow-me/rainbowkit": "^2.2.10",
     "@tanstack/react-query": "^5.90.20",
+    "dotenv": "^17.2.4",
     "ethers": "^6.16.0",
     "gsap": "^3.14.2",
     "lucide-react": "^0.563.0",
@@ -37,6 +38,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^9.2.1",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",

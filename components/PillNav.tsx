@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { gsap } from 'gsap';
-import './PillNav.css';
 
 export type PillNavItem = {
   label: string;
@@ -10,16 +9,18 @@ export type PillNavItem = {
 };
 
 export interface PillNavProps {
-  logo: string;
+  logo?: string;
   logoAlt?: string;
   items: PillNavItem[];
   activeHref?: string;
   className?: string;
+  containerClassName?: string;
   ease?: string;
   baseColor?: string;
   pillColor?: string;
   hoveredPillTextColor?: string;
   pillTextColor?: string;
+  onItemClick?: (href: string) => void;
   onMobileMenuClick?: () => void;
   initialLoadAnimation?: boolean;
 }
@@ -30,11 +31,13 @@ const PillNav: React.FC<PillNavProps> = ({
   items,
   activeHref,
   className = '',
+  containerClassName = '',
   ease = 'power3.easeOut',
   baseColor = '#fff',
   pillColor = '#060010',
   hoveredPillTextColor = '#060010',
   pillTextColor,
+  onItemClick,
   onMobileMenuClick,
   initialLoadAnimation = true
 }) => {
@@ -244,9 +247,9 @@ const PillNav: React.FC<PillNavProps> = ({
   } as React.CSSProperties;
 
   return (
-    <div className="pill-nav-container">
+    <div className={`pill-nav-container ${containerClassName}`.trim()}>
       <nav className={`pill-nav ${className}`} aria-label="Primary" style={cssVars}>
-        {isRouterLink(items?.[0]?.href) ? (
+        {logo && (isRouterLink(items?.[0]?.href) ? (
           <Link
             className="pill-logo"
             to={items[0].href}
@@ -271,61 +274,70 @@ const PillNav: React.FC<PillNavProps> = ({
           >
             <img src={logo} alt={logoAlt} ref={logoImgRef} />
           </a>
-        )}
+        ))}
 
         <div className="pill-nav-items desktop-only" ref={navItemsRef}>
           <ul className="pill-list" role="menubar">
-            {items.map((item, i) => (
-              <li key={item.href} role="none">
-                {isRouterLink(item.href) ? (
-                  <Link
-                    role="menuitem"
-                    to={item.href}
-                    className={`pill${activeHref === item.href ? ' is-active' : ''}`}
-                    aria-label={item.ariaLabel || item.label}
-                    onMouseEnter={() => handleEnter(i)}
-                    onMouseLeave={() => handleLeave(i)}
-                  >
-                    <span
-                      className="hover-circle"
-                      aria-hidden="true"
-                      ref={el => {
-                        circleRefs.current[i] = el;
-                      }}
-                    />
-                    <span className="label-stack">
-                      <span className="pill-label">{item.label}</span>
-                      <span className="pill-label-hover" aria-hidden="true">
-                        {item.label}
+            {items.map((item, i) => {
+              const handleClick = (e: React.MouseEvent) => {
+                if (onItemClick) {
+                  e.preventDefault();
+                  onItemClick(item.href);
+                }
+              };
+              return (
+                <li key={item.href} role="none">
+                  {isRouterLink(item.href) && !onItemClick ? (
+                    <Link
+                      role="menuitem"
+                      to={item.href}
+                      className={`pill${activeHref === item.href ? ' is-active' : ''}`}
+                      aria-label={item.ariaLabel || item.label}
+                      onMouseEnter={() => handleEnter(i)}
+                      onMouseLeave={() => handleLeave(i)}
+                    >
+                      <span
+                        className="hover-circle"
+                        aria-hidden="true"
+                        ref={el => {
+                          circleRefs.current[i] = el;
+                        }}
+                      />
+                      <span className="label-stack">
+                        <span className="pill-label">{item.label}</span>
+                        <span className="pill-label-hover" aria-hidden="true">
+                          {item.label}
+                        </span>
                       </span>
-                    </span>
-                  </Link>
-                ) : (
-                  <a
-                    role="menuitem"
-                    href={item.href}
-                    className={`pill${activeHref === item.href ? ' is-active' : ''}`}
-                    aria-label={item.ariaLabel || item.label}
-                    onMouseEnter={() => handleEnter(i)}
-                    onMouseLeave={() => handleLeave(i)}
-                  >
-                    <span
-                      className="hover-circle"
-                      aria-hidden="true"
-                      ref={el => {
-                        circleRefs.current[i] = el;
-                      }}
-                    />
-                    <span className="label-stack">
-                      <span className="pill-label">{item.label}</span>
-                      <span className="pill-label-hover" aria-hidden="true">
-                        {item.label}
+                    </Link>
+                  ) : (
+                    <a
+                      role="menuitem"
+                      href={item.href}
+                      className={`pill${activeHref === item.href ? ' is-active' : ''}`}
+                      aria-label={item.ariaLabel || item.label}
+                      onMouseEnter={() => handleEnter(i)}
+                      onMouseLeave={() => handleLeave(i)}
+                      onClick={handleClick}
+                    >
+                      <span
+                        className="hover-circle"
+                        aria-hidden="true"
+                        ref={el => {
+                          circleRefs.current[i] = el;
+                        }}
+                      />
+                      <span className="label-stack">
+                        <span className="pill-label">{item.label}</span>
+                        <span className="pill-label-hover" aria-hidden="true">
+                          {item.label}
+                        </span>
                       </span>
-                    </span>
-                  </a>
-                )}
-              </li>
-            ))}
+                    </a>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
 
@@ -344,7 +356,7 @@ const PillNav: React.FC<PillNavProps> = ({
         <ul className="mobile-menu-list">
           {items.map(item => (
             <li key={item.href}>
-              {isRouterLink(item.href) ? (
+              {isRouterLink(item.href) && !onItemClick ? (
                 <Link
                   to={item.href}
                   className={`mobile-menu-link${activeHref === item.href ? ' is-active' : ''}`}
@@ -356,7 +368,11 @@ const PillNav: React.FC<PillNavProps> = ({
                 <a
                   href={item.href}
                   className={`mobile-menu-link${activeHref === item.href ? ' is-active' : ''}`}
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  onClick={(e) => {
+                    if (onItemClick) e.preventDefault();
+                    onItemClick?.(item.href);
+                    setIsMobileMenuOpen(false);
+                  }}
                 >
                   {item.label}
                 </a>
