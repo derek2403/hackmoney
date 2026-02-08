@@ -21,7 +21,7 @@ const INITIAL_ACTIVITY: ActivityItem[] = [
   { id: "2", user: "Casdifer", action: "bought", quantity: 6471, outcome: "Yes", eventLabel: "March 31", priceCents: 63, totalUsd: 4077, timeAgo: "40m ago" },
   { id: "3", user: "Innocent-Terrap...", action: "bought", quantity: 45, outcome: "No", eventLabel: "February 28", priceCents: 21, totalUsd: 10, timeAgo: "41m ago" },
   { id: "4", user: "0x491f...f81f", action: "bought", quantity: 13, outcome: "Yes", eventLabel: "June 30", priceCents: 52, totalUsd: 7, timeAgo: "42m ago" },
-  { id: "5", user: "0x32e8...5b06", action: "bought", quantity: 288, outcome: "No", eventLabel: "January 31", priceCents: 49, totalUsd: 150, timeAgo: "44m ago" },
+  { id: "5", user: "0x32e8...5b06", action: "bought", quantity: 288, outcome: "No", eventLabel: "March 31", priceCents: 49, totalUsd: 150, timeAgo: "44m ago" },
   { id: "6", user: "trader_42", action: "bought", quantity: 7792, outcome: "Yes", eventLabel: "March 31", priceCents: 49, totalUsd: 3818, timeAgo: "1h ago" },
 ];
 
@@ -29,7 +29,7 @@ const ACTIVITY_USERS = [
   "QMG-CORE", "Casdifer", "Innocent-Terrap...", "trader_42", "0x491f...f81f", "0x32e8...5b06",
   "Polymarket_anon", "Kalshi_trader", "Manifold_bot", "gnosis_0x", "Augur_v2", "staker_99",
 ];
-const EVENT_LABELS = ["January 31", "February 8", "February 28", "March 31", "June 30"];
+const EVENT_LABELS = ["March 31", "February 8", "February 28", "March 31", "June 30"];
 const PRICE_CENTS_OPTIONS = [1.2, 21, 49, 52, 63, 14, 28, 35, 71];
 
 function pick<T>(arr: T[]): T {

@@ -26,7 +26,7 @@ const COMMENT_BODIES = [
   "US strike before month end — 60% feels right.",
   "Remember: resolve is per market rules. Check dates.",
   "Just went Yes on Israel. Volume picking up.",
-  "Khamenei out by Jan 31 is my main bet.",
+  "Khamenei out by Mar 31 is my main bet.",
   "No on US strike, Yes on Israel. Hedging.",
   "Fair value around 50¢ for the joint outcome.",
   "Anyone else seeing the move in the last hour?",
