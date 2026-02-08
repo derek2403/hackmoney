@@ -24,11 +24,6 @@ const permanentMarker = Permanent_Marker({
   weight: "400",
 });
 
-const audiowide = Audiowide({
-  subsets: ["latin"],
-  weight: "400",
-});
-
 const orbitron = Orbitron({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800", "900"],
@@ -39,6 +34,12 @@ const exo2 = Exo_2({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
   variable: "--font-exo",
+});
+
+const audiowide = Audiowide({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-audiowide",
 });
 
 const Card = ({ className = "", imageSrc }: { className?: string; imageSrc?: string }) => (
@@ -171,7 +172,7 @@ export default function LandingPage() {
       <Head>
         <title>OnlyTruth – The world&apos;s first combined and most accurate source of TRUTH</title>
       </Head>
-      <div className={`${cinzel.variable} ${permanentMarker.variable} ${audiowide.variable} ${orbitron.variable} ${exo2.variable} min-h-screen bg-[#0a0a0b] text-white antialiased relative overflow-hidden font-sans`} style={{ fontFamily: "var(--font-exo), system-ui, sans-serif" }}>
+      <div className={`${cinzel.variable} ${orbitron.variable} ${exo2.variable} ${audiowide.variable} min-h-screen bg-[#0a0a0b] text-white antialiased relative overflow-hidden font-sans`} style={{ fontFamily: "var(--font-exo), system-ui, sans-serif" }}>
         <div className="fixed inset-0 z-0 pointer-events-none" style={{ width: "100%", height: "100%" }}>
           <Galaxy
             mouseRepulsion
@@ -247,14 +248,15 @@ export default function LandingPage() {
                     )}
                   </div>
                 </div>
-                {/* Find out the Truth – visible only after model ready */}
+                {/* Find out the Truth – visible only after model ready (Audiowide font) */}
                 <button
                   type="button"
                   onClick={onFindOutTruthClick}
-                  className={`absolute bottom-[20vh] left-0 right-0 z-20 flex justify-center text-white/90 cursor-pointer border-0 bg-transparent p-0 transition-opacity duration-500 ${modelReady ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+                  className={`${audiowide.className} absolute bottom-[20vh] left-0 right-0 z-20 flex justify-center text-white/90 cursor-pointer border-0 bg-transparent p-0 transition-opacity duration-500 ${modelReady ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+                  style={{ fontWeight: 400 }}
                   aria-hidden={!modelReady}
                 >
-                  <div className={`${permanentMarker.className} text-lg md:text-xl font-medium tracking-wide hover:text-white transition-colors`}>
+                  <div className="text-lg md:text-xl font-normal tracking-wide hover:text-white transition-colors">
                     <TrueFocus
                       sentence="Find out the Truth"
                       manualMode={false}
