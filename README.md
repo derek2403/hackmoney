@@ -654,3 +654,40 @@ User trades marginal A=Yes
 The computational cost is O(2^N) per trade, which is trivial for N ≤ 5 (32 outcomes).
 
 ---
+
+## Yellow SDK Integration
+
+### Architecture: App Session (Nitrolite)
+
+We utilize the **Yellow Network Nitrolite SDK** to establish **App Sessions**—high-performance, direct off-chain channels between the User (Frontend) and the Market Maker (CLOB Server).
+
+#### Key Components
+
+1.  **`useYellowSession` Hook**:
+    *   Manages the full lifecycle: `Create`, `Deposit`, `Trade` (Operate), `Withdraw`, `Close`.
+    *   Handles **Session Key** generation and **EIP-712** authentication.
+    *   Maintains the WebSocket connection to the Yellow Network.
+
+2.  **Market Client (`marketClient.ts`)**:
+    *   Interfacs with the CLOB server to fetch market data (Order Book, Prices).
+    *   Exchanges **Partial Signatures** with the counterparty (CLOB) to co-sign state updates.
+
+#### Data Flow
+
+1.  **Session Creation**:
+    *   User signs `CreateAppSession` intent.
+    *   CLOB co-signs.
+    *   Double-signed message submitted to Yellow Network.
+    *   **Result**: Instant P2P channel established.
+
+2.  **Trading (Off-Chain)**:
+    *   User signs `RPCAppStateIntent.Operate` (Update Balance).
+    *   CLOB validates trade & co-signs.
+    *   State updated instantly. **No Gas. No Blocking.**
+
+3.  **Settlement**:
+    *   On session close, final balances are settled on the Yellow Network overlay.
+    *   Funds can be withdrawn to L1/L2.
+
+For a deep dive into the code implementation, see [Yellow Implementation Docs](yellow_implementation.md).
+

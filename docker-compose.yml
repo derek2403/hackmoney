@@ -1,6 +1,6 @@
 services:
   hackmoney:
-    image: derek2403/hackmoney:2.0
+    image: derek2403/hackmoney:3.0
     container_name: hackmoney
     ports:
       - "3000:3000"
