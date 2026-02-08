@@ -20,12 +20,14 @@ import {
     createCloseChannelMessage,
     createAppSessionMessage,
     createCloseAppSessionMessage,
+    createSubmitAppStateMessage,
     createGetAppSessionsMessageV2,
     parseAnyRPCResponse,
     RPCMethod,
     NitroliteClient,
     WalletStateSigner,
     RPCProtocolVersion,
+    RPCAppStateIntent,
     type AuthChallengeResponse,
     type AuthRequestParams,
     type GetLedgerBalancesResponse,
@@ -223,8 +225,49 @@ const SESSION_DURATION = 3600; // 1 hour
 const AUTH_SCOPE = 'yellow-workshop.app';
 const APP_NAME = 'Yellow Workshop';
 const TIP_AMOUNT = '0.01';
+const CLOB_SERVER_URL = 'http://localhost:3001';
 
 const getAuthDomain = () => ({ name: APP_NAME });
+
+// ==================== CLOB SIGNING UTILITIES ====================
+interface CLOBInfo {
+    address: Address;
+    sessionKey: Address;
+    authenticated: boolean;
+}
+
+async function fetchCLOBInfo(): Promise<CLOBInfo | null> {
+    try {
+        const response = await fetch(`${CLOB_SERVER_URL}/clob-address`);
+        if (!response.ok) return null;
+        return await response.json();
+    } catch {
+        return null;
+    }
+}
+
+async function getCLOBSignature(message: any): Promise<string | null> {
+    try {
+        const response = await fetch(`${CLOB_SERVER_URL}/api/sign`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'sign-create-session',
+                message,
+            }),
+        });
+        if (!response.ok) {
+            const error = await response.json();
+            console.error('CLOB sign error:', error);
+            return null;
+        }
+        const { signature } = await response.json();
+        return signature;
+    } catch (error) {
+        console.error('Failed to get CLOB signature:', error);
+        return null;
+    }
+}
 
 // ==================== MAIN COMPONENT ====================
 export default function YellowWorkshop() {
@@ -266,6 +309,9 @@ export default function YellowWorkshop() {
     const [isAppSessionLoading, setIsAppSessionLoading] = useState(false);
     const [payerBalance, setPayerBalance] = useState<string>('0');
     const [payeeBalance, setPayeeBalance] = useState<string>('0');
+    const [appStateVersion, setAppStateVersion] = useState<number>(1); // Track state version (starts at 1)
+    const [clobInfo, setClobInfo] = useState<CLOBInfo | null>(null);
+    const [isMultiPartyMode, setIsMultiPartyMode] = useState(true); // Enable 50/50 mode
     // ==================== CHAPTER 1: WALLET CONNECTION ====================
     const connectWallet = async () => {
         if (typeof window === 'undefined' || !window.ethereum) {
@@ -364,6 +410,22 @@ export default function YellowWorkshop() {
         return () => {
             webSocketService.removeStatusListener(setWsStatus);
         };
+    }, []);
+
+    // ==================== FETCH CLOB SERVER STATUS ====================
+    useEffect(() => {
+        const checkCLOB = async () => {
+            const info = await fetchCLOBInfo();
+            setClobInfo(info);
+            if (info?.authenticated) {
+                console.log('✓ CLOB Server connected:', info.address);
+            }
+        };
+
+        // Check immediately and then every 5 seconds
+        checkCLOB();
+        const interval = setInterval(checkCLOB, 5000);
+        return () => clearInterval(interval);
     }, []);
 
     // ==================== CHAPTER 3: AUTO-AUTHENTICATION ====================
@@ -1078,13 +1140,16 @@ export default function YellowWorkshop() {
         try {
             const messageSigner = createECDSAMessageSigner(sessionKey.privateKey);
 
-            // Define the app session - a 2-party payment channel
+            // For multi-party mode (50/50), use CLOB address as partner
+            const partnerAddress = isMultiPartyMode && clobInfo ? clobInfo.address : appSessionPartner;
+
+            // Define the app session - multi-party with 50/50 weights
             const appDefinition = {
                 application: APP_NAME,
                 protocol: RPCProtocolVersion.NitroRPC_0_4,
-                participants: [account, appSessionPartner] as `0x${string}`[],
-                weights: [100, 0], // Only creator needs to sign
-                quorum: 100, // Creator's weight meets quorum alone
+                participants: [account, partnerAddress] as `0x${string}`[],
+                weights: isMultiPartyMode ? [50, 50] : [100, 0], // 50/50 for multi-party
+                quorum: 100, // Requires both signatures in multi-party mode
                 challenge: 0, // No challenge period for instant finality
                 nonce: Date.now(),
             };
@@ -1092,7 +1157,7 @@ export default function YellowWorkshop() {
             // Initial allocations - split from your ledger balance
             const allocations = [
                 { participant: account, asset: 'ytest.usd', amount: '100' },
-                { participant: appSessionPartner as Address, asset: 'ytest.usd', amount: '0' },
+                { participant: partnerAddress as Address, asset: 'ytest.usd', amount: '0' },
             ];
 
             const handleResponse = async (data: unknown) => {
@@ -1109,6 +1174,7 @@ export default function YellowWorkshop() {
                         setAppSessionStatus('active');
                         setPayerBalance('100');
                         setPayeeBalance('0');
+                        setAppStateVersion(1); // Reset version for new session
                         alert(`App Session created! ID: ${sessionId.slice(0, 10)}...`);
                     } else if (params.error) {
                         console.error('App Session error:', params.error);
@@ -1124,11 +1190,31 @@ export default function YellowWorkshop() {
             webSocketService.addMessageListener(handleResponse);
 
             console.log('Creating App Session with:', { appDefinition, allocations });
+
+            // Create message with first signature (user)
             const appSessionMsg = await createAppSessionMessage(messageSigner, {
                 definition: appDefinition,
                 allocations,
             });
-            webSocketService.send(appSessionMsg);
+
+            // For multi-party mode, get CLOB co-signature
+            if (isMultiPartyMode && clobInfo?.authenticated) {
+                console.log('Getting CLOB co-signature for multi-party session...');
+                const msgJson = JSON.parse(appSessionMsg);
+                const clobSig = await getCLOBSignature(msgJson);
+
+                if (clobSig) {
+                    // Append CLOB signature
+                    msgJson.sig.push(clobSig);
+                    console.log('✓ Multi-party message with both signatures');
+                    webSocketService.send(JSON.stringify(msgJson));
+                } else {
+                    console.warn('Failed to get CLOB signature, sending with single signature');
+                    webSocketService.send(appSessionMsg);
+                }
+            } else {
+                webSocketService.send(appSessionMsg);
+            }
 
         } catch (error) {
             console.error('Failed to create App Session:', error);
@@ -1138,36 +1224,72 @@ export default function YellowWorkshop() {
         }
     }, [sessionKey, account, appSessionPartner]);
 
-    // Send instant payment within the App Session (NO blockchain TX!)
+    // Send instant payment within the App Session using submit_app_state (requires dual signatures)
     const handleInstantPayment = useCallback(async (amount: string = '10') => {
-        if (!sessionKey || !appSessionId) {
+        if (!sessionKey || !appSessionId || !account) {
             alert('Please create an App Session first');
             return;
         }
 
+        // Determine partner address
+        const partnerAddress = isMultiPartyMode && clobInfo ? clobInfo.address : appSessionPartner;
+
         try {
             const messageSigner = createECDSAMessageSigner(sessionKey.privateKey);
 
-            // Create transfer message - this is INSTANT, no blockchain needed!
-            const transferMsg = await createTransferMessage(messageSigner, {
-                destination: appSessionPartner as Address,
-                allocations: [{ asset: 'ytest.usd', amount }],
+            // Parse current balances
+            const currentPayerBalance = parseFloat(payerBalance);
+            const currentPayeeBalance = parseFloat(payeeBalance);
+            const paymentAmount = parseFloat(amount);
+
+            // Create new allocations after the transfer
+            const newPayerBalance = (currentPayerBalance - paymentAmount).toString();
+            const newPayeeBalance = (currentPayeeBalance + paymentAmount).toString();
+
+            // Create submit_app_state message for the payment (using v0.4 protocol)
+            const stateMsg = await createSubmitAppStateMessage<RPCProtocolVersion.NitroRPC_0_4>(messageSigner, {
+                app_session_id: appSessionId as `0x${string}`,
+                intent: RPCAppStateIntent.Operate,
+                version: appStateVersion + 1, // Increment version for each state update
+                allocations: [
+                    { participant: account, asset: 'ytest.usd', amount: newPayerBalance },
+                    { participant: partnerAddress as Address, asset: 'ytest.usd', amount: newPayeeBalance },
+                ],
             });
 
-            console.log('Sending instant payment:', amount, 'ytest.usd');
-            webSocketService.send(transferMsg);
+            console.log('Creating instant payment state update:', amount, 'ytest.usd');
 
-            // Update payer/payee balances locally
-            setPayerBalance(prev => (parseFloat(prev) - parseFloat(amount)).toString());
-            setPayeeBalance(prev => (parseFloat(prev) + parseFloat(amount)).toString());
+            // For multi-party mode, get CLOB co-signature
+            if (isMultiPartyMode && clobInfo?.authenticated) {
+                console.log('Getting CLOB co-signature for payment...');
+                const msgJson = JSON.parse(stateMsg);
+                const clobSig = await getCLOBSignature(msgJson);
 
-            alert(`Sent ${amount} ytest.usd instantly! (No gas fees)`);
+                if (clobSig) {
+                    msgJson.sig.push(clobSig);
+                    console.log('✓ Payment with both signatures');
+                    webSocketService.send(JSON.stringify(msgJson));
+                } else {
+                    console.warn('Failed to get CLOB signature for payment');
+                    alert('CLOB co-signature required for multi-party payment');
+                    return;
+                }
+            } else {
+                webSocketService.send(stateMsg);
+            }
+
+            // Update payer/payee balances and version locally
+            setPayerBalance(newPayerBalance);
+            setPayeeBalance(newPayeeBalance);
+            setAppStateVersion(prev => prev + 1); // Increment version after successful update
+
+            alert(`Sent ${amount} ytest.usd instantly! (No gas fees${isMultiPartyMode ? ', dual-signed' : ''})`);
 
         } catch (error) {
             console.error('Failed to send payment:', error);
             alert('Payment failed. Check console.');
         }
-    }, [sessionKey, appSessionId, appSessionPartner]);
+    }, [sessionKey, appSessionId, appSessionPartner, account, payerBalance, payeeBalance, isMultiPartyMode, clobInfo]);
 
     // Close the App Session
     const handleCloseAppSession = useCallback(async () => {
@@ -1210,15 +1332,35 @@ export default function YellowWorkshop() {
 
             webSocketService.addMessageListener(handleResponse);
 
+            // Determine partner address for allocations
+            const partnerAddress = isMultiPartyMode && clobInfo ? clobInfo.address : appSessionPartner;
+
             // Final allocations when closing - return all to owner
             const closeMsg = await createCloseAppSessionMessage(messageSigner, {
                 app_session_id: appSessionId as `0x${string}`,
                 allocations: [
                     { participant: account, asset: 'ytest.usd', amount: '100' },
-                    { participant: appSessionPartner as Address, asset: 'ytest.usd', amount: '0' },
+                    { participant: partnerAddress as Address, asset: 'ytest.usd', amount: '0' },
                 ],
             });
-            webSocketService.send(closeMsg);
+
+            // For multi-party mode, get CLOB co-signature
+            if (isMultiPartyMode && clobInfo?.authenticated) {
+                console.log('Getting CLOB co-signature for close session...');
+                const msgJson = JSON.parse(closeMsg);
+                const clobSig = await getCLOBSignature(msgJson);
+
+                if (clobSig) {
+                    msgJson.sig.push(clobSig);
+                    console.log('✓ Close message with both signatures');
+                    webSocketService.send(JSON.stringify(msgJson));
+                } else {
+                    console.warn('Failed to get CLOB signature for close');
+                    webSocketService.send(closeMsg);
+                }
+            } else {
+                webSocketService.send(closeMsg);
+            }
 
         } catch (error) {
             console.error('Failed to close App Session:', error);
@@ -1401,152 +1543,152 @@ export default function YellowWorkshop() {
                 {/* On-Chain Channel Management (Advanced - requires gas) */}
                 {isAuthenticated && (
                     <details className="mb-8 group">
-                    <summary className="cursor-pointer list-none p-4 rounded-xl bg-zinc-900 border border-zinc-700 text-zinc-400 hover:text-white transition-colors font-semibold flex items-center justify-between">
-                        <span>Advanced: On-Chain Channel Management</span>
-                        <span className="text-xs text-zinc-600 group-open:hidden">Click to expand</span>
-                    </summary>
-                    <div className="mt-2 p-6 rounded-xl bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30">
-                        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                            <span className="text-yellow-400">🔗</span> State Channel Management
-                        </h2>
+                        <summary className="cursor-pointer list-none p-4 rounded-xl bg-zinc-900 border border-zinc-700 text-zinc-400 hover:text-white transition-colors font-semibold flex items-center justify-between">
+                            <span>Advanced: On-Chain Channel Management</span>
+                            <span className="text-xs text-zinc-600 group-open:hidden">Click to expand</span>
+                        </summary>
+                        <div className="mt-2 p-6 rounded-xl bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30">
+                            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                                <span className="text-yellow-400">🔗</span> State Channel Management
+                            </h2>
 
-                        {/* Channel Status */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                            <div className="p-4 rounded-lg bg-zinc-900/50 border border-zinc-700">
-                                <div className="text-sm text-zinc-400 mb-1">Status</div>
-                                <div className={`font-semibold ${channelStatus === 'funded' ? 'text-green-400' :
-                                    channelStatus === 'open' ? 'text-yellow-400' :
-                                        channelStatus === 'closed' ? 'text-blue-400' :
-                                            channelStatus === 'none' ? 'text-zinc-500' : 'text-orange-400'
-                                    }`}>
-                                    {channelStatus === 'none' ? 'No Channel' :
-                                        channelStatus === 'creating' ? 'Creating...' :
-                                            channelStatus === 'open' ? 'Open (Not Funded)' :
-                                                channelStatus === 'funding' ? 'Funding...' :
-                                                    channelStatus === 'funded' ? 'Funded ✓' :
-                                                        channelStatus === 'closing' ? 'Closing...' : 'Closed'}
-                                </div>
-                            </div>
-
-                            <div className="p-4 rounded-lg bg-zinc-900/50 border border-zinc-700">
-                                <div className="text-sm text-zinc-400 mb-1">Channel ID</div>
-                                <div className="font-mono text-sm truncate">
-                                    {channelId ? `${channelId.slice(0, 10)}...${channelId.slice(-8)}` : '—'}
-                                </div>
-                                {/* Manual channel ID entry for recovering lost channels */}
-                                {!channelId && (
-                                    <div className="mt-2">
-                                        <input
-                                            type="text"
-                                            placeholder="Paste existing channel ID (0x...)"
-                                            className="w-full px-2 py-1 text-xs font-mono bg-zinc-800 border border-zinc-600 rounded"
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    const input = e.currentTarget.value.trim();
-                                                    if (input.startsWith('0x') && input.length === 66) {
-                                                        setChannelId(input);
-                                                        setChannelStatus('funded');
-                                                        setIsChannelLoading(false); // Reset loading state
-                                                        alert('Channel ID restored! You can now close it.');
-                                                    } else {
-                                                        alert('Invalid channel ID. Must be 0x + 64 hex chars.');
-                                                    }
-                                                }
-                                            }}
-                                        />
-                                        <div className="text-xs text-zinc-500 mt-1">Press Enter to restore</div>
+                            {/* Channel Status */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                <div className="p-4 rounded-lg bg-zinc-900/50 border border-zinc-700">
+                                    <div className="text-sm text-zinc-400 mb-1">Status</div>
+                                    <div className={`font-semibold ${channelStatus === 'funded' ? 'text-green-400' :
+                                        channelStatus === 'open' ? 'text-yellow-400' :
+                                            channelStatus === 'closed' ? 'text-blue-400' :
+                                                channelStatus === 'none' ? 'text-zinc-500' : 'text-orange-400'
+                                        }`}>
+                                        {channelStatus === 'none' ? 'No Channel' :
+                                            channelStatus === 'creating' ? 'Creating...' :
+                                                channelStatus === 'open' ? 'Open (Not Funded)' :
+                                                    channelStatus === 'funding' ? 'Funding...' :
+                                                        channelStatus === 'funded' ? 'Funded ✓' :
+                                                            channelStatus === 'closing' ? 'Closing...' : 'Closed'}
                                     </div>
-                                )}
-                            </div>
+                                </div>
 
-                            <div className="p-4 rounded-lg bg-zinc-900/50 border border-zinc-700">
-                                <div className="text-sm text-zinc-400 mb-1">Channel Balance</div>
-                                <div className="font-semibold">{channelBalance} ytest.usd</div>
-                            </div>
-                        </div>
+                                <div className="p-4 rounded-lg bg-zinc-900/50 border border-zinc-700">
+                                    <div className="text-sm text-zinc-400 mb-1">Channel ID</div>
+                                    <div className="font-mono text-sm truncate">
+                                        {channelId ? `${channelId.slice(0, 10)}...${channelId.slice(-8)}` : '—'}
+                                    </div>
+                                    {/* Manual channel ID entry for recovering lost channels */}
+                                    {!channelId && (
+                                        <div className="mt-2">
+                                            <input
+                                                type="text"
+                                                placeholder="Paste existing channel ID (0x...)"
+                                                className="w-full px-2 py-1 text-xs font-mono bg-zinc-800 border border-zinc-600 rounded"
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        const input = e.currentTarget.value.trim();
+                                                        if (input.startsWith('0x') && input.length === 66) {
+                                                            setChannelId(input);
+                                                            setChannelStatus('funded');
+                                                            setIsChannelLoading(false); // Reset loading state
+                                                            alert('Channel ID restored! You can now close it.');
+                                                        } else {
+                                                            alert('Invalid channel ID. Must be 0x + 64 hex chars.');
+                                                        }
+                                                    }
+                                                }}
+                                            />
+                                            <div className="text-xs text-zinc-500 mt-1">Press Enter to restore</div>
+                                        </div>
+                                    )}
+                                </div>
 
-                        {/* Token Selector & Deposit */}
-                        <div className="flex flex-col md:flex-row gap-4 mb-6 p-4 rounded-lg bg-zinc-900/30 border border-zinc-800">
-                            <div className="flex-1">
-                                <label className="block text-xs text-zinc-500 mb-2 uppercase tracking-wide font-bold">Asset to Use</label>
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => setServerToken(ETH_ADDRESS)}
-                                        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${serverToken === ETH_ADDRESS
-                                            ? 'bg-yellow-500 text-black'
-                                            : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
-                                            }`}
-                                    >
-                                        Native ETH
-                                    </button>
-                                    <button
-                                        onClick={() => setServerToken(YTEST_USD_TOKEN)}
-                                        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${serverToken === YTEST_USD_TOKEN
-                                            ? 'bg-yellow-500 text-black'
-                                            : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
-                                            }`}
-                                    >
-                                        ytest.usd
-                                    </button>
+                                <div className="p-4 rounded-lg bg-zinc-900/50 border border-zinc-700">
+                                    <div className="text-sm text-zinc-400 mb-1">Channel Balance</div>
+                                    <div className="font-semibold">{channelBalance} ytest.usd</div>
                                 </div>
                             </div>
 
-                            <div className="flex-1 border-l border-zinc-800 pl-0 md:pl-4">
-                                <label className="block text-xs text-zinc-500 mb-2 uppercase tracking-wide font-bold">Step 0: Fund Ledger</label>
+                            {/* Token Selector & Deposit */}
+                            <div className="flex flex-col md:flex-row gap-4 mb-6 p-4 rounded-lg bg-zinc-900/30 border border-zinc-800">
+                                <div className="flex-1">
+                                    <label className="block text-xs text-zinc-500 mb-2 uppercase tracking-wide font-bold">Asset to Use</label>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => setServerToken(ETH_ADDRESS)}
+                                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${serverToken === ETH_ADDRESS
+                                                ? 'bg-yellow-500 text-black'
+                                                : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                                                }`}
+                                        >
+                                            Native ETH
+                                        </button>
+                                        <button
+                                            onClick={() => setServerToken(YTEST_USD_TOKEN)}
+                                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${serverToken === YTEST_USD_TOKEN
+                                                ? 'bg-yellow-500 text-black'
+                                                : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                                                }`}
+                                        >
+                                            ytest.usd
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="flex-1 border-l border-zinc-800 pl-0 md:pl-4">
+                                    <label className="block text-xs text-zinc-500 mb-2 uppercase tracking-wide font-bold">Step 0: Fund Ledger</label>
+                                    <button
+                                        onClick={() => handleDeposit(BigInt(10000000000000000))} // 0.01 ETH
+                                        disabled={isChannelLoading}
+                                        className="w-full px-4 py-1.5 rounded-md text-sm font-bold bg-zinc-100 hover:bg-white text-black transition-all disabled:opacity-50"
+                                    >
+                                        {isChannelLoading ? 'Processing...' : `Deposit 0.01 ${serverToken === ETH_ADDRESS ? 'ETH' : 'yUSD'}`}
+                                    </button>
+                                    <p className="text-[10px] text-zinc-500 mt-1">Moves funds from Wallet → Unified Balance</p>
+                                </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex flex-wrap gap-3">
                                 <button
-                                    onClick={() => handleDeposit(BigInt(10000000000000000))} // 0.01 ETH
-                                    disabled={isChannelLoading}
-                                    className="w-full px-4 py-1.5 rounded-md text-sm font-bold bg-zinc-100 hover:bg-white text-black transition-all disabled:opacity-50"
+                                    onClick={handleCreateChannel}
+                                    disabled={isChannelLoading || channelStatus !== 'none'}
+                                    className="px-4 py-2 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-yellow-500 hover:bg-yellow-400 text-black shadow-lg shadow-yellow-500/20"
                                 >
-                                    {isChannelLoading ? 'Processing...' : `Deposit 0.01 ${serverToken === ETH_ADDRESS ? 'ETH' : 'yUSD'}`}
+                                    {channelStatus === 'creating' ? 'Creating...' : '1. Create Channel'}
                                 </button>
-                                <p className="text-[10px] text-zinc-500 mt-1">Moves funds from Wallet → Unified Balance</p>
+
+                                <button
+                                    onClick={() => handleResizeChannel(BigInt(20))}
+                                    disabled={isChannelLoading || channelStatus !== 'open'}
+                                    className="px-4 py-2 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-green-500 hover:bg-green-400 text-black shadow-lg shadow-green-500/20"
+                                >
+                                    {channelStatus === 'funding' ? 'Funding...' : '2. Fund (20 units)'}
+                                </button>
+
+                                <button
+                                    onClick={handleCloseChannel}
+                                    disabled={isChannelLoading || (channelStatus !== 'open' && channelStatus !== 'funded')}
+                                    className="px-4 py-2 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-orange-500 hover:bg-orange-400 text-black shadow-lg shadow-orange-500/20"
+                                >
+                                    {channelStatus === 'closing' ? 'Closing...' : '3. Close Channel'}
+                                </button>
+
+                                <button
+                                    onClick={handleWithdraw}
+                                    disabled={isChannelLoading || channelStatus !== 'closed'}
+                                    className="px-4 py-2 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-blue-500 hover:bg-blue-400 text-black shadow-lg shadow-blue-500/20"
+                                >
+                                    4. Withdraw to Wallet
+                                </button>
+                            </div>
+
+                            {/* Info */}
+                            <div className="mt-4 text-xs text-zinc-500">
+                                On-chain channel operations require Sepolia ETH for gas. View your channel on{' '}
+                                <a href="https://apps.yellow.com" target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:underline">
+                                    apps.yellow.com
+                                </a>
                             </div>
                         </div>
-
-                        {/* Action Buttons */}
-                        <div className="flex flex-wrap gap-3">
-                            <button
-                                onClick={handleCreateChannel}
-                                disabled={isChannelLoading || channelStatus !== 'none'}
-                                className="px-4 py-2 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-yellow-500 hover:bg-yellow-400 text-black shadow-lg shadow-yellow-500/20"
-                            >
-                                {channelStatus === 'creating' ? 'Creating...' : '1. Create Channel'}
-                            </button>
-
-                            <button
-                                onClick={() => handleResizeChannel(BigInt(20))}
-                                disabled={isChannelLoading || channelStatus !== 'open'}
-                                className="px-4 py-2 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-green-500 hover:bg-green-400 text-black shadow-lg shadow-green-500/20"
-                            >
-                                {channelStatus === 'funding' ? 'Funding...' : '2. Fund (20 units)'}
-                            </button>
-
-                            <button
-                                onClick={handleCloseChannel}
-                                disabled={isChannelLoading || (channelStatus !== 'open' && channelStatus !== 'funded')}
-                                className="px-4 py-2 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-orange-500 hover:bg-orange-400 text-black shadow-lg shadow-orange-500/20"
-                            >
-                                {channelStatus === 'closing' ? 'Closing...' : '3. Close Channel'}
-                            </button>
-
-                            <button
-                                onClick={handleWithdraw}
-                                disabled={isChannelLoading || channelStatus !== 'closed'}
-                                className="px-4 py-2 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-blue-500 hover:bg-blue-400 text-black shadow-lg shadow-blue-500/20"
-                            >
-                                4. Withdraw to Wallet
-                            </button>
-                        </div>
-
-                        {/* Info */}
-                        <div className="mt-4 text-xs text-zinc-500">
-                            On-chain channel operations require Sepolia ETH for gas. View your channel on{' '}
-                            <a href="https://apps.yellow.com" target="_blank" rel="noopener noreferrer" className="text-yellow-400 hover:underline">
-                                apps.yellow.com
-                            </a>
-                        </div>
-                    </div>
                     </details>
                 )}
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
