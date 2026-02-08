@@ -18,7 +18,7 @@ import { OrderBook } from "../components/OrderBook";
 import { MarketRules } from "../components/MarketRules";
 import { SidebarFeed } from "../components/SidebarFeed";
 import { MarketPositions } from "../components/MarketPositions";
-import { fetchMarketPrices, fetchPositions, registerSession, fundMarket } from "@/lib/yellow/market/marketClient";
+import { fetchMarketPrices, registerSession, fundMarket } from "@/lib/yellow/market/marketClient";
 import type { MarketPrices } from "@/lib/yellow/market/types";
 import { useYellowSession } from "../hooks/useYellowSession";
 import { cn } from "../components/utils";
@@ -51,7 +51,6 @@ export default function Home() {
   const [selectedOutcomeIds, setSelectedOutcomeIds] = useState<number[]>([]);
   const [marketData, setMarketData] = useState<MarketPrices | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [depositAmount, setDepositAmount] = useState("100");
   const [fundAmount, setFundAmount] = useState("100");
   const [bottomTab, setBottomTab] = useState<typeof BOTTOM_TABS[number]>("Rules");
 
@@ -119,32 +118,6 @@ export default function Home() {
     fetchPrices();
   }, [fetchPrices]);
 
-  // ==================== DEPOSIT FLOW ====================
-  const handleDeposit = async () => {
-    const amt = parseFloat(depositAmount);
-    if (isNaN(amt) || amt <= 0) return;
-
-    if (!yellow.account) {
-      await yellow.connectWallet();
-      return;
-    }
-
-    if (yellow.appSessionStatus === "none" || yellow.appSessionStatus === "closed") {
-      await yellow.createAppSession(amt);
-      if (yellow.account) {
-        await registerSession({ user: yellow.account, userBalance: amt }).catch(() => {});
-      }
-      return;
-    }
-
-    if (yellow.appSessionStatus === "active") {
-      const ok = await yellow.depositToSession(amt);
-      if (ok && yellow.account) {
-        await registerSession({ user: yellow.account, userBalance: yellow.payerBalance + amt }).catch(() => {});
-      }
-    }
-  };
-
   // ==================== FUND (BUY COMPLETE SETS) ====================
   const handleFund = async () => {
     if (!yellow.account) return;
@@ -157,25 +130,6 @@ export default function Home() {
     } catch (err) {
       console.error("Fund failed:", err);
     }
-  };
-
-  // ==================== CASHOUT FLOW ====================
-  const handleCashout = async () => {
-    if (yellow.appSessionStatus !== "active") return;
-
-    if (yellow.account) {
-      try {
-        const positions = await fetchPositions(yellow.account);
-        const serverUsd = positions?.usdBalance ?? 0;
-        if (serverUsd > 0) {
-          await yellow.receivePaymentFromCLOB(serverUsd);
-        }
-      } catch {
-        // Continue with close even if payout claim fails
-      }
-    }
-
-    await yellow.closeSession();
   };
 
   // ==================== BUY FLOW ====================
@@ -205,8 +159,6 @@ export default function Home() {
       await registerSession({ user: yellow.account, userBalance: yellow.payerBalance + revenue }).catch(() => {});
     }
   }, [yellow]);
-
-  const formatAddr = (a: string) => `${a.slice(0, 6)}...${a.slice(-4)}`;
 
   const MARKET_INFO = [
     { label: "Volume", value: `$${volume.toLocaleString()}`, color: "" },
@@ -317,6 +269,8 @@ export default function Home() {
                       setSelectedOutcomeIds(ids.length === 8 ? [] : ids);
                     }}
                     volume={volume}
+                    liveCornerPrices={marketData?.corners ?? null}
+                    liveMarginals={marketData?.marginals ?? null}
                   />
                 </div>
 
@@ -399,106 +353,6 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* Trading Account Panel */}
-                <div className="border-t border-white/[0.06] px-8 py-6">
-                  <div className="rounded-2xl border border-white/5 bg-white/5 p-5 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-sm font-bold text-white uppercase tracking-wider">Trading Account</h2>
-                      <div className="flex items-center gap-2">
-                        <span className={cn(
-                          "h-2 w-2 rounded-full",
-                          yellow.wsStatus === "Connected" ? "bg-emerald-400" : yellow.wsStatus === "Connecting" ? "bg-yellow-400 animate-pulse" : "bg-red-400"
-                        )} />
-                        <span className="text-[10px] font-bold text-white/40 uppercase">{yellow.wsStatus}</span>
-                        {yellow.isAuthenticated && (
-                          <span className="text-[10px] font-bold text-emerald-400 ml-2">Authenticated</span>
-                        )}
-                        {yellow.clobInfo?.authenticated && (
-                          <span className="text-[10px] font-bold text-blue-400 ml-2">CLOB Ready</span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-6">
-                      {!yellow.account ? (
-                        <button
-                          onClick={yellow.connectWallet}
-                          className="px-6 py-3 rounded-xl bg-blue-500 text-white font-bold text-sm hover:bg-blue-400 transition-colors"
-                        >
-                          Connect Wallet
-                        </button>
-                      ) : (
-                        <div className="flex items-center gap-4">
-                          <span className="text-sm font-bold text-white/60">{formatAddr(yellow.account)}</span>
-                          <span className="text-[11px] text-white/40">Ledger: {yellow.ledgerBalance} ytest.usd</span>
-                        </div>
-                      )}
-
-                      {yellow.account && (
-                        <div className="flex items-center gap-3">
-                          {yellow.appSessionStatus === "active" ? (
-                            <div className="flex items-center gap-4">
-                              <div className="flex items-center gap-2">
-                                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                                <span className="text-sm font-bold text-emerald-400">Session Active</span>
-                              </div>
-                              <span className="text-sm font-bold text-white">
-                                ${yellow.payerBalance.toFixed(2)} <span className="text-white/40 text-xs">available</span>
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-xs font-bold text-white/30">
-                              {yellow.appSessionStatus === "creating" ? "Creating session..." :
-                               yellow.appSessionStatus === "closing" ? "Closing session..." :
-                               "No active session"}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {yellow.account && (
-                      <div className="flex items-center gap-3 pt-2 border-t border-white/5">
-                        <input
-                          type="text"
-                          value={depositAmount}
-                          onChange={(e) => setDepositAmount(e.target.value)}
-                          className="w-20 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm font-bold text-white outline-none focus:border-white/30 text-right"
-                          placeholder="100"
-                        />
-                        <span className="text-xs text-white/30">USD</span>
-
-                        <button
-                          onClick={handleDeposit}
-                          disabled={yellow.isSessionLoading}
-                          className="px-4 py-2 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-bold hover:bg-emerald-500/30 transition-colors disabled:opacity-50"
-                        >
-                          {yellow.appSessionStatus === "none" || yellow.appSessionStatus === "closed"
-                            ? "Create Session & Deposit"
-                            : "Deposit More"}
-                        </button>
-
-                        {yellow.appSessionStatus === "active" && (
-                          <button
-                            onClick={handleCashout}
-                            disabled={yellow.isSessionLoading}
-                            className="px-4 py-2 rounded-lg bg-rose-500/20 border border-rose-500/30 text-rose-400 text-xs font-bold hover:bg-rose-500/30 transition-colors disabled:opacity-50"
-                          >
-                            Cash Out & Close
-                          </button>
-                        )}
-
-                        <button
-                          onClick={yellow.requestFaucet}
-                          className="ml-auto px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white/40 text-xs font-bold hover:text-white/60 transition-colors"
-                        >
-                          Faucet
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
                 {/* Bottom Tabs */}
                 <div className="border-t border-white/[0.06]">
                   <div className="flex items-center gap-12 px-8 pt-6 pb-0">
@@ -523,25 +377,32 @@ export default function Home() {
                     </div>
                   </div>
 
-              <Visualizations
-                activeView={view}
-                selections={selections}
-                selectedOutcomeIds={selectedOutcomeIds}
-                onToggleOutcome={handleToggleOutcome}
-                onSelectionChange={(s: Record<number, string | null>) => {
-                  const ids = selectionsToOutcomeIds(s);
-                  setSelectedOutcomeIds(ids.length === 8 ? [] : ids);
-                }}
-                volume={volume}
-                liveCornerPrices={marketData?.corners ?? null}
-                liveMarginals={marketData?.marginals ?? null}
-              />
-              <OrderBook avgPriceCents={avgPriceCents} volume={volume} />
-              <MarketPositions
-                userAddress={yellow.account ?? null}
-                refreshKey={refreshKey}
-              />
-              <MarketRules />
+                  {/* Tab Content */}
+                  <div className="px-8 py-6">
+                    {bottomTab === "Rules" && <MarketRules />}
+                    {bottomTab === "History" && (
+                      <p className="text-sm text-white/30 py-4">No trade history yet.</p>
+                    )}
+                    {bottomTab === "Activity" && (
+                      <div className="divide-y divide-white/[0.04]">
+                        {RECENT_TRADES.map((trade, idx) => (
+                          <div key={idx} className="flex items-center justify-between py-4 hover:bg-white/[0.02] transition-colors">
+                            <div className="flex items-center gap-4">
+                              <span className="text-[10px] font-black text-white/20 w-16">{trade.time}</span>
+                              <span className="text-xs font-bold text-white/40 font-mono">{trade.user}</span>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <span className="text-xs font-bold text-white/50">{trade.market}</span>
+                              <span className={cn("text-xs font-black", trade.color)}>{trade.side}</span>
+                              <span className="text-sm font-black text-white w-20 text-right">{trade.amount}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Sidebar */}
