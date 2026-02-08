@@ -88,13 +88,8 @@ export function ActivityFeed() {
 
   return (
     <div className="flex flex-col">
-      {/* Live indicator */}
-      <div className="flex justify-end border-b border-white/10 px-3 py-2">
-        <div className="flex items-center gap-1.5 text-xs text-red-400">
-          <Circle className="h-1.5 w-1.5 fill-current animate-live-blink" />
-          Live
-        </div>
-      </div>
+      {/* Divider */}
+      <div className="border-b border-white/10" />
       {/* List */}
       <div className="max-h-[320px] overflow-y-auto scrollbar-transparent">
         {activity.map((item) => (

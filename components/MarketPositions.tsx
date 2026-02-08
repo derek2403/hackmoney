@@ -60,7 +60,7 @@ export const MarketPositions = ({ userAddress, refreshKey }: MarketPositionsProp
   if (data.positions.length === 0 && data.openOrders.length === 0) return null;
 
   return (
-    <div className="max-w-4xl rounded-3xl border border-white/5 bg-white/5 p-1 backdrop-blur-xl">
+    <div className="border-t border-white/6 px-8 py-6">
       <button
         type="button"
         onClick={() => setIsExpanded((e) => !e)}

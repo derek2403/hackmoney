@@ -473,7 +473,7 @@ export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onT
 
         </div>
       ) : activeView === "2D" ? (
-        <div className="flex flex-col items-center gap-6 pt-2 pb-10">
+        <div className="flex flex-col items-center justify-center gap-6 pt-2 pb-10 min-h-[420px]">
           <div className="relative flex flex-col items-center">
             {selected2DMarkets.length === 2 ? (
               (() => {
