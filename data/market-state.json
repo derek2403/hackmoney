@@ -18,7 +18,7 @@
     "status": "open",
     "resolution": null,
     "winningCorner": null,
-    "totalVolume": 1512.75,
+    "totalVolume": 1522.75,
     "createdAt": 1770535663934
   },
   "amm": {
@@ -37,14 +37,14 @@
   },
   "balances": {
     "0x41Db99b9A098Af28A06C0af238799c08076Af2f7": {
-      "100": 700,
-      "101": 56.666666666666664,
-      "110": 178.75000000000003,
-      "111": 18.071428571428573,
-      "000": 96.875,
-      "001": 22.916666666666668,
-      "010": 87.5,
-      "011": 18.333333333333336
+      "100": 0,
+      "101": 0,
+      "110": 0,
+      "111": 0,
+      "000": 0,
+      "001": 0,
+      "010": 0,
+      "011": 0
     },
     "0x9fD3e7A1c5B8d2F6a4E0b9C3a7D5e1F8b2C4a6D9": {
       "100": 50,
@@ -61,7 +61,7 @@
       "101": 500,
       "110": 408.33333333333337,
       "111": 428.57142857142856,
-      "000": 375,
+      "000": 250,
       "001": 500,
       "010": 500,
       "011": 500
@@ -181,7 +181,7 @@
       "101": 0,
       "110": 0,
       "111": 0,
-      "000": 125,
+      "000": 250,
       "001": 0,
       "010": 0,
       "011": 0
@@ -698,7 +698,7 @@
           "side": "sell",
           "price": 0.08,
           "quantity": 500,
-          "filled": 246.875,
+          "filled": 371.875,
           "timestamp": 1770535670834
         },
         {
@@ -1578,12 +1578,32 @@
       "amount": 10,
       "shares": 125,
       "fills": 1
+    },
+    {
+      "id": 1,
+      "timestamp": 1770567534207,
+      "user": "0xa6f7DF49e2D4B48Bc1EEA0886fB8798fb51046d7",
+      "type": "buy-corner",
+      "description": "corner buy",
+      "amount": 10,
+      "shares": 125,
+      "fills": 1
+    },
+    {
+      "id": 2,
+      "timestamp": 1770567572848,
+      "user": "0x41Db99b9A098Af28A06C0af238799c08076Af2f7",
+      "type": "liquidate",
+      "description": "Liquidated all positions on session close",
+      "amount": 142.81,
+      "shares": 1179.1130952380954,
+      "fills": 8
     }
   ],
   "sessions": {
     "0x41Db99b9A098Af28A06C0af238799c08076Af2f7": {
-      "userBalance": 19999990,
-      "sessionId": "0x2de79573e36abff69b68b580b3068ec2e8c02ecf68bb72681439420054629c33"
+      "userBalance": 40000142.81,
+      "sessionId": "0x3882ef8787006446947a87bb692977dcc8f9672ff96012524ada5ed9651b0718"
     },
     "0x8cA2f29cFdf4F800f16766d430C5f86522ACa3Cd": {
       "userBalance": 263.8,

@@ -705,7 +705,11 @@ export function useYellowSession() {
 
     // ==================== CLOSE SESSION ====================
     const closeSession = useCallback(async () => {
-        if (!sessionKey || !appSessionId || !account || !clobInfo) return;
+        if (!sessionKey || !appSessionId || !account || !clobInfo) {
+            console.error('[closeSession] Missing required state:', { sessionKey: !!sessionKey, appSessionId, account, clobInfo: !!clobInfo });
+            alert('Cannot close session — missing session data.');
+            return;
+        }
 
         setIsSessionLoading(true);
         setAppSessionStatus('closing');
@@ -713,11 +717,28 @@ export function useYellowSession() {
         try {
             const messageSigner = createECDSAMessageSigner(sessionKey.privateKey);
             const partnerAddress = clobInfo.address;
-            let currentPayerBal = payerBalance;
             let currentVersion = appSessionVersion;
 
-            // Withdraw remaining payer balance first
-            if (parseFloat(currentPayerBal) > 0) {
+            // Step 1: Liquidate all shares back to USD on the CLOB server
+            console.log('[closeSession] Liquidating shares...');
+            try {
+                const liqRes = await fetch(`${CLOB_SERVER_URL}/api/market/liquidate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user: account }),
+                });
+                const liqData = await liqRes.json();
+                if (liqData.success && liqData.totalValue > 0) {
+                    console.log(`[closeSession] Liquidated shares for $${liqData.totalValue}`);
+                }
+            } catch (err) {
+                console.warn('[closeSession] Liquidation failed (continuing):', err);
+            }
+
+            // Step 2: Withdraw all funds to ledger — set both allocations to 0
+            const totalFunds = parseFloat(payerBalance) + parseFloat(payeeBalance);
+            if (totalFunds > 0) {
+                console.log(`[closeSession] Withdrawing $${totalFunds} to ledger...`);
                 currentVersion += 1;
                 const withdrawMsg = await createSubmitAppStateMessage<typeof RPCProtocolVersion.NitroRPC_0_4>(messageSigner, {
                     app_session_id: appSessionId as `0x${string}`,
@@ -725,57 +746,90 @@ export function useYellowSession() {
                     version: currentVersion,
                     allocations: [
                         { participant: account, asset: 'ytest.usd', amount: '0' },
-                        { participant: partnerAddress, asset: 'ytest.usd', amount: payeeBalance },
+                        { participant: partnerAddress, asset: 'ytest.usd', amount: '0' },
                     ],
                 });
 
                 const msgJson = JSON.parse(withdrawMsg);
                 const clobSig = await getCLOBSignature(msgJson);
-                if (clobSig) { msgJson.sig.push(clobSig); webSocketService.send(JSON.stringify(msgJson)); }
-                else webSocketService.send(withdrawMsg);
+                if (clobSig) {
+                    msgJson.sig.push(clobSig);
+                    webSocketService.send(JSON.stringify(msgJson));
+                } else {
+                    console.warn('[closeSession] No CLOB sig for withdraw, continuing to close...');
+                }
 
-                currentPayerBal = '0';
                 setPayerBalance('0');
+                setPayeeBalance('0');
                 setAppSessionVersion(currentVersion);
-                await new Promise(r => setTimeout(r, 1000));
+                await new Promise(r => setTimeout(r, 1500));
             }
 
+            // Step 3: Close the app session
+            console.log('[closeSession] Sending close message...');
             const handleResponse = async (data: unknown) => {
                 const response = parseAnyRPCResponse(JSON.stringify(data));
                 if (response.method === RPCMethod.CloseAppSession) {
                     const params = response.params as any;
                     if (params.success || !params.error) {
+                        console.log('[closeSession] Session closed successfully');
                         setAppSessionId(null);
                         setAppSessionStatus('closed');
                         setAppSessionVersion(1);
                         setPayerBalance('0');
                         setPayeeBalance('0');
+                        alert('Session closed! Funds returned to ledger.');
                     } else {
+                        console.error('[closeSession] Close error:', params.error);
                         alert(`Close failed: ${params.error}`);
                         setAppSessionStatus('active');
                     }
                     setIsSessionLoading(false);
                     webSocketService.removeMessageListener(handleResponse);
+                    clearTimeout(timeout);
                 }
             };
+
+            // Timeout so it doesn't hang forever
+            const timeout = setTimeout(() => {
+                webSocketService.removeMessageListener(handleResponse);
+                console.warn('[closeSession] Close response timed out');
+                setAppSessionId(null);
+                setAppSessionStatus('closed');
+                setAppSessionVersion(1);
+                setPayerBalance('0');
+                setPayeeBalance('0');
+                setIsSessionLoading(false);
+                alert('Session close timed out — session may already be closed.');
+            }, 10000);
 
             webSocketService.addMessageListener(handleResponse);
 
             const closeMsg = await createCloseAppSessionMessage(messageSigner, {
                 app_session_id: appSessionId as `0x${string}`,
                 allocations: [
-                    { participant: account, asset: 'ytest.usd', amount: currentPayerBal },
-                    { participant: partnerAddress, asset: 'ytest.usd', amount: payeeBalance },
+                    { participant: account, asset: 'ytest.usd', amount: '0' },
+                    { participant: partnerAddress, asset: 'ytest.usd', amount: '0' },
                 ],
             });
 
             const msgJson = JSON.parse(closeMsg);
             const clobSig = await getCLOBSignature(msgJson);
-            if (clobSig) { msgJson.sig.push(clobSig); webSocketService.send(JSON.stringify(msgJson)); }
-            else webSocketService.send(closeMsg);
+            if (clobSig) {
+                msgJson.sig.push(clobSig);
+                webSocketService.send(JSON.stringify(msgJson));
+            } else {
+                console.error('[closeSession] Failed to get CLOB signature for close');
+                alert('Failed to get CLOB co-signature for close.');
+                clearTimeout(timeout);
+                webSocketService.removeMessageListener(handleResponse);
+                setAppSessionStatus('active');
+                setIsSessionLoading(false);
+            }
 
         } catch (error) {
             console.error('Close session failed:', error);
+            alert('Close session failed. Check console.');
             setAppSessionStatus('active');
             setIsSessionLoading(false);
         }
