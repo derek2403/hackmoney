@@ -150,7 +150,7 @@ export const Navbar = ({
               <div className="flex flex-col items-center">
                 <span className="text-xs font-medium text-zinc-500">Cash</span>
                 <span className="text-base font-bold text-emerald-400" title={`${Math.floor(cash).toLocaleString()} ytest.usd`}>
-                  {cash > 0 ? `$${String(Math.floor(cash)).slice(-4)}` : "$0"}
+                  {cash > 0 ? `$${String(Math.floor(cash-1)).slice(-4)}` : "$0"}
                 </span>
               </div>
             </div>

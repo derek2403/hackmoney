@@ -385,68 +385,8 @@ export const Visualizations = ({ activeView, selections, selectedOutcomeIds, onT
                   dot={false}
                   animationDuration={0}
                 />
-                {selectedMarketProbability !== null && (
-                  <Line
-                    dataKey="selected_market"
-                    type="monotone"
-                    stroke="#3b82f6"
-                    strokeWidth={4}
-                    dot={(props: any) => {
-                      // Only show dot on the last data point
-                      const isLast = props.index === data.length - 1;
-                      if (!isLast) return null;
-                      return (
-                        <circle
-                          {...props}
-                          r={6}
-                          fill="#3b82f6"
-                          stroke="#ffffff"
-                          strokeWidth={2}
-                          style={{
-                            filter: "drop-shadow(0 0 12px rgba(59, 130, 246, 1))",
-                            animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-                          }}
-                        />
-                      );
-                    }}
-                    activeDot={{
-                      r: 8,
-                      fill: "#3b82f6",
-                      stroke: "#ffffff",
-                      strokeWidth: 3,
-                      style: {
-                        filter: "drop-shadow(0 0 16px rgba(59, 130, 246, 1))",
-                      },
-                    }}
-                    animationDuration={300}
-                    style={{
-                      filter: "drop-shadow(0 0 8px rgba(59, 130, 246, 0.6))",
-                    }}
-                  />
-                )}
               </LineChart>
             </ChartContainer>
-
-            {/* Shining effect overlay */}
-            {selectedMarketProbability !== null && (
-              <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl">
-                <div
-                  className="absolute inset-0"
-                  style={{
-                    background: `linear-gradient(90deg, 
-                      transparent 0%, 
-                      rgba(59, 130, 246, 0.1) 45%, 
-                      rgba(59, 130, 246, 0.3) 50%, 
-                      rgba(59, 130, 246, 0.1) 55%, 
-                      transparent 100%
-                    )`,
-                    animation: "shine 3s ease-in-out infinite",
-                    width: "200%",
-                    height: "100%",
-                  }}
-                />
-              </div>
-            )}
           </div>
 
         </div>
