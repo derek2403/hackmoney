@@ -217,9 +217,10 @@ export default function Home() {
       <div className="relative z-10 flex min-h-screen flex-col">
         <Navbar
           portfolioValue={portfolioValue}
-          cash={yellow.payerBalance}
+          cash={parseFloat(yellow.ledgerBalance) || 0}
           ledgerBalance={yellow.ledgerBalance}
           isYellowAuthenticated={yellow.isAuthenticated}
+          isClobReady={!!yellow.clobInfo?.authenticated}
           appSessionStatus={yellow.appSessionStatus}
           isSessionLoading={yellow.isSessionLoading}
           onCreateSession={handleNavbarCreateSession}

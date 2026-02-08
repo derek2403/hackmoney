@@ -244,10 +244,19 @@ export function useYellowSession() {
         return () => { webSocketService.removeStatusListener(setWsStatus); };
     }, []);
 
-    // ==================== CLOB INFO (fetch once on mount) ====================
+    // ==================== CLOB INFO (retry until authenticated, then stop) ====================
     useEffect(() => {
-        const check = async () => { const info = await fetchCLOBInfo(); setClobInfo(info); };
+        let cancelled = false;
+        const check = async () => {
+            const info = await fetchCLOBInfo();
+            if (cancelled) return;
+            setClobInfo(info);
+            if (!info?.authenticated) {
+                setTimeout(check, 3000);
+            }
+        };
         check();
+        return () => { cancelled = true; };
     }, []);
 
     // ==================== AUTO-AUTH ====================

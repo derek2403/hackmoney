@@ -36,6 +36,8 @@ export interface NavbarProps {
   ledgerBalance?: string;
   /** Whether Yellow WebSocket auth is complete. */
   isYellowAuthenticated?: boolean;
+  /** Whether CLOB server is authenticated and ready. */
+  isClobReady?: boolean;
   /** Yellow app session status. */
   appSessionStatus?: 'none' | 'creating' | 'active' | 'closing' | 'closed';
   /** Session loading indicator. */
@@ -53,6 +55,7 @@ export const Navbar = ({
   cash = 0,
   ledgerBalance = "0",
   isYellowAuthenticated = false,
+  isClobReady = false,
   appSessionStatus = "none",
   isSessionLoading = false,
   onCreateSession,
@@ -147,8 +150,8 @@ export const Navbar = ({
               <div className="h-7 w-px bg-white/10" />
               <div className="flex flex-col items-center">
                 <span className="text-xs font-medium text-zinc-500">Cash</span>
-                <span className="text-base font-bold text-emerald-400">
-                  ${cash.toFixed(2)}
+                <span className="text-base font-bold text-emerald-400" title={`${Math.floor(cash).toLocaleString()} ytest.usd`}>
+                  {cash > 0 ? `$${String(Math.floor(cash)).slice(-4)}` : "$0"}
                 </span>
               </div>
             </div>
@@ -336,11 +339,13 @@ export const Navbar = ({
               </button>
             </div>
 
-            {!isYellowAuthenticated ? (
+            {!isYellowAuthenticated || !isClobReady ? (
               <div className="px-6 pb-6">
                 <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-4 text-center">
                   <Wallet className="h-8 w-8 text-yellow-400 mx-auto mb-2" />
-                  <p className="text-sm font-bold text-yellow-400">Authenticating with Yellow Network...</p>
+                  <p className="text-sm font-bold text-yellow-400">
+                    {!isYellowAuthenticated ? "Authenticating with Yellow Network..." : "Connecting to CLOB server..."}
+                  </p>
                   <p className="text-xs text-zinc-500 mt-1">Please wait while we establish a secure connection.</p>
                 </div>
               </div>
@@ -377,11 +382,11 @@ export const Navbar = ({
                   </div>
                 </div>
 
-                {/* Current session balance */}
+                {/* Current session info */}
                 {appSessionStatus === "active" && (
                   <div className="flex items-center justify-between rounded-xl bg-white/5 border border-white/5 px-4 py-3">
-                    <span className="text-xs font-bold text-zinc-500">Current Session Balance</span>
-                    <span className="text-sm font-bold text-emerald-400">${cash.toFixed(2)}</span>
+                    <span className="text-xs font-bold text-zinc-500">Session Active</span>
+                    <span className="text-xs font-bold text-emerald-400">Deposit adds to existing session</span>
                   </div>
                 )}
 
