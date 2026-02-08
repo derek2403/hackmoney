@@ -130,9 +130,9 @@ function handleCreateMarket(body) {
   marketState = createMarket({
     id: id || 'iran-war-2026',
     events: events || [
-      'Khamenei out as Supreme Leader of Iran by January 31?',
-      'US strikes Iran by January 31?',
-      'Israel next strikes Iran by January 31?',
+      'Khamenei out as Supreme Leader of Iran by March 31?',
+      'US strikes Iran by March 31?',
+      'Israel next strikes Iran by March 31?',
     ],
     alpha: alpha || 0.05,
     minB: minB || 100,
@@ -581,9 +581,9 @@ function createMarketRouter(opts = {}) {
     marketState = createMarket({
       id: 'iran-war-2026',
       events: [
-        'Khamenei out as Supreme Leader of Iran by January 31?',
-        'US strikes Iran by January 31?',
-        'Israel next strikes Iran by January 31?',
+        'Khamenei out as Supreme Leader of Iran by March 31?',
+        'US strikes Iran by March 31?',
+        'Israel next strikes Iran by March 31?',
       ],
       alpha: 0.05,
       minB: 100,

@@ -137,9 +137,9 @@ export default function Home() {
 
     const THREE_CARDS = ["/cards/tradewar.png", "/cards/iranwar.png", "/cards/uselection.png"];
     const IRAN_WAR_MARKETS = [
-        { image: "/US%20Iran.jpg", alt: "US Iran", name: "US strikes Iran by January 31?", odds: 60 },
-        { image: "/Khamenei.jpg", alt: "Khamenei", name: "Khamenei out as Supreme Leader of Iran by January 31?", odds: 70 },
-        { image: "/israeliran.jpg", alt: "Israel Iran", name: "Israel next strikes Iran by January 31?", odds: 50 },
+        { image: "/US%20Iran.jpg", alt: "US Iran", name: "US strikes Iran by March 31?", odds: 60 },
+        { image: "/Khamenei.jpg", alt: "Khamenei", name: "Khamenei out as Supreme Leader of Iran by March 31?", odds: 70 },
+        { image: "/israeliran.jpg", alt: "Israel Iran", name: "Israel next strikes Iran by March 31?", odds: 50 },
     ];
 
     // Layout: "four" = 1 top + 3 bottom; "three" = single row of 3 cards on top
