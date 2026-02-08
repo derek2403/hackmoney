@@ -4,7 +4,7 @@
 # Requires: server running, fresh market state (delete data/market-state.json first)
 
 SERVER="${1:-http://localhost:3001}"
-MAKER="0xMaker"
+MAKER="0x41Db99b9A098Af28A06C0af238799c08076Af2f7"
 SETS=200
 SELL_QTY=50
 
